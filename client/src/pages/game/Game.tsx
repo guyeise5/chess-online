@@ -58,12 +58,15 @@ const Game = (): ReactElement => {
             return;
         }
         const fen = message.message
-        chess.load(fen)
         setFen(fen)
     })
 
     useEffect(() => {
         localStorage.setItem(`${roomId}-fen`, fen)
+    }, [fen]);
+
+    useEffect(() => {
+        chess.load(fen)
     }, [fen]);
 
     useEffect(() => {

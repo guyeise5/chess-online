@@ -3,6 +3,7 @@ import cors from "cors";
 import auth from "../routes/auth";
 import path from "path";
 import roomManager from "../routes/roomManager";
+import {isProd} from "../utils";
 
 const clientBuildPath = () => {
     return process.env.CLIENT_BUILD_PATH || path.join(__dirname, "../../client/build")
@@ -10,7 +11,7 @@ const clientBuildPath = () => {
 export default () => {
     const app = express()
     console.log(clientBuildPath())
-    app.use(cors())
+    isProd() || app.use(cors())
     app.use("*", auth)
     app.use("/api/v1/room", roomManager)
     app.use(express.static(clientBuildPath()))

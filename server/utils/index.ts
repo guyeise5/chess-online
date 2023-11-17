@@ -16,3 +16,7 @@ export const isGameAvailable = (room: ChessRoom | undefined): boolean => {
 export const toSquare = (s: string | undefined): Square | undefined => {
     return SQUARES.find(square => square === s)
 }
+
+export function isProd(): boolean {
+    return process.env.NODE_ENV != 'development'
+}

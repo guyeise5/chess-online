@@ -8,7 +8,7 @@
     "build": "tsc",
     "postbuild": "mkdir ./build/client && cp -r ../client/build ./build/client",
     "start": "node ./build/server/index.js",
-    "dev": "nodemon index.ts"
+    "dev": "NODE_ENV=development nodemon index.ts"
   },
   "engines": {
     "node": ">=18.0.0"

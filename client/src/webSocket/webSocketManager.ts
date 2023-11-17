@@ -1,10 +1,16 @@
 import {io, Socket} from 'socket.io-client';
+import {webSocketOrigin} from "../config";
 
 let _socket: Socket | undefined = undefined
 
 const init = (): Socket => {
     if (!_socket) {
-        _socket = io()
+        const wsOrigin = webSocketOrigin();
+        if(wsOrigin) {
+            _socket = io(wsOrigin)
+        } else {
+            _socket = io()
+        }
         _socket.on("connect", () => {
             console.log("web socket connected")
         })

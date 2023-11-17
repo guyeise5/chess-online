@@ -1,12 +1,18 @@
 import http from "http";
 import socketio from "socket.io";
+import {isProd} from "../utils";
 
 let io: socketio.Server | undefined;
 export const webSocketRegisterTo = (server: http.Server): void => {
     if (io) {
         throw new Error("server is already created")
     }
-    io = new socketio.Server(server)
+
+    io = new socketio.Server(server, {
+        cors: {
+            origin: isProd() ? undefined : "*"
+        }
+    })
     io.on("connection", (socket) => {
         console.log(`new connection ${socket.handshake.address}`)
         socket.on("message", message => console.log(message))

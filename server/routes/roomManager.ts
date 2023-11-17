@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from 'body-parser'
 
 import sm from "../stateManager";
-import {BLACK, WHITE} from "chess.js";
+import {BLACK, Move, WHITE} from "chess.js";
 import {isGameAvailable, toSquare} from "../utils";
 import {publish} from "../servers/webSocketServer";
 import {ChessRoom} from "../stateManager/IStateManager";
@@ -21,7 +21,7 @@ router.get("/:roomId/turn", (req, res) => {
 router.get("/:roomId/moves", (req, res) => {
     const chess = sm.getOrCreateRoom(req.params.roomId).chess
     const square = toSquare(req.query.square?.toString())
-    if(square) {
+    if (square) {
         res.status(200).json(chess.moves({square: square, verbose: true}))
     } else {
         res.status(200).json(chess.moves({verbose: true}))
@@ -53,11 +53,11 @@ router.post("/:roomId/loadFen", (req, res) => {
     }
 })
 
-router.get("/:roomId/myColor", (req,res) => {
+router.get("/:roomId/myColor", (req, res) => {
     const room = sm.getOrCreateRoom(req.params.roomId)
-    if(room.whitePlayerId === req.userId) {
+    if (room.whitePlayerId === req.userId) {
         res.status(200).json(WHITE)
-    } else if(room.blackPlayerId === req.userId) {
+    } else if (room.blackPlayerId === req.userId) {
         res.status(200).json(BLACK)
     } else {
         res.status(400).json("you are not part of the game")
@@ -73,7 +73,7 @@ router.post("/:roomId/loadPgn", (req, res) => {
     }
 })
 
-router.post("/quickPlay", (req,res) => {
+router.post("/quickPlay", (req, res) => {
     const room = sm.getOrCreateQuickRoom()
     const userColor = registerUserToRoom(room, req.userId)
     res.status(200).json({
@@ -129,19 +129,27 @@ router.post("/:roomId/move", (req, res) => {
     const turn = room.chess.turn()
     const userId = req.userId
 
+    if(room.whitePlayerId != userId && room.blackPlayerId != userId) {
+        res.status(403).json("not part of the game")
+        return
+    }
     if ((turn == WHITE && room.whitePlayerId != userId) || (turn == BLACK && room.blackPlayerId != userId)) {
         res.status(403).json("not your turn")
+        return;
     }
 
-    const move: {from: string, to: string, promotion?: string} = req.body
+    const move: { from: string, to: string, promotion?: string } = req.body
+    let chessMove: Move;
     try {
-        const chessMove = room.chess.move(move);
-        res.status(201).json(chessMove)
-        publish(`room-${roomId}`, room.chess.fen())
-        console.log(`#${roomId} - move`, move)
+        chessMove = room.chess.move(move);
     } catch (e) {
         res.status(400).json(e)
+        return;
     }
+
+    res.status(201).json(chessMove)
+    publish(`room-${roomId}`, room.chess.fen())
+    console.log(`#${roomId} - move`, move)
 })
 
 export default router

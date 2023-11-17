@@ -2,10 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
-// import App from "./pages/app/App";
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import Game from "./pages/game/Game";
 import App from "./pages/app/App";
+import {configure} from "./config";
+
+configure()
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
