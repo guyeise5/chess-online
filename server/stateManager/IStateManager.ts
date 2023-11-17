@@ -3,8 +3,10 @@ import {Chess} from 'chess.js'
 export type ChessRoom = {
     chess: Chess,
     whitePlayerId?: string
-    blackPlayerId?: string
+    blackPlayerId?: string,
+    id: string
 }
 export type IStateManager = {
-    getRoom(roomId: string): ChessRoom
+    getOrCreateRoom(roomId: string): ChessRoom
+    getOrCreateQuickRoom(): ChessRoom
 }

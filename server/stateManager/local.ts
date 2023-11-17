@@ -1,20 +1,35 @@
 import {ChessRoom, IStateManager} from "./IStateManager";
 import {Chess} from 'chess.js'
+import {v4} from "uuid";
 
 class LocalStateManager implements IStateManager {
-    private readonly cache: Record<string, ChessRoom>
+    private quickPlayRoom: ChessRoom| undefined
+    private readonly rooms: Record<string, ChessRoom> = {}
 
-    constructor() {
-        this.cache = {}
-    }
-
-    public getRoom(roomId: string): ChessRoom {
-        if (!this.cache[roomId]) {
-            this.cache[roomId] = {
-                chess: new Chess()
+    public getOrCreateRoom(roomId: string): ChessRoom {
+        if (!this.rooms[roomId]) {
+            this.rooms[roomId] = {
+                chess: new Chess(),
+                id: roomId
             }
         }
-        return this.cache[roomId]
+        return this.rooms[roomId]
+    }
+
+    getOrCreateQuickRoom(): ChessRoom {
+        if (this.quickPlayRoom?.whitePlayerId && this.quickPlayRoom.blackPlayerId) {
+            this.quickPlayRoom = undefined
+        }
+
+        if (!this.quickPlayRoom) {
+            this.quickPlayRoom = {
+                chess: new Chess(),
+                id: v4()
+            }
+
+        }
+        this.rooms[this.quickPlayRoom.id] = this.quickPlayRoom
+        return this.quickPlayRoom
     }
 }
 

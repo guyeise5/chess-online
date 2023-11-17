@@ -1,4 +1,4 @@
-import {Chess, Color, BLACK, WHITE} from "chess.js";
+import {Chess, Color, BLACK, WHITE, PieceSymbol, Square, SQUARES} from "chess.js";
 import {BoardOrientation} from "react-chessboard/dist/chessboard/types";
 
 export const toBoardOrientation = (color: string): BoardOrientation => {
@@ -13,7 +13,7 @@ export const toBoardOrientation = (color: string): BoardOrientation => {
 }
 
 export function toColor(boardOrientation: BoardOrientation | undefined): Color {
-    if(boardOrientation == 'black') {
+    if (boardOrientation == 'black') {
         return BLACK
     }
 
@@ -26,4 +26,32 @@ export function generateRandomMove(chess: Chess): string | undefined {
         return undefined
     const randomIndex = Math.floor(Math.random() * possibleMoves.length);
     return possibleMoves[randomIndex]
+}
+
+
+type Piece = {
+    type: PieceSymbol
+    color: Color
+}
+
+export const getPiecePosition = (chess: Chess, piece: Piece): Square[] => {
+    //@ts-ignore
+    return [].concat(...chess.board())
+        .map((p: Piece | null, index) => {
+            if (p !== null && p.type === piece.type && p.color === piece.color) {
+                return index
+            }
+            return undefined
+        })
+        .flatMap(n => Number.isInteger(n) && n != undefined ? [n] : [])
+        .map((piece_index) => {
+            const row = 'abcdefgh'[piece_index % 8]
+            const column = Math.ceil((64 - piece_index) / 8)
+            return row + column
+        }).map(s => toSquare(s))
+        .flatMap(x => x ? [x] : [])
+}
+
+export function toSquare(s: string | undefined): Square | undefined {
+    return SQUARES.find(x => s == x)
 }
