@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prebuild": "rm -rf build && cd ../client && npm run build",
     "build": "tsc",
-    "start": "node ./build/index.js",
+    "postbuild": "mkdir ./build/client && cp -r ../client/build ./build/client",
+    "start": "node ./build/server/index.js",
     "dev": "nodemon index.ts"
   },
   "engines": {

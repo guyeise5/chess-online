@@ -51,6 +51,17 @@ router.post("/:roomId/loadFen", (req, res) => {
         res.status(400).json(e)
     }
 })
+
+router.get("/:roomId/myColor", (req,res) => {
+    const room = sm.getRoom(req.params.roomId)
+    if(room.whitePlayerId === req.userId) {
+        res.status(200).json(WHITE)
+    } else if(room.blackPlayerId === req.userId) {
+        res.status(200).json(BLACK)
+    } else {
+        res.status(400).json("you are not part of the game")
+    }
+})
 router.post("/:roomId/loadPgn", (req, res) => {
     const chess = sm.getRoom(req.params.roomId).chess
     try {
