@@ -3,9 +3,10 @@ import bodyParser from 'body-parser'
 
 import sm from "../stateManager";
 import {BLACK, Move, WHITE} from "chess.js";
-import {isGameAvailable, toSquare} from "../utils";
+import {isGameAvailable, isPlayerDisconnected, shutdownGame, toSquare} from "../utils";
 import {publish} from "../servers/webSocketServer";
 import {ChessRoom} from "../stateManager/IStateManager";
+import stateManager from "../stateManager";
 
 const router = express.Router()
 router.use(bodyParser.json())
@@ -129,7 +130,7 @@ router.post("/:roomId/move", (req, res) => {
     const turn = room.chess.turn()
     const userId = req.userId
 
-    if(room.whitePlayerId != userId && room.blackPlayerId != userId) {
+    if (room.whitePlayerId != userId && room.blackPlayerId != userId) {
         res.status(403).json("not part of the game")
         return
     }
@@ -148,8 +149,43 @@ router.post("/:roomId/move", (req, res) => {
     }
 
     res.status(201).json(chessMove)
-    publish(`room-${roomId}`, room.chess.fen())
+    publish("move", `room-${roomId}`, chessMove)
     console.log(`#${roomId} - move`, move)
+})
+
+router.post('/:roomId/heartbeat', (req, res) => {
+    console.log("client heartbeat", req.userId)
+    res.status(200).json({ok: 1})
+    const room = stateManager.getOrCreateRoom(req.params.roomId)
+    const userId = req.userId
+
+    if (userId !== room.blackPlayerId && userId !== room.whitePlayerId) {
+        return
+    }
+
+    stateManager.recordClientHeartbeat(req.userId)
+
+    if (!room.whitePlayerId || !room.blackPlayerId) {
+        return
+    }
+
+    const [blackPlayerStatus, whitePlayerStatus] = stateManager.getClientsStatus(room.blackPlayerId, room.whitePlayerId)
+
+    if (isPlayerDisconnected(blackPlayerStatus)) {
+        publish("gameDisconnect", `room-${room.id}`, {
+            color: BLACK
+        })
+        shutdownGame(room.id)
+        return;
+    }
+
+    if (isPlayerDisconnected(whitePlayerStatus)) {
+        publish("gameDisconnect", `room-${room.id}`, {
+            color: WHITE
+        })
+        shutdownGame(room.id)
+        return;
+    }
 })
 
 export default router

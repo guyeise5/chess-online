@@ -3,6 +3,7 @@ import {webSocketOrigin} from "../config";
 
 let _socket: Socket | undefined = undefined
 
+export type SocketMessage<T> = { topic: string, data: T }
 const init = (): Socket => {
     if (!_socket) {
         const wsOrigin = webSocketOrigin();

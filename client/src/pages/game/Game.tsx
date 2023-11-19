@@ -1,17 +1,17 @@
 import {ReactElement, useEffect, useState} from "react";
 import {Chessboard} from "react-chessboard";
 import './Game.css'
-import {BLACK, Chess, Square} from "chess.js";
+import {BLACK, Chess, Color, Move, Square} from "chess.js";
 import axios from 'axios'
 import {useLocation} from "react-router-dom";
-import {socket} from "../../webSocket/webSocketManager";
+import {socket, SocketMessage} from "../../webSocket/webSocketManager";
+import {heartbeatIntervalMillis} from "../../config";
 
 const chess = new Chess()
 const moveSound = new Audio("./mp3/soundMove.mp3")
 const checkmateSound = new Audio("./mp3/checkmate.mp3")
-
 const Game = (): ReactElement => {
-    const { search} = useLocation()
+    const {search} = useLocation()
     const params = new URLSearchParams(search)
     const color = params.get("color") || undefined
     const boardOrientation = color === BLACK ? "black" : "white"
@@ -19,7 +19,7 @@ const Game = (): ReactElement => {
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
 
     const setFen = (newFen: string) => {
-        if(newFen != fen) {
+        if (newFen != fen) {
             _setFen(newFen)
             moveSound.play().finally()
         }
@@ -61,12 +61,23 @@ const Game = (): ReactElement => {
         axios.get(`/api/v1/room/${roomId}/fen`).then(resp => setFen(resp.data))
     }, []);
 
-    socket().on("message", (message: { topic: string, message: string }) => {
+    socket().on("move", (message: SocketMessage<Move>) => {
         if (message.topic !== topicName) {
             return;
         }
-        const fen = message.message
-        setFen(fen)
+
+        const move = message.data
+        setFen(move.after)
+    })
+
+    socket().on("gameDisconnect", (message: SocketMessage<{ color: Color }>) => {
+        if (message.topic !== topicName) {
+            return
+        }
+
+        console.log("game disconnected", message.data.color)
+
+        alert(color === message.data.color ? "you are disconnected" : "opponent disconnected")
     })
 
     useEffect(() => {
@@ -76,7 +87,7 @@ const Game = (): ReactElement => {
     useEffect(() => {
         chess.load(fen)
 
-        if(chess.isCheckmate()) {
+        if (chess.isCheckmate()) {
             checkmateSound.play().finally()
         }
     }, [fen]);
@@ -94,6 +105,15 @@ const Game = (): ReactElement => {
 
         }
     }, [fen]);
+
+    function periodicHeartbeat() {
+        return setInterval(() => axios.post(`/api/v1/room/${roomId}/heartbeat`, {}).finally(), heartbeatIntervalMillis)
+    }
+
+    useEffect(() => {
+        const task = periodicHeartbeat()
+        return () => clearInterval(task)
+    }, []);
 
     return <div id={"mainGameDiv"}>
         <Chessboard boardOrientation={boardOrientation} boardWidth={500}

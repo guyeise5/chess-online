@@ -29,9 +29,9 @@ export const webSocketRegisterTo = (server: http.Server): void => {
     })
 }
 
-export const publish = (topic: string, message: any): void => {
-    io?.to(topic).emit("message", {
+export const publish = (type: string, topic: string, data: any): void => {
+    io?.to(topic).emit(type, {
         topic: topic,
-        message: message
+        data: data
     })
 }
