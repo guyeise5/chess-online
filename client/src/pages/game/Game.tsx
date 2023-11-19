@@ -7,18 +7,25 @@ import {useLocation} from "react-router-dom";
 import {socket} from "../../webSocket/webSocketManager";
 
 const chess = new Chess()
+const playMoveSound = new Audio("./mp3/soundMove.mp3")
 
 const Game = (): ReactElement => {
-    //@ts-ignore
-    const { _pathname, search } = useLocation()
+    const { search} = useLocation()
     const params = new URLSearchParams(search)
     const color = params.get("color") || undefined
     const boardOrientation = color === BLACK ? "black" : "white"
     const roomId = params.get("roomId")
-    const [fen, setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
+    const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
 
+    const setFen = (newFen: string) => {
+        if(newFen != fen) {
+            _setFen(newFen)
+            playMoveSound.play().finally()
+        }
+    }
     console.log("boardOrientation", boardOrientation)
-    function isDraggablePiece({ sourceSquare}: { sourceSquare: string }): boolean {
+
+    function isDraggablePiece({sourceSquare}: { sourceSquare: string }): boolean {
         const square = sourceSquare as Square
         return chess.get(square).color === color
     }
@@ -49,12 +56,12 @@ const Game = (): ReactElement => {
     const topicName = `room-${roomId}`;
     socket().emit("subscribe", topicName)
 
-
     useEffect(() => {
         axios.get(`/api/v1/room/${roomId}/fen`).then(resp => setFen(resp.data))
     }, []);
-    socket().on("message", (message: {topic: string, message: string}) => {
-        if(message.topic !== topicName) {
+
+    socket().on("message", (message: { topic: string, message: string }) => {
+        if (message.topic !== topicName) {
             return;
         }
         const fen = message.message
@@ -70,8 +77,8 @@ const Game = (): ReactElement => {
     }, [fen]);
 
     useEffect(() => {
-        if(chess.isCheck() || chess.isCheckmate()) {
-            if(chess.turn() == BLACK) {
+        if (chess.isCheck() || chess.isCheckmate()) {
+            if (chess.turn() == BLACK) {
                 document?.querySelectorAll('[data-piece="bK"]')?.item(0)?.classList?.add("checked")
             } else {
                 document?.querySelectorAll('[data-piece="wK"]')?.item(0)?.classList?.add("checked")
@@ -82,6 +89,7 @@ const Game = (): ReactElement => {
 
         }
     }, [fen]);
+
     return <div id={"mainGameDiv"}>
         <Chessboard boardOrientation={boardOrientation} boardWidth={500}
                     position={fen}
