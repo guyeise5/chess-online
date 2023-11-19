@@ -7,7 +7,8 @@ import {useLocation} from "react-router-dom";
 import {socket} from "../../webSocket/webSocketManager";
 
 const chess = new Chess()
-const playMoveSound = new Audio("./mp3/soundMove.mp3")
+const moveSound = new Audio("./mp3/soundMove.mp3")
+const checkmateSound = new Audio("./mp3/checkmate.mp3")
 
 const Game = (): ReactElement => {
     const { search} = useLocation()
@@ -20,7 +21,7 @@ const Game = (): ReactElement => {
     const setFen = (newFen: string) => {
         if(newFen != fen) {
             _setFen(newFen)
-            playMoveSound.play().finally()
+            moveSound.play().finally()
         }
     }
     console.log("boardOrientation", boardOrientation)
@@ -74,6 +75,10 @@ const Game = (): ReactElement => {
 
     useEffect(() => {
         chess.load(fen)
+
+        if(chess.isCheckmate()) {
+            checkmateSound.play().finally()
+        }
     }, [fen]);
 
     useEffect(() => {
