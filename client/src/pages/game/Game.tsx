@@ -6,14 +6,17 @@ import axios from 'axios'
 import {useLocation} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
+import {cleanSquareHighlight, highlightSquares, MinimalMove, toSquare} from "./utils";
 
 const chess = new Chess()
 const moveSound = new Audio("./mp3/soundMove.mp3")
+const captureSound = new Audio("./mp3/capture.mp3")
 const checkmateSound = new Audio("./mp3/checkmate.mp3")
 const Game = (): ReactElement => {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
     const color = params.get("color") || undefined
+    const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
     const boardOrientation = color === BLACK ? "black" : "white"
     const roomId = params.get("roomId")
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
@@ -21,7 +24,6 @@ const Game = (): ReactElement => {
     const setFen = (newFen: string) => {
         if (newFen != fen) {
             _setFen(newFen)
-            moveSound.play().finally()
         }
     }
     console.log("boardOrientation", boardOrientation)
@@ -31,23 +33,73 @@ const Game = (): ReactElement => {
         return chess.get(square).color === color
     }
 
+    function onPieceDragBegin(_piece: string, sourceSquare: string): void {
+        const square = toSquare(sourceSquare)
+        if (!square) {
+            return;
+        }
+
+        setSelectedSquare(square)
+    }
+
+    function onPieceDragEnd(_piece: string, sourceSquare: string): void {
+        setSelectedSquare(null)
+        const square = toSquare(sourceSquare)
+        if (!square) {
+            return;
+        }
+    }
+
+    function onSquareClick(sqr: string) {
+        const clickedSquare = toSquare(sqr)
+        if (!clickedSquare) {
+            return;
+        }
+
+        if (isDraggablePiece({sourceSquare: clickedSquare})) {
+            setSelectedSquare(clickedSquare)
+            return;
+        }
+
+        if (selectedSquare) {
+            const moves = chess.moves({verbose: true, square: selectedSquare})
+            if (moves.find(move => move.to === clickedSquare)) {
+                doMove({
+                    from: selectedSquare,
+                    to: clickedSquare,
+                    promotion: "q"
+                })
+            }
+        }
+    }
+
     function onPieceDrop(sourceSquare: string, targetSquare: string): boolean {
+        setSelectedSquare(null)
+        const from = toSquare(sourceSquare)
+        const to = toSquare(targetSquare)
+        if(!from || !to) {
+            return false
+        }
+
+        const mv: MinimalMove = {
+            from: from,
+            to: to,
+            promotion: "q"
+        };
+        return doMove(mv)
+    }
+
+    function doMove(move: MinimalMove): boolean {
         try {
-            const mv = {
-                from: sourceSquare,
-                to: targetSquare,
-                promotion: "q"
-            };
-            chess.move(mv)
+            chess.move(move)
             setFen(chess.fen())
-            axios.post(`/api/v1/room/${roomId}/move`, mv).catch(e => {
+            axios.post(`/api/v1/room/${roomId}/move`, move).catch(e => {
                 console.error(e)
                 axios.get(`/api/v1/room/${roomId}/fen`)
                     .then(resp => setFen(resp.data.toString()))
                     .catch(e => console.log(e))
             })
-
-            return true;
+            return true
         } catch (e) {
             console.log("failed to move", e)
             return false
@@ -68,6 +120,9 @@ const Game = (): ReactElement => {
 
         const move = message.data
         setFen(move.after)
+
+        const sound = move.captured ? captureSound : moveSound
+        sound.play().finally()
     })
 
     socket().on("gameDisconnect", (message: SocketMessage<{ color: Color }>) => {
@@ -106,6 +161,9 @@ const Game = (): ReactElement => {
         }
     }, [fen]);
 
+    useEffect(() => {
+        cleanSquareHighlight()
+    }, [fen]);
     function periodicHeartbeat() {
         return setInterval(() => axios.post(`/api/v1/room/${roomId}/heartbeat`, {}).finally(), heartbeatIntervalMillis)
     }
@@ -115,11 +173,24 @@ const Game = (): ReactElement => {
         return () => clearInterval(task)
     }, []);
 
+    useEffect(() => {
+        cleanSquareHighlight()
+        if (selectedSquare) {
+            const square = toSquare(selectedSquare)
+            if (!square) {
+                return
+            }
+            highlightSquares(chess, square)
+        }
+    }, [selectedSquare]);
     return <div id={"mainGameDiv"}>
         <Chessboard boardOrientation={boardOrientation} boardWidth={500}
                     position={fen}
                     onPieceDrop={onPieceDrop}
+                    onPieceDragBegin={onPieceDragBegin}
+                    onPieceDragEnd={onPieceDragEnd}
                     isDraggablePiece={isDraggablePiece}
+                    onSquareClick={onSquareClick}
         />
     </div>
 }

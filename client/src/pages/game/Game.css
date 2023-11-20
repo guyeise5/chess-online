@@ -2,5 +2,13 @@
 }
 
 .checked {
-    background-color: red;
+    background-color: red !important;
+}
+
+.possibleMove {
+    background-color: lightgreen !important;
+}
+
+.selectedPiece {
+    background-color: green !important;
 }
