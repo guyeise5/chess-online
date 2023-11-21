@@ -6,6 +6,8 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import Game from "./pages/game/Game";
 import App from "./pages/app/App";
 import {configure} from "./config";
+import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
+import JoinRoom from "./pages/join-room/JoinRoom";
 
 configure()
 
@@ -19,6 +21,8 @@ root.render(
             <Routes>
                 <Route path={"/"} element={<App/>}/>
                 <Route path={"/room"} element={<Game/>}/>
+                <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
+                <Route path={"/joinRoom"} element={<JoinRoom/>}/>
             </Routes>
         </BrowserRouter>
     </React.StrictMode>

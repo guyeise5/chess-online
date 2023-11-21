@@ -17,14 +17,21 @@ export const webSocketRegisterTo = (server: http.Server): void => {
         console.log(`new connection ${socket.handshake.address}`)
         socket.on("message", message => console.log(message))
 
-        socket.on("subscribe", topic => {
+        socket.on("subscribe", (topic, ack) => {
             socket.join(topic)
+            if(ack) {
+                ack("ok")
+            }
             console.log(`new listener for topic ${topic}`)
         })
 
-        socket.on("unsubscribe", topic => {
+        socket.on("unsubscribe", (topic, ack) => {
             socket.leave(topic)
+            if(ack) {
+                ack("ok")
+            }
             console.log(`leaver from topic ${topic}`)
+
         })
     })
 }

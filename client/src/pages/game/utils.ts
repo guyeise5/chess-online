@@ -97,3 +97,21 @@ export function toColorFromString(s?: string | null) {
             return undefined
     }
 }
+
+export function getTopicName(roomId?: string): string | undefined {
+    if (!roomId) {
+        return undefined
+    }
+    return `room-${roomId}`;
+}
+
+export function oppositeColor(color?: Color): Color | undefined {
+    switch (color) {
+        case WHITE:
+            return BLACK
+        case BLACK:
+            return WHITE
+        default:
+            return undefined
+    }
+}

@@ -1,12 +1,13 @@
 import express from "express";
 import bodyParser from 'body-parser'
 
-import sm from "../stateManager";
+import sm from "../../stateManager";
 import {BLACK, Move, WHITE} from "chess.js";
-import {isGameAvailable, isPlayerDisconnected, shutdownGame, toSquare} from "../utils";
-import {publish} from "../servers/webSocketServer";
-import {ChessRoom} from "../stateManager/IStateManager";
-import stateManager from "../stateManager";
+import {isGameAvailable, isPlayerDisconnected, shutdownGame, toSquare} from "../../utils";
+import {publish} from "../../servers/webSocketServer";
+import {ChessRoom} from "../../stateManager/IStateManager";
+import stateManager from "../../stateManager";
+import {v4} from "uuid";
 
 const router = express.Router()
 router.use(bodyParser.json())
@@ -103,8 +104,13 @@ function registerUserToRoom(room: ChessRoom, userId: string): string {
 }
 
 router.post("/:roomId/join", (req, res) => {
-    const room = sm.getOrCreateRoom(req.params.roomId)
+    const roomId = req.params.roomId;
+    if (!sm.isRoomExists(roomId)) {
+        res.status(404).json({error: "room does not exist"})
+        return;
+    }
 
+    const room = sm.getOrCreateRoom(roomId)
     if (room.blackPlayerId && room.whitePlayerId) {
         res.status(400).json({
             error: "room is full"
@@ -114,8 +120,20 @@ router.post("/:roomId/join", (req, res) => {
     let userColor = registerUserToRoom(room, req.userId);
 
     res.status(200).json(userColor)
+    publish("playerJoined", `room-${roomId}`, "1")
     return
 })
+
+router.post("/create", (req, res) => {
+    const roomId = v4();
+    const room = sm.getOrCreateRoom(roomId)
+    let userColor = registerUserToRoom(room, req.userId);
+
+    res.status(200).json({color: userColor, roomId: roomId})
+    return
+})
+
+
 
 router.post("/:roomId/move", (req, res) => {
     const roomId = req.params.roomId;

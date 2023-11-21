@@ -59,6 +59,10 @@ class LocalStateManager implements IStateManager {
             this.quickPlayRoom = undefined
         }
     }
+
+    isRoomExists(roomId: string): boolean {
+        return this.quickPlayRoom?.id === roomId || !!this.rooms[roomId]
+    }
 }
 
 export const instance = new LocalStateManager()

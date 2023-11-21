@@ -8,6 +8,7 @@ export function webSocketOrigin(): string | undefined {
     return undefined
 }
 export const heartbeatIntervalMillis = 1000
+export const redirectToGameIntervalMillis = 1000
 export function configure() {
     console.log("environment", process.env.NODE_ENV)
     if(process.env.NODE_ENV == "development") {

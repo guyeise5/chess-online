@@ -6,7 +6,7 @@ import axios from 'axios'
 import {useLocation} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
-import {cleanSquareHighlight, highlightSquares, MinimalMove, toColorFromString, toSquare} from "./utils";
+import {cleanSquareHighlight, getTopicName, highlightSquares, MinimalMove, toColorFromString, toSquare} from "./utils";
 
 const chess = new Chess()
 const moveSound = new Audio("./mp3/soundMove.mp3")
@@ -16,12 +16,12 @@ const Game = (): ReactElement => {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
     const myColor: Color | undefined = toColorFromString(params.get("color"))
+    const roomId = params.get("roomId")
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
     const boardOrientation = myColor === BLACK ? "black" : "white"
-    const roomId = params.get("roomId")
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
     const [preMove, setPreMove] = useState<MinimalMove | undefined>(undefined)
-    const topicName = `room-${roomId}`;
+    const topicName = getTopicName(roomId || "");
 
     const setFen = (newFen: string) => {
         if (newFen != fen) {
@@ -165,12 +165,12 @@ const Game = (): ReactElement => {
     }
 
     useEffect(() => {
-        socket().emit("subscribe", topicName)
+        topicName && socket().emit("subscribe", topicName)
         socket().on("move", onMoveListener)
         socket().on("gameDisconnect", gameDisconnectListener)
 
         return () => {
-            socket().emit("unsubscribe", topicName)
+            topicName && socket().emit("unsubscribe", topicName)
             socket().off("move", onMoveListener)
             socket().off("gameDisconnect", gameDisconnectListener)
         }
