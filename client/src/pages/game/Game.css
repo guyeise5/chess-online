@@ -12,11 +12,3 @@
 .selectedPiece {
     background-color: green !important;
 }
-
-.preMoveDest {
-    background-color: #AAAAAA !important;
-}
-
-.preMoveSource {
-    background-color: #646464 !important;
-}
