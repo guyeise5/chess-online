@@ -184,6 +184,7 @@ const Game = (): ReactElement => {
                     isDraggablePiece={isDraggablePiece}
                     onSquareClick={onSquareClick}
                     arePremovesAllowed={true}
+                    promotionDialogVariant={"vertical"}
         />
     </div>
 }
