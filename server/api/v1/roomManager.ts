@@ -172,7 +172,6 @@ router.post("/:roomId/move", (req, res) => {
 })
 
 router.post('/:roomId/heartbeat', (req, res) => {
-    console.log("client heartbeat", req.userId)
     res.status(200).json({ok: 1})
     const room = stateManager.getOrCreateRoom(req.params.roomId)
     const userId = req.userId
