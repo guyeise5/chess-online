@@ -7,6 +7,7 @@ import {useLocation} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
 import {cleanSquareHighlight, getTopicName, highlightSquares, MinimalMove, toColorFromString, toSquare} from "./utils";
+import {Piece} from "react-chessboard/dist/chessboard/types";
 
 const chess = new Chess()
 const moveSound = new Audio("./mp3/soundMove.mp3")
@@ -20,7 +21,6 @@ const Game = (): ReactElement => {
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
     const boardOrientation = myColor === BLACK ? "black" : "white"
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
-    const [preMove, setPreMove] = useState<MinimalMove | undefined>(undefined)
     const topicName = getTopicName(roomId || "");
 
     const setFen = (newFen: string) => {
@@ -29,9 +29,8 @@ const Game = (): ReactElement => {
         }
     }
 
-    function isDraggablePiece({sourceSquare}: { sourceSquare: string }): boolean {
-        const square = sourceSquare as Square
-        return chess.get(square).color === myColor
+    function isDraggablePiece({piece}: { piece: Piece; sourceSquare: Square; }): boolean {
+        return piece[0] == myColor
     }
 
     function onPieceDragBegin(_piece: string, sourceSquare: string): void {
@@ -51,57 +50,11 @@ const Game = (): ReactElement => {
         }
     }
 
-    function onSquareClick(sqr: string) {
-        const clickedSquare = toSquare(sqr)
-        if (!clickedSquare) {
-            return;
-        }
-
-        if (preMove) {
-            if (chess.get(clickedSquare).color === myColor) {
-                setSelectedSquare(clickedSquare)
-            } else {
-                setSelectedSquare(null)
-            }
-
-            setPreMove(undefined)
-            return;
-        }
-
-        if (selectedSquare && clickedSquare !== selectedSquare) {
-            if (chess.turn() === myColor) {
-                const moves = chess.moves({verbose: true, square: selectedSquare})
-                if (moves.find(move => move.to === clickedSquare)) {
-                    doMove({
-                        from: selectedSquare,
-                        to: clickedSquare,
-                        promotion: "q"
-                    })
-                } else {
-                    if (chess.get(clickedSquare).color === myColor) {
-                        setSelectedSquare(clickedSquare)
-                    } else {
-                        setSelectedSquare(null)
-                    }
-                }
-            } else {
-                setPreMove({
-                    from: selectedSquare,
-                    to: clickedSquare,
-                    promotion: "q"
-                })
-            }
-
-            return;
-        }
-
-        if (isDraggablePiece({sourceSquare: clickedSquare})) {
-            setSelectedSquare(clickedSquare)
-            return;
-        }
+    function onSquareClick() {
+        setSelectedSquare(null)
     }
 
-    function onPieceDrop(sourceSquare: string, targetSquare: string): boolean {
+    function onPieceDrop(sourceSquare: string, targetSquare: string, piece: string): boolean {
         setSelectedSquare(null)
         const from = toSquare(sourceSquare)
         const to = toSquare(targetSquare)
@@ -112,12 +65,11 @@ const Game = (): ReactElement => {
         const mv: MinimalMove = {
             from: from,
             to: to,
-            promotion: "q"
+            promotion: piece[1].toLowerCase() as any ?? "q"
         };
 
         if (chess.turn() !== myColor) {
             console.log("setting premove", mv)
-            setPreMove(mv)
             return true
         } else {
             return doMove(mv)
@@ -190,12 +142,6 @@ const Game = (): ReactElement => {
         if (chess.isCheckmate()) {
             checkmateSound.play().finally()
         }
-
-        if (chess.turn() === myColor && preMove) {
-            console.log("doing premove")
-            doMove(preMove)
-            setPreMove(undefined)
-        }
     }, [fen]);
 
     useEffect(() => {
@@ -226,8 +172,8 @@ const Game = (): ReactElement => {
 
     useEffect(() => {
         const square = toSquare(selectedSquare)
-        highlightSquares(chess, square, preMove)
-    }, [preMove, selectedSquare]);
+        highlightSquares(chess, square)
+    }, [selectedSquare]);
 
     return <div id={"mainGameDiv"}>
         <Chessboard boardOrientation={boardOrientation} boardWidth={500}
@@ -237,6 +183,7 @@ const Game = (): ReactElement => {
                     onPieceDragEnd={onPieceDragEnd}
                     isDraggablePiece={isDraggablePiece}
                     onSquareClick={onSquareClick}
+                    arePremovesAllowed={true}
         />
     </div>
 }

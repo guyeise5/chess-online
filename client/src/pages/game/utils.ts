@@ -56,12 +56,9 @@ export function toSquare(s: string | undefined | null): Square | undefined {
     return SQUARES.find(x => s == x)
 }
 
-export function highlightSquares(chess: Chess, selectedSquare?: Square, preMove?: MinimalMove) {
+export function highlightSquares(chess: Chess, selectedSquare?: Square) {
     cleanSquareHighlight()
-    if (preMove) {
-        document?.querySelectorAll(`[data-square="${preMove.from}"]`)?.item(0)?.classList?.add("preMoveSource")
-        document?.querySelectorAll(`[data-square="${preMove.to}"]`)?.item(0)?.classList?.add("preMoveDest")
-    } else if (selectedSquare) {
+    if (selectedSquare) {
         const moves = chess.moves({verbose: true, square: selectedSquare});
 
         document?.querySelectorAll(`[data-square="${selectedSquare}"]`)?.item(0)?.classList?.add("selectedPiece")
@@ -76,8 +73,6 @@ export function cleanSquareHighlight() {
     SQUARES.forEach(square => {
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("selectedPiece")
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("possibleMove")
-        document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("preMoveSource")
-        document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("preMoveDest")
     })
 }
 
