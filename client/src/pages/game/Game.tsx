@@ -1,4 +1,4 @@
-import {ReactElement, useEffect, useState} from "react";
+import {ReactElement, useEffect, useMemo, useState} from "react";
 import {Chessboard} from "react-chessboard";
 import './Game.css'
 import {BLACK, Chess, Color, Move, Square} from "chess.js";
@@ -9,19 +9,19 @@ import {heartbeatIntervalMillis} from "../../config";
 import {cleanSquareHighlight, getTopicName, highlightSquares, MinimalMove, toColorFromString, toSquare} from "./utils";
 import {Piece} from "react-chessboard/dist/chessboard/types";
 
-const chess = new Chess()
-const moveSound = new Audio("./mp3/soundMove.mp3")
-const captureSound = new Audio("./mp3/capture.mp3")
-const checkmateSound = new Audio("./mp3/checkmate.mp3")
 const Game = (): ReactElement => {
+    const chess = useMemo(() => new Chess(), [])
+    const moveSound = useMemo(() => new Audio("./mp3/soundMove.mp3"), [])
+    const captureSound = useMemo(() => new Audio("./mp3/capture.mp3"), [])
+    const checkmateSound = useMemo(() => new Audio("./mp3/checkmate.mp3"), [])
     const {search} = useLocation()
-    const params = new URLSearchParams(search)
-    const myColor: Color | undefined = toColorFromString(params.get("color"))
-    const roomId = params.get("roomId")
+    const params = useMemo(() => new URLSearchParams(search), [search])
+    const myColor: Color | undefined = useMemo(() => toColorFromString(params.get("color")), [params])
+    const roomId = useMemo(() => params.get("roomId"), [params])
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
-    const boardOrientation = myColor === BLACK ? "black" : "white"
+    const boardOrientation = useMemo(() => myColor === BLACK ? "black" : "white", [myColor])
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
-    const topicName = getTopicName(roomId || "");
+    const topicName = useMemo(() => getTopicName(roomId || ""), [roomId])
 
     const setFen = (newFen: string) => {
         if (newFen != fen) {
