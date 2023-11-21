@@ -39,7 +39,6 @@ function QuickPlayWait(): ReactElement {
         return () => {
             response.then(data => {
                 if (data) {
-                    socket().emit("unsubscribe", getTopicName(data.roomId))
                     if (onPlayerJoined) {
                         socket().off("playerJoined", onPlayerJoined)
                     }

@@ -3,16 +3,11 @@ import {Chess} from 'chess.js'
 import {v4} from "uuid";
 
 class LocalStateManager implements IStateManager {
-    private quickPlayRoom: ChessRoom| undefined
+    private quickPlayRoom: ChessRoom | undefined
     private readonly rooms: Record<string, ChessRoom> = {}
     private readonly clientHeartbeatCache: Record<string, Date> = {}
-    public getOrCreateRoom(roomId: string): ChessRoom {
-        if (!this.rooms[roomId]) {
-            this.rooms[roomId] = {
-                chess: new Chess(),
-                id: roomId
-            }
-        }
+
+    public getRoom(roomId: string): ChessRoom | undefined {
         return this.rooms[roomId]
     }
 
@@ -39,7 +34,7 @@ class LocalStateManager implements IStateManager {
 
     private getClientStatus(userId: string): ClientStatus {
         const lastHeartbeat = this.clientHeartbeatCache[userId]
-        if(!lastHeartbeat) {
+        if (!lastHeartbeat) {
             this.recordClientHeartbeat(userId)
         }
 
@@ -55,13 +50,24 @@ class LocalStateManager implements IStateManager {
 
     deleteRoom(roomId: string): void {
         delete this.rooms[roomId]
-        if(this.quickPlayRoom?.id === roomId) {
+        if (this.quickPlayRoom?.id === roomId) {
             this.quickPlayRoom = undefined
         }
     }
 
     isRoomExists(roomId: string): boolean {
         return this.quickPlayRoom?.id === roomId || !!this.rooms[roomId]
+    }
+
+    createRoom(): ChessRoom {
+        const roomId = v4()
+        const room = {
+            id: roomId,
+            chess: new Chess()
+        };
+
+        this.rooms[roomId] = room
+        return room
     }
 }
 

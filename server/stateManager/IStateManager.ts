@@ -12,8 +12,9 @@ export type ClientStatus = {
     lastHeartbeat: Date
 }
 export type IStateManager = {
-    getOrCreateRoom(roomId: string): ChessRoom
+    getRoom(roomId: string): ChessRoom | undefined
     getOrCreateQuickRoom(): ChessRoom
+    createRoom(): ChessRoom
     deleteRoom(roomId: string): void
     isRoomExists(roomId: string): boolean
     // return the last heart beat of each player

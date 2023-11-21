@@ -3,25 +3,45 @@ import bodyParser from 'body-parser'
 
 import sm from "../../stateManager";
 import {BLACK, Move, WHITE} from "chess.js";
-import {isGameAvailable, isPlayerDisconnected, shutdownGame, toSquare} from "../../utils";
+import {isGameAvailable, /*isPlayerDisconnected, shutdownGame,*/ toSquare} from "../../utils";
 import {publish} from "../../servers/webSocketServer";
+import {Response} from 'express';
 import {ChessRoom} from "../../stateManager/IStateManager";
 import stateManager from "../../stateManager";
 import {v4} from "uuid";
+
+function roomNotExists(res: Response, roomId: string) {
+    res.status(404).json({
+        status: 404,
+        message: `room ${roomId} not found`
+    })
+}
 
 const router = express.Router()
 router.use(bodyParser.json())
 router.use(bodyParser.text())
 router.get("/:roomId/board", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     res.status(200).json(chess.board().flatMap(x => x).filter(Boolean))
 })
 router.get("/:roomId/turn", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     res.status(200).json(chess.turn())
 })
 router.get("/:roomId/moves", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     const square = toSquare(req.query.square?.toString())
     if (square) {
         res.status(200).json(chess.moves({square: square, verbose: true}))
@@ -31,22 +51,38 @@ router.get("/:roomId/moves", (req, res) => {
     }
 })
 router.get("/:roomId/gameState", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     res.status(200).json({
         isGameOver: chess.isGameOver()
         // winner: chess.
     })
 })
 router.get("/:roomId/fen", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     res.status(200).json(chess.fen())
 })
 router.get("/:roomId/ascii", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     res.status(200).json(chess.ascii())
 })
 router.post("/:roomId/loadFen", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     try {
         chess.load(req.body)
         res.status(201).json(chess.fen())
@@ -56,7 +92,10 @@ router.post("/:roomId/loadFen", (req, res) => {
 })
 
 router.get("/:roomId/myColor", (req, res) => {
-    const room = sm.getOrCreateRoom(req.params.roomId)
+    const room = sm.getRoom(req.params.roomId)
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
     if (room.whitePlayerId === req.userId) {
         res.status(200).json(WHITE)
     } else if (room.blackPlayerId === req.userId) {
@@ -66,7 +105,11 @@ router.get("/:roomId/myColor", (req, res) => {
     }
 })
 router.post("/:roomId/loadPgn", (req, res) => {
-    const chess = sm.getOrCreateRoom(req.params.roomId).chess
+    const room = sm.getRoom(req.params.roomId);
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
+    const chess = room.chess
     try {
         chess.loadPgn(req.body)
         res.status(201).json(chess.fen())
@@ -106,13 +149,15 @@ function registerUserToRoom(room: ChessRoom, userId: string): string {
 }
 
 router.post("/:roomId/join", (req, res) => {
-    const roomId = req.params.roomId;
-    if (!sm.isRoomExists(roomId)) {
-        res.status(404).json({error: "room does not exist"})
-        return;
+    const room = sm.getRoom(req.params.roomId)
+
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
     }
 
-    const room = sm.getOrCreateRoom(roomId)
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
     if (room.blackPlayerId && room.whitePlayerId) {
         res.status(400).json({
             error: "room is full"
@@ -122,13 +167,13 @@ router.post("/:roomId/join", (req, res) => {
     let userColor = registerUserToRoom(room, req.userId);
 
     res.status(200).json(userColor)
-    publish("playerJoined", `room-${roomId}`, "1")
+    publish("playerJoined", `room-${room.id}`, "1")
     return
 })
 
 router.post("/create", (req, res) => {
     const roomId = v4();
-    const room = sm.getOrCreateRoom(roomId)
+    const room = sm.createRoom()
     let userColor = registerUserToRoom(room, req.userId);
 
     res.status(200).json({color: userColor, roomId: roomId})
@@ -136,10 +181,13 @@ router.post("/create", (req, res) => {
 })
 
 
-
 router.post("/:roomId/move", (req, res) => {
     const roomId = req.params.roomId;
-    const room = sm.getOrCreateRoom(roomId)
+    const room = sm.getRoom(roomId)
+
+    if (!room) {
+        return roomNotExists(res, roomId);
+    }
 
     // Checking the game is available
     if (!isGameAvailable(room)) {
@@ -174,37 +222,40 @@ router.post("/:roomId/move", (req, res) => {
 })
 
 router.post('/:roomId/heartbeat', (req, res) => {
+    const room = stateManager.getRoom(req.params.roomId)
+    if (!room) {
+        return roomNotExists(res, req.params.roomId);
+    }
     res.status(200).json({ok: 1})
-    const room = stateManager.getOrCreateRoom(req.params.roomId)
-    const userId = req.userId
-
-    if (userId !== room.blackPlayerId && userId !== room.whitePlayerId) {
-        return
-    }
-
-    stateManager.recordClientHeartbeat(req.userId)
-
-    if (!room.whitePlayerId || !room.blackPlayerId) {
-        return
-    }
-
-    const [blackPlayerStatus, whitePlayerStatus] = stateManager.getClientsStatus(room.blackPlayerId, room.whitePlayerId)
-
-    if (isPlayerDisconnected(blackPlayerStatus)) {
-        publish("gameDisconnect", `room-${room.id}`, {
-            color: BLACK
-        })
-        shutdownGame(room.id)
-        return;
-    }
-
-    if (isPlayerDisconnected(whitePlayerStatus)) {
-        publish("gameDisconnect", `room-${room.id}`, {
-            color: WHITE
-        })
-        shutdownGame(room.id)
-        return;
-    }
+    // const userId = req.userId
+    //
+    // if (userId !== room.blackPlayerId && userId !== room.whitePlayerId) {
+    //     return
+    // }
+    //
+    // stateManager.recordClientHeartbeat(req.userId)
+    //
+    // if (!room.whitePlayerId || !room.blackPlayerId) {
+    //     return
+    // }
+    //
+    // const [blackPlayerStatus, whitePlayerStatus] = stateManager.getClientsStatus(room.blackPlayerId, room.whitePlayerId)
+    //
+    // if (isPlayerDisconnected(blackPlayerStatus)) {
+    //     publish("gameDisconnect", `room-${room.id}`, {
+    //         color: BLACK
+    //     })
+    //     shutdownGame(room.id)
+    //     return;
+    // }
+    //
+    // if (isPlayerDisconnected(whitePlayerStatus)) {
+    //     publish("gameDisconnect", `room-${room.id}`, {
+    //         color: WHITE
+    //     })
+    //     shutdownGame(room.id)
+    //     return;
+    // }
 })
 
 export default router
