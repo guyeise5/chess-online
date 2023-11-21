@@ -8,6 +8,7 @@ import App from "./pages/app/App";
 import {configure} from "./config";
 import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
 import JoinRoom from "./pages/join-room/JoinRoom";
+import QuickPlayWait from "./pages/quick-play-wait/QuickPlayWait";
 
 configure()
 
@@ -23,6 +24,7 @@ root.render(
                 <Route path={"/room"} element={<Game/>}/>
                 <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
                 <Route path={"/joinRoom"} element={<JoinRoom/>}/>
+                <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
             </Routes>
         </BrowserRouter>
     </React.StrictMode>

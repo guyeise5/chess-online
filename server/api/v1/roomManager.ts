@@ -80,8 +80,10 @@ router.post("/quickPlay", (req, res) => {
     const userColor = registerUserToRoom(room, req.userId)
     res.status(200).json({
         color: userColor,
-        roomId: room.id
+        roomId: room.id,
+        started: room.whitePlayerId && room.blackPlayerId
     })
+    publish("playerJoined", `room-${room.id}`, "1")
 
 })
 

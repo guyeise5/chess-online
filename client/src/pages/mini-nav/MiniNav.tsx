@@ -9,15 +9,8 @@ const MiniNav = (): ReactElement => {
     const navigate = useNavigate();
 
     async function quickPlayClick() {
-        const resp = await axios.post("/api/v1/room/quickPlay")
-        const data: {
-            color: string,
-            roomId: string
-        } = resp.data
-
-        navigate(`/room?roomId=${data.roomId}&color=${data.color}`)
+        navigate("/quickPlay")
     }
-
 
     async function createGameClick() {
         const resp = await axios.post(`/api/v1/room/create`)
