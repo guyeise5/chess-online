@@ -12,3 +12,7 @@
 .selectedPiece {
     background-color: green !important;
 }
+
+.preMove {
+    background-color: grey !important;
+}

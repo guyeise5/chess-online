@@ -52,23 +52,33 @@ export const getPiecePosition = (chess: Chess, piece: Piece): Square[] => {
         .flatMap(x => x ? [x] : [])
 }
 
-export function toSquare(s: string | undefined): Square | undefined {
+export function toSquare(s: string | undefined | null): Square | undefined {
     return SQUARES.find(x => s == x)
 }
 
-export function highlightSquares(chess: Chess, sourceSquare: Square) {
-    const moves = chess.moves({verbose: true, square: sourceSquare});
-    moves.forEach(move => {
-        document?.querySelectorAll(`[data-square="${move.to}"]`)?.item(0)?.classList?.add("possibleMove")
-    })
+export function highlightSquares(chess: Chess, selectedSquare?: Square, preMove?: MinimalMove) {
+    cleanSquareHighlight()
+    if (selectedSquare) {
+        const moves = chess.moves({verbose: true, square: selectedSquare});
 
-    document?.querySelectorAll(`[data-square="${sourceSquare}"]`)?.item(0)?.classList?.add("selectedPiece")
+        document?.querySelectorAll(`[data-square="${selectedSquare}"]`)?.item(0)?.classList?.add("selectedPiece")
+
+        moves.forEach(move => {
+            document?.querySelectorAll(`[data-square="${move.to}"]`)?.item(0)?.classList?.add("possibleMove")
+        })
+    }
+
+    if (preMove) {
+        document?.querySelectorAll(`[data-square="${preMove.from}"]`)?.item(0)?.classList?.add("preMove")
+        document?.querySelectorAll(`[data-square="${preMove.to}"]`)?.item(0)?.classList?.add("preMove")
+    }
 }
 
 export function cleanSquareHighlight() {
     SQUARES.forEach(square => {
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("selectedPiece")
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("possibleMove")
+        document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("preMove")
     })
 }
 
@@ -76,4 +86,15 @@ export type MinimalMove = {
     from: Square
     to: Square
     promotion: 'n' | 'b' | 'r' | 'q'
+}
+
+export function toColorFromString(s?: string | null) {
+    switch (s) {
+        case WHITE:
+            return WHITE
+        case BLACK:
+            return BLACK
+        default:
+            return undefined
+    }
 }

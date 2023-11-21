@@ -6,7 +6,7 @@ import axios from 'axios'
 import {useLocation} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
-import {cleanSquareHighlight, highlightSquares, MinimalMove, toSquare} from "./utils";
+import {cleanSquareHighlight, highlightSquares, MinimalMove, toColorFromString, toSquare} from "./utils";
 
 const chess = new Chess()
 const moveSound = new Audio("./mp3/soundMove.mp3")
@@ -15,22 +15,22 @@ const checkmateSound = new Audio("./mp3/checkmate.mp3")
 const Game = (): ReactElement => {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
-    const color = params.get("color") || undefined
+    const myColor: Color | undefined = toColorFromString(params.get("color"))
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
-    const boardOrientation = color === BLACK ? "black" : "white"
+    const boardOrientation = myColor === BLACK ? "black" : "white"
     const roomId = params.get("roomId")
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
+    const [preMove, setPreMove] = useState<MinimalMove | undefined>(undefined)
 
     const setFen = (newFen: string) => {
         if (newFen != fen) {
             _setFen(newFen)
         }
     }
-    console.log("boardOrientation", boardOrientation)
 
     function isDraggablePiece({sourceSquare}: { sourceSquare: string }): boolean {
         const square = sourceSquare as Square
-        return chess.get(square).color === color
+        return chess.get(square).color === myColor
     }
 
     function onPieceDragBegin(_piece: string, sourceSquare: string): void {
@@ -56,20 +56,43 @@ const Game = (): ReactElement => {
             return;
         }
 
-        if (isDraggablePiece({sourceSquare: clickedSquare})) {
-            setSelectedSquare(clickedSquare)
+        if(preMove) {
+            if(chess.get(clickedSquare).color === myColor) {
+                setSelectedSquare(clickedSquare)
+            }
+
+            setPreMove(undefined)
             return;
         }
 
-        if (selectedSquare) {
-            const moves = chess.moves({verbose: true, square: selectedSquare})
-            if (moves.find(move => move.to === clickedSquare)) {
-                doMove({
+        if (selectedSquare && clickedSquare !== selectedSquare) {
+            if (chess.turn() === myColor) {
+                const moves = chess.moves({verbose: true, square: selectedSquare})
+                if (moves.find(move => move.to === clickedSquare)) {
+                    doMove({
+                        from: selectedSquare,
+                        to: clickedSquare,
+                        promotion: "q"
+                    })
+                } else {
+                    if(chess.get(clickedSquare).color === myColor) {
+                        setSelectedSquare(clickedSquare)
+                    }
+                }
+            } else {
+                setPreMove({
                     from: selectedSquare,
                     to: clickedSquare,
                     promotion: "q"
                 })
             }
+
+            return;
+        }
+
+        if (isDraggablePiece({sourceSquare: clickedSquare})) {
+            setSelectedSquare(clickedSquare)
+            return;
         }
     }
 
@@ -77,7 +100,7 @@ const Game = (): ReactElement => {
         setSelectedSquare(null)
         const from = toSquare(sourceSquare)
         const to = toSquare(targetSquare)
-        if(!from || !to) {
+        if (!from || !to) {
             return false
         }
 
@@ -86,7 +109,14 @@ const Game = (): ReactElement => {
             to: to,
             promotion: "q"
         };
-        return doMove(mv)
+
+        if (chess.turn() !== myColor) {
+            console.log("setting premove", mv)
+            setPreMove(mv)
+            return true
+        } else {
+            return doMove(mv)
+        }
     }
 
     function doMove(move: MinimalMove): boolean {
@@ -99,6 +129,7 @@ const Game = (): ReactElement => {
                     .then(resp => setFen(resp.data.toString()))
                     .catch(e => console.log(e))
             })
+            setSelectedSquare(null)
             return true
         } catch (e) {
             console.log("failed to move", e)
@@ -132,7 +163,7 @@ const Game = (): ReactElement => {
 
         console.log("game disconnected", message.data.color)
 
-        alert(color === message.data.color ? "you are disconnected" : "opponent disconnected")
+        alert(myColor === message.data.color ? "you are disconnected" : "opponent disconnected")
     })
 
     useEffect(() => {
@@ -144,6 +175,12 @@ const Game = (): ReactElement => {
 
         if (chess.isCheckmate()) {
             checkmateSound.play().finally()
+        }
+
+        if (chess.turn() === myColor && preMove) {
+            console.log("doing premove")
+            doMove(preMove)
+            setPreMove(undefined)
         }
     }, [fen]);
 
@@ -157,13 +194,13 @@ const Game = (): ReactElement => {
         } else {
             document?.querySelectorAll('[data-piece="bK"]')?.item(0)?.classList?.remove("checked")
             document?.querySelectorAll('[data-piece="wK"]')?.item(0)?.classList?.remove("checked")
-
         }
     }, [fen]);
 
     useEffect(() => {
         cleanSquareHighlight()
     }, [fen]);
+
     function periodicHeartbeat() {
         return setInterval(() => axios.post(`/api/v1/room/${roomId}/heartbeat`, {}).finally(), heartbeatIntervalMillis)
     }
@@ -174,15 +211,10 @@ const Game = (): ReactElement => {
     }, []);
 
     useEffect(() => {
-        cleanSquareHighlight()
-        if (selectedSquare) {
-            const square = toSquare(selectedSquare)
-            if (!square) {
-                return
-            }
-            highlightSquares(chess, square)
-        }
-    }, [selectedSquare]);
+        const square = toSquare(selectedSquare)
+        highlightSquares(chess, square, preMove)
+    }, [preMove, selectedSquare]);
+
     return <div id={"mainGameDiv"}>
         <Chessboard boardOrientation={boardOrientation} boardWidth={500}
                     position={fen}
