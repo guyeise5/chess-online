@@ -21,6 +21,7 @@ const Game = (): ReactElement => {
     const roomId = params.get("roomId")
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
     const [preMove, setPreMove] = useState<MinimalMove | undefined>(undefined)
+    const topicName = `room-${roomId}`;
 
     const setFen = (newFen: string) => {
         if (newFen != fen) {
@@ -56,9 +57,11 @@ const Game = (): ReactElement => {
             return;
         }
 
-        if(preMove) {
-            if(chess.get(clickedSquare).color === myColor) {
+        if (preMove) {
+            if (chess.get(clickedSquare).color === myColor) {
                 setSelectedSquare(clickedSquare)
+            } else {
+                setSelectedSquare(null)
             }
 
             setPreMove(undefined)
@@ -75,8 +78,10 @@ const Game = (): ReactElement => {
                         promotion: "q"
                     })
                 } else {
-                    if(chess.get(clickedSquare).color === myColor) {
+                    if (chess.get(clickedSquare).color === myColor) {
                         setSelectedSquare(clickedSquare)
+                    } else {
+                        setSelectedSquare(null)
                     }
                 }
             } else {
@@ -137,14 +142,17 @@ const Game = (): ReactElement => {
         }
     }
 
-    const topicName = `room-${roomId}`;
-    socket().emit("subscribe", topicName)
+    function gameDisconnectListener(message: SocketMessage<{ color: Color }>) {
+        if (message.topic !== topicName) {
+            return
+        }
 
-    useEffect(() => {
-        axios.get(`/api/v1/room/${roomId}/fen`).then(resp => setFen(resp.data))
-    }, []);
+        console.log("game disconnected", message.data.color)
 
-    socket().on("move", (message: SocketMessage<Move>) => {
+        alert(myColor === message.data.color ? "you are disconnected" : "opponent disconnected")
+    }
+
+    function onMoveListener(message: SocketMessage<Move>) {
         if (message.topic !== topicName) {
             return;
         }
@@ -154,17 +162,23 @@ const Game = (): ReactElement => {
 
         const sound = move.captured ? captureSound : moveSound
         sound.play().finally()
-    })
+    }
 
-    socket().on("gameDisconnect", (message: SocketMessage<{ color: Color }>) => {
-        if (message.topic !== topicName) {
-            return
+    useEffect(() => {
+        socket().emit("subscribe", topicName)
+        socket().on("move", onMoveListener)
+        socket().on("gameDisconnect", gameDisconnectListener)
+
+        return () => {
+            socket().emit("unsubscribe", topicName)
+            socket().off("move", onMoveListener)
+            socket().off("gameDisconnect", gameDisconnectListener)
         }
+    }, []);
 
-        console.log("game disconnected", message.data.color)
-
-        alert(myColor === message.data.color ? "you are disconnected" : "opponent disconnected")
-    })
+    useEffect(() => {
+        axios.get(`/api/v1/room/${roomId}/fen`).then(resp => setFen(resp.data))
+    }, []);
 
     useEffect(() => {
         localStorage.setItem(`${roomId}-fen`, fen)
