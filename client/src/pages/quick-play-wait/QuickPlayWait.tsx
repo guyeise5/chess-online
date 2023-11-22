@@ -5,24 +5,20 @@ import axios from "axios";
 import {useNavigate} from "react-router-dom";
 import {socket} from "../../webSocket/webSocketManager";
 import {getTopicName} from "../game/utils";
+import {Color} from "chess.js";
 
 function QuickPlayWait(): ReactElement {
     const navigate = useNavigate()
 
     useEffect(() => {
         let onPlayerJoined: (() => void) | undefined = undefined
-        const response = axios.post("/api/v1/room/quickPlay")
+        const response = axios.post<{color: Color, roomId: string}>("/api/v1/room/create")
             .then(resp => {
                 const data: {
                     color: string,
                     roomId: string,
-                    started: boolean
                 } = resp.data
 
-                if (data.started) {
-                    navigate(`/room?roomId=${data.roomId}&color=${data.color}`)
-                    return
-                }
                 onPlayerJoined = function onPlayerJoined() {
                     navigate(`/room?roomId=${data.roomId}&color=${data.color}`)
                 }

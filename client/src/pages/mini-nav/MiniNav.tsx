@@ -8,19 +8,24 @@ import {Color} from "chess.js";
 const MiniNav = (): ReactElement => {
     const navigate = useNavigate();
 
-    async function quickPlayClick() {
-        navigate("/quickPlay")
+    async function createRoomClick() {
+        axios.post("/api/v1/room/create", {hidden: false}).then(resp => {
+            const data: {color: Color, roomId: string}  = resp.data
+            console.log("data", data)
+            navigate(`/waitingRoom?roomId=${data.roomId}&color=${data.color}`)
+
+        })
     }
 
-    async function createGameClick() {
-        const resp = await axios.post(`/api/v1/room/create`)
+    async function playWithFriend() {
+        const resp = await axios.post(`/api/v1/room/create`, {hidden: true})
         const data: { color: Color, roomId: string } = resp.data
         navigate(`/waitingRoom?roomId=${data.roomId}&color=${data.color}`)
     }
 
     return <div>
-        <button id={"quickPairButton"} className={"center"} onClick={quickPlayClick}>Quick pairing</button>
-        <button id={"createGame"} className={"center"} onClick={createGameClick}>Create game</button>
+        <button className={"center"} onClick={createRoomClick}>Create room</button>
+        <button className={"center"} onClick={playWithFriend}>Play with a friend</button>
     </div>
 }
 

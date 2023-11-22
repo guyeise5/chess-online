@@ -6,9 +6,8 @@ import {BLACK, Move, WHITE} from "chess.js";
 import {isGameAvailable, /*isPlayerDisconnected, shutdownGame,*/ toSquare} from "../../utils";
 import {publish} from "../../servers/webSocketServer";
 import {Response} from 'express';
-import {ChessRoom} from "../../stateManager/IStateManager";
+import {ChessRoom, CreateRoomOptions} from "../../stateManager/IStateManager";
 import stateManager from "../../stateManager";
-import {v4} from "uuid";
 
 function roomNotExists(res: Response, roomId: string) {
     res.status(404).json({
@@ -118,18 +117,6 @@ router.post("/:roomId/loadPgn", (req, res) => {
     }
 })
 
-router.post("/quickPlay", (req, res) => {
-    const room = sm.getOrCreateQuickRoom()
-    const userColor = registerUserToRoom(room, req.userId)
-    res.status(200).json({
-        color: userColor,
-        roomId: room.id,
-        started: room.whitePlayerId && room.blackPlayerId
-    })
-    publish("playerJoined", `room-${room.id}`, "1")
-
-})
-
 function registerUserToRoom(room: ChessRoom, userId: string): string {
     let userColor: string;
     if (room.blackPlayerId) {
@@ -155,9 +142,6 @@ router.post("/:roomId/join", (req, res) => {
         return roomNotExists(res, req.params.roomId);
     }
 
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
     if (room.blackPlayerId && room.whitePlayerId) {
         res.status(400).json({
             error: "room is full"
@@ -168,15 +152,18 @@ router.post("/:roomId/join", (req, res) => {
 
     res.status(200).json(userColor)
     publish("playerJoined", `room-${room.id}`, "1")
+    publish("roomListUpdate", "room-list", sm.getRooms().map(r => r.id))
     return
 })
 
 router.post("/create", (req, res) => {
-    const roomId = v4();
-    const room = sm.createRoom()
+    const options: CreateRoomOptions = req.body
+    const room = sm.createRoom(options)
     let userColor = registerUserToRoom(room, req.userId);
 
-    res.status(200).json({color: userColor, roomId: roomId})
+    res.status(200).json({color: userColor, roomId: room.id})
+    !options.hidden && publish("roomListUpdate", "room-list", sm.getRooms()
+        .filter(room => !room.hidden).map(r => r.id))
     return
 })
 
@@ -219,6 +206,10 @@ router.post("/:roomId/move", (req, res) => {
     res.status(201).json(chessMove)
     publish("move", `room-${roomId}`, chessMove)
     console.log(`#${roomId} - move`, move)
+})
+
+router.get("/ids", (_req, res) => {
+    res.status(200).json(sm.getRooms().filter(room => !room.hidden).map(room => room.id))
 })
 
 router.post('/:roomId/heartbeat', (req, res) => {

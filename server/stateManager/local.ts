@@ -1,4 +1,4 @@
-import {ChessRoom, ClientStatus, IStateManager} from "./IStateManager";
+import {ChessRoom, ClientStatus, CreateRoomOptions, IStateManager} from "./IStateManager";
 import {Chess} from 'chess.js'
 import {v4} from "uuid";
 
@@ -59,15 +59,21 @@ class LocalStateManager implements IStateManager {
         return this.quickPlayRoom?.id === roomId || !!this.rooms[roomId]
     }
 
-    createRoom(): ChessRoom {
-        const roomId = v4()
-        const room = {
+    createRoom(option: CreateRoomOptions): ChessRoom {
+        const roomId = v4().substring(0,5)
+        const room: ChessRoom = {
             id: roomId,
-            chess: new Chess()
+            chess: new Chess(),
+            hidden: !!option?.hidden
         };
 
         this.rooms[roomId] = room
         return room
+    }
+
+    getRooms(): ChessRoom[] {
+        return Object.values(this.rooms)
+            .filter(chessRoom => !chessRoom.blackPlayerId || !chessRoom.whitePlayerId)
     }
 }
 

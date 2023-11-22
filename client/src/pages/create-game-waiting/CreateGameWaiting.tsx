@@ -24,6 +24,7 @@ function CreateGameWaiting(): ReactElement {
 
     useEffect(() => {
         function onPlayerJoinListener() {
+            console.log("player joined")
             navigate(`/room?roomId=${roomId}&color=${myColor}`)
         }
         socket().emitWithAck("subscribe", getTopicName(roomId))
