@@ -60,7 +60,7 @@ class LocalStateManager implements IStateManager {
     }
 
     createRoom(option: CreateRoomOptions): ChessRoom {
-        const roomId = v4().substring(0,5)
+        const roomId = Buffer.from(v4()).toString('base64').substring(0,15)
         const room: ChessRoom = {
             id: roomId,
             chess: new Chess(),
