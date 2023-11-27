@@ -1,6 +1,10 @@
 import {Chess, Color, BLACK, WHITE, PieceSymbol, Square, SQUARES} from "chess.js";
 import {BoardOrientation} from "react-chessboard/dist/chessboard/types";
 
+export const reverseOrientation = (color: BoardOrientation): BoardOrientation => {
+    if (color == 'white') return 'black'
+    else return 'white'
+}
 export const toBoardOrientation = (color: string): BoardOrientation => {
     switch (color) {
         case "w":
