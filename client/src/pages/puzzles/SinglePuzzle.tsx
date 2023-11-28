@@ -1,8 +1,8 @@
 import {Dispatch, ReactElement, SetStateAction, useEffect, useMemo, useState} from "react";
-import {Chess, Color, Square, WHITE} from "chess.js";
-import {Chessboard} from "react-chessboard";
+import {Chess, Color, Square} from "chess.js";
 import {Piece} from "react-chessboard/dist/chessboard/types";
 import {calculateNewRating} from "./utils";
+import MyChessBoard from "../my-chess-board/MyChessBoard";
 
 type PuzzleProps = {
     fen: string
@@ -24,10 +24,6 @@ export default function (props: PuzzleProps): ReactElement {
     useEffect(() => {
         playComputerMove()
     }, []);
-
-    function isDraggablePiece({piece}: { piece: Piece; sourceSquare: Square; }): boolean {
-        return piece[0] == color
-    }
 
     function makeAMoveImmediately(): boolean {
         const move = moves.pop()
@@ -84,15 +80,11 @@ export default function (props: PuzzleProps): ReactElement {
     }
 
     return <div>
-        {<Chessboard
-            id={"PuzzleBoard"}
-            position={currentFen}
-            boardWidth={500}
-            boardOrientation={color == WHITE ? 'white' : 'black'}
-            isDraggablePiece={isDraggablePiece}
+        {<MyChessBoard
+            fen={currentFen}
+            color={color}
             onPieceDrop={onPieceDrop}
         />}
         {firstTry || <button onClick={showSolutionClicked}> Show Solution </button>}
-        {/*{showSolution && <ShowSolution fen={props.fen} boardOrientation={color == WHITE ? 'white' : 'black'} moves={moves}/>}*/}
     </div>
 }

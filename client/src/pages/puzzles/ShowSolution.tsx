@@ -1,9 +1,9 @@
-import {ReactElement, useMemo, useState} from "react";
-import {Chessboard} from "react-chessboard";
+import React, {ReactElement, useMemo, useState} from "react";
 import {BLACK, Chess, WHITE} from "chess.js";
 import {Arrow, BoardOrientation} from "react-chessboard/dist/chessboard/types";
 import {toSquare} from "../game/utils";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
+import MyChessBoard from "../my-chess-board/MyChessBoard";
 
 type ShowSolutionProps = {
     fen: string
@@ -79,11 +79,10 @@ export default function (props: ShowSolutionProps): ReactElement {
     }
 
     return <div onKeyDown={onKeyDown}>
-        <Chessboard
-            id={"ShowSolutionBoard"}
-            position={currentFen} boardWidth={500}
+        <MyChessBoard
+            fen={currentFen}
             isDraggablePiece={() => false}
-            boardOrientation={props.boardOrientation}
+            color={myColor}
             customArrows={arrows()}/>
         <button onClick={handleLeftArrowPressed} disabled={moveIndex <= 0}><FaArrowLeft/></button>
         <button onClick={handleRightArrowPressed} disabled={moveIndex >= moves.length}><FaArrowRight/></button>
