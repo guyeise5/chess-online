@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
@@ -9,6 +9,8 @@ import {configure} from "./config";
 import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
 import JoinRoom from "./pages/join-room/JoinRoom";
 import QuickPlayWait from "./pages/quick-play-wait/QuickPlayWait";
+// import React from "react";
+import Puzzles from "./pages/puzzles/Puzzles";
 
 configure()
 
@@ -17,17 +19,16 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-    <React.StrictMode>
-        <BrowserRouter>
-            <Routes>
-                <Route path={"/"} element={<App/>}/>
-                <Route path={"/room"} element={<Game/>}/>
-                <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
-                <Route path={"/joinRoom"} element={<JoinRoom/>}/>
-                <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
-            </Routes>
-        </BrowserRouter>
-    </React.StrictMode>
+    <BrowserRouter>
+        <Routes>
+            <Route path={"/"} element={<App/>}/>
+            <Route path={"/room"} element={<Game/>}/>
+            <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
+            <Route path={"/joinRoom"} element={<JoinRoom/>}/>
+            <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
+            <Route path={"/puzzle"} element={<Puzzles/>}/>
+        </Routes>
+    </BrowserRouter>
 );
 
 // If you want to start measuring performance in your app, pass a function

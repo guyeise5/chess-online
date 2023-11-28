@@ -8,7 +8,8 @@
     "build": "tsc",
     "postbuild": "mkdir ./build/client && cp -r ../client/build ./build/client",
     "start": "node ./build/server/index.js",
-    "dev": "NODE_ENV=development nodemon index.ts"
+    "dev": "NODE_ENV=development nodemon index.ts",
+    "seed": "ts-node ./db/seed-mongo.ts"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -19,6 +20,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "mongodb": "^6.3.0",
     "socket.io": "^4.7.2",
     "uuid": "^9.0.1"
   },
