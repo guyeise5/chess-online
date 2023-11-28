@@ -2,6 +2,7 @@ import IPuzzleDAL, {Puzzle} from "./IPuzzleDAL";
 import path from "path";
 import {open} from "node:fs/promises";
 import {toPuzzle} from "../utils";
+import * as console from "console";
 
 export class InMemoryPuzzleDal implements IPuzzleDAL {
     private readonly dbPath: string;
@@ -75,5 +76,16 @@ export class InMemoryPuzzleDal implements IPuzzleDAL {
         };
 
         return toPuzzle(puzzle) || null
+    }
+
+    ratings: Set<number> | undefined = undefined
+    async getAvailableRatings(): Promise<Set<number>> {
+        if(!this.ratings) {
+            const ratings = (await this.puzzles).map(p => p.rating);
+            this.ratings = new Set(ratings)
+        }
+
+        return this.ratings
+
     }
 }

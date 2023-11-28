@@ -9,6 +9,7 @@ export type Puzzle = {
 interface IPuzzleDAL {
     getPuzzleById(puzzleId: string): PromiseLike<Puzzle | undefined>
     getPuzzleByRating(rating: number): PromiseLike<Puzzle | undefined>
+    getAvailableRatings(): PromiseLike<Set<number>>
     close(): PromiseLike<void>
 }
 

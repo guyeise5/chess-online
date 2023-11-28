@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {puzzleDal} from "../../dal";
+import {v4} from "uuid";
 export default function (): Router {
     const router = Router()
     router.get("/:id", async (req, res) => {
@@ -29,8 +30,21 @@ export default function (): Router {
         return res.status(404).json({
             error: `could not found puzzle for rating ${rate}`
         })
+    })
 
+    router.get("/get/availableRating", async (_req,res) => {
+        try {
+            const ratings = await puzzleDal().getAvailableRatings();
 
+            res.status(200).json(Array.from(ratings))
+        } catch (e) {
+            const id = v4()
+            console.error(id, e)
+            res.status(500).json({
+                error: "Internal server error",
+                id: id
+            })
+        }
     })
     return router
 }

@@ -2,6 +2,7 @@ import IPuzzleDAL, {Puzzle} from "./IPuzzleDAL";
 import {MongoClient} from "mongodb";
 import {toPuzzle} from "../utils";
 import {mongodbPuzzlesCollectionName} from "../config";
+import * as console from "console";
 
 export class MongoDBPuzzleDAL implements IPuzzleDAL {
     private isConnectedPromise: Promise<void> | undefined = undefined
@@ -49,5 +50,16 @@ export class MongoDBPuzzleDAL implements IPuzzleDAL {
             }).then(() => console.log("connected to mongodb"))
         }
         return this.isConnectedPromise
+    }
+
+    async getAvailableRatings(): Promise<Set<number>> {
+        await this.connectIfNeeded()
+        const ratings = this.client
+            .db(this.dbName)
+            .collection(mongodbPuzzlesCollectionName)
+            .distinct("rating");
+        return new Set(await ratings
+        )
+
     }
 }
