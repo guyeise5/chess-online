@@ -1,0 +1,22 @@
+.linkInput {
+    width: 80%;
+    border-radius: 4px;
+    color: #bababa;
+}
+
+.shareLinkTitle {
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.copyLinkButton {
+    border-radius: 40%;
+    padding: 3px 8px;
+    margin-left: 3px;
+    transition: all ease-in-out 0.2s;
+}
+
+.copyLinkButton:hover {
+    transform: scale(1.1);
+    filter:brightness(110%);
+}

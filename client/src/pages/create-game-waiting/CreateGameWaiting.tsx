@@ -3,7 +3,8 @@ import {useLocation, useNavigate} from "react-router-dom";
 import {FaRegCopy} from "react-icons/fa";
 import {socket} from "../../webSocket/webSocketManager";
 import {getTopicName, toColorFromString} from "../game/utils";
-
+import './CreateGameWaiting.css'
+import '../Main.css'
 function CreateGameWaiting(): ReactElement {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
@@ -47,10 +48,10 @@ function CreateGameWaiting(): ReactElement {
         })
     }
 
-    return <div>
-        <h1>Share this link</h1>
-        <input id={"linkInputBox"} type={"text"} disabled={true} onClick={onLinkInputBoxClick} value={link}/>
-        <button onClick={onCopyButtonClick}><FaRegCopy/></button>
+    return <div className={"center"}>
+        <h1 className={"shareLinkTitle"}>Share this link</h1>
+        <input id={"linkInputBox"} className={"linkInput"} type={"text"} disabled={true} onClick={onLinkInputBoxClick} value={link}/>
+        <button className={"copyLinkButton"} onClick={onCopyButtonClick}><FaRegCopy/></button>
     </div>
 }
 

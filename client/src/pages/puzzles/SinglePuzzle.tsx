@@ -39,7 +39,6 @@ export default function (props: PuzzleProps): ReactElement {
 
         setCurrentFen(chess.fen())
         if (moves.length === 0) {
-
             props.next(firstTry ? calculateNewRating(props.rating, true) : props.rating)
         }
         return true
