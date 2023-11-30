@@ -4,12 +4,22 @@ export type ChessRoom = {
     chess: Chess,
     whitePlayerId?: string
     blackPlayerId?: string,
+    whitePlayerSeconds: number | null,
+    blackPlayerSeconds: number | null,
     id: string,
-    hidden?: boolean
+    hidden?: boolean,
+    cancelWhitePlayerInterval?: () => void,
+    cancelBlackPlayerInterval?: () => void
+    whitePlayerIncSeconds: number
+    blackPlayerIncSeconds: number
 }
 
 export type CreateRoomOptions = {
-    hidden: boolean
+    hidden: boolean,
+    whitePlayerSeconds: number | null,
+    blackPlayerSeconds: number | null
+    whitePlayerIncSeconds?: number,
+    blackPlayerIncSeconds?: number
 }
 
 export type ClientStatus = {
@@ -18,7 +28,6 @@ export type ClientStatus = {
 }
 export type IStateManager = {
     getRoom(roomId: string): ChessRoom | undefined
-    getOrCreateQuickRoom(): ChessRoom
     createRoom(option?: CreateRoomOptions): ChessRoom
     deleteRoom(roomId: string): void
     isRoomExists(roomId: string): boolean

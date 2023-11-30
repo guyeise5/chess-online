@@ -3,7 +3,13 @@ import bodyParser from 'body-parser'
 
 import sm from "../../stateManager";
 import {BLACK, Move, WHITE} from "chess.js";
-import {isGameAvailable, /*isPlayerDisconnected, shutdownGame,*/ toSquare} from "../../utils";
+import {
+    handleGameOver,
+    handleTimersOnTurnSwitch,
+    isGameAvailable,
+    startGame, /*isPlayerDisconnected, shutdownGame,*/
+    toSquare
+} from "../../utils";
 import {publish} from "../../servers/webSocketServer";
 import {Response} from 'express';
 import {ChessRoom, CreateRoomOptions} from "../../stateManager/IStateManager";
@@ -153,6 +159,7 @@ router.post("/:roomId/join", (req, res) => {
     res.status(200).json(userColor)
     publish("playerJoined", `room-${room.id}`, "1")
     publish("roomListUpdate", "room-list", sm.getRooms().map(r => r.id))
+    startGame(room)
     return
 })
 
@@ -205,6 +212,10 @@ router.post("/:roomId/move", (req, res) => {
 
     res.status(201).json(chessMove)
     publish("move", `room-${roomId}`, chessMove)
+    if(room.chess.isGameOver()) {
+        handleGameOver(room)
+    }
+    handleTimersOnTurnSwitch(room)
     console.log(`#${roomId} - move`, move)
 })
 

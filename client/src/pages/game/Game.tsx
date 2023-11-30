@@ -1,11 +1,11 @@
 import {ReactElement, useEffect, useMemo, useState} from "react";
 import './Game.css'
-import { Chess, Color, Move, Square, WHITE} from "chess.js";
+import {Chess, Color, Move, Square, WHITE} from "chess.js";
 import axios from 'axios'
-import {useLocation} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
-import { getTopicName, MinimalMove, toColorFromString, toSquare} from "./utils";
+import {getTopicName, MinimalMove, toColorFromString, toSquare} from "./utils";
 import {Piece} from "react-chessboard/dist/chessboard/types";
 import MyChessBoard from "../my-chess-board/MyChessBoard";
 
@@ -18,6 +18,7 @@ const Game = (): ReactElement => {
     const roomId = useMemo(() => params.get("roomId"), [params])
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
     const topicName = useMemo(() => getTopicName(roomId || ""), [roomId])
+    const navigate = useNavigate()
 
     const setFen = (newFen: string) => {
         if (newFen != fen) {
@@ -67,6 +68,26 @@ const Game = (): ReactElement => {
         }
     }
 
+    // TODO: make the SocketMessage type compatible with the server AKA GameOverReason
+    function gameOverListener(message: SocketMessage<{ type: string, winner?: Color }>) {
+        if (message.topic !== topicName) {
+            return
+        }
+
+        const data = message.data
+        if (data.winner) {
+            if (data.winner == myColor) {
+                alert("You win!")
+            } else {
+                alert("You lose")
+            }
+        } else {
+            alert(data.type)
+        }
+
+        navigate("/")
+    }
+
     function gameDisconnectListener(message: SocketMessage<{ color: Color }>) {
         if (message.topic !== topicName) {
             return
@@ -90,11 +111,13 @@ const Game = (): ReactElement => {
         topicName && socket().emit("subscribe", topicName)
         socket().on("move", onMoveListener)
         socket().on("gameDisconnect", gameDisconnectListener)
+        socket().on("gameOver", gameOverListener)
 
         return () => {
             topicName && socket().emit("unsubscribe", topicName)
             socket().off("move", onMoveListener)
             socket().off("gameDisconnect", gameDisconnectListener)
+            socket().off("gameOver", gameOverListener)
         }
     }, []);
 

@@ -11,22 +11,6 @@ class LocalStateManager implements IStateManager {
         return this.rooms[roomId]
     }
 
-    getOrCreateQuickRoom(): ChessRoom {
-        if (this.quickPlayRoom?.whitePlayerId && this.quickPlayRoom.blackPlayerId) {
-            this.quickPlayRoom = undefined
-        }
-
-        if (!this.quickPlayRoom) {
-            this.quickPlayRoom = {
-                chess: new Chess(),
-                id: v4()
-            }
-
-        }
-        this.rooms[this.quickPlayRoom.id] = this.quickPlayRoom
-        return this.quickPlayRoom
-    }
-
     getClientsStatus(clientId: string | undefined, ...otherClientsIds: (string | undefined)[]): ClientStatus[] {
         const clientIds = [clientId, ...otherClientsIds].flatMap(x => x ? [x] : [])
         return clientIds.map(id => this.getClientStatus(id));
@@ -59,12 +43,16 @@ class LocalStateManager implements IStateManager {
         return this.quickPlayRoom?.id === roomId || !!this.rooms[roomId]
     }
 
-    createRoom(option: CreateRoomOptions): ChessRoom {
+    createRoom(options: CreateRoomOptions): ChessRoom {
         const roomId = Buffer.from(v4()).toString('base64').substring(0,15)
         const room: ChessRoom = {
             id: roomId,
             chess: new Chess(),
-            hidden: !!option?.hidden
+            hidden: !!options?.hidden,
+            whitePlayerSeconds: options?.whitePlayerSeconds,
+            blackPlayerSeconds: options?.blackPlayerSeconds,
+            whitePlayerIncSeconds: options?.whitePlayerIncSeconds || 0,
+            blackPlayerIncSeconds: options?.blackPlayerIncSeconds || 0
         };
 
         this.rooms[roomId] = room
