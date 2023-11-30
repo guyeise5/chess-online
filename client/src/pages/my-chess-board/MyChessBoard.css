@@ -1,0 +1,30 @@
+
+.chessBoardContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checked {
+    background-color: red !important;
+}
+
+.possibleMove::after {
+    border-radius: 50%;
+    background: radial-gradient(rgba(20, 85, 30, 0.5) 19%, rgba(0, 0, 0, 0) 20%);
+    position: absolute;
+    content: "";
+    width: 50px;
+    height: 50px;
+    z-index: 1000;
+}
+.possibleMove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.selectedPiece {
+    background-color: seagreen !important;
+}

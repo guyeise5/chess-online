@@ -31,8 +31,9 @@ export default function (): ReactElement {
     useEffect(() => {
         localStorage.setItem("puzzle-rate", rate.toString())
     }, [rate]);
+
     function fetchPuzzle(rate: number, id?: string) {
-        if(id) {
+        if (id) {
             axios.get<Puzzle>(`/api/v1/puzzle/${id}`)
                 .then(resp => {
                     setPuzzle(resp.data)
@@ -41,12 +42,12 @@ export default function (): ReactElement {
         }
         axios.get<Puzzle>(`/api/v1/puzzle/byRating/${rate}`)
             .then(resp => {
-            setPuzzle(resp.data)
-            setSearchParams(params => {
-                params.set("puzzleId", resp.data.puzzleId)
-                return params
+                setPuzzle(resp.data)
+                setSearchParams(params => {
+                    params.set("puzzleId", resp.data.puzzleId)
+                    return params
+                })
             })
-        })
     }
 
     useEffect(() => {
@@ -94,12 +95,12 @@ export default function (): ReactElement {
     }
 
     return <div>
+        {puzzleOrSolution()}
         <h1>
             {color === BLACK ? "Black" : "White"} to play.
         </h1>
         <h3>
             rating: {rate}
         </h3>
-        {puzzleOrSolution()}
     </div>
 }

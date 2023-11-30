@@ -3,6 +3,7 @@ import {BLACK, Chess, Color, DEFAULT_POSITION} from "chess.js";
 import {Arrow, Piece, Square} from "react-chessboard/dist/chessboard/types";
 import {useEffect, useMemo, useState} from "react";
 import {cleanSquareHighlight, highlightSquares} from "./utils";
+import './MyChessBoard.css'
 
 export type Properties = {
     color: Color
@@ -40,7 +41,7 @@ export default function (props: Properties) {
     }
 
     function isDraggablePiece(args: { piece: Piece; sourceSquare: Square; }): boolean {
-        if(props.isDraggablePiece) {
+        if (props.isDraggablePiece) {
             return props.isDraggablePiece(args)
         }
 
@@ -74,16 +75,20 @@ export default function (props: Properties) {
         highlightSquares(chess, square)
     }, [selectedSquare]);
 
-    return <Chessboard id={props.id || ""}
-                       boardWidth={props.width || 500}
-                       position={props.fen || DEFAULT_POSITION}
-                       onPieceDragBegin={onPieceDragBegin}
-                       onPieceDragEnd={onPieceDragEnd}
-                       onPieceDrop={onPieceDrop}
-                       isDraggablePiece={isDraggablePiece}
-                       arePremovesAllowed={props.arePremovesAllowed || false}
-                       boardOrientation={props.color == BLACK ? "black" : "white"}
-                       promotionDialogVariant={"vertical"}
-                       customArrows={props.customArrows || []}
-    />
+    return<div className={"chessBoardContainer"}>
+        <div>
+            <Chessboard id={props.id || ""}
+                        boardWidth={props.width || 500}
+                        position={props.fen || DEFAULT_POSITION}
+                        onPieceDragBegin={onPieceDragBegin}
+                        onPieceDragEnd={onPieceDragEnd}
+                        onPieceDrop={onPieceDrop}
+                        isDraggablePiece={isDraggablePiece}
+                        arePremovesAllowed={props.arePremovesAllowed || false}
+                        boardOrientation={props.color == BLACK ? "black" : "white"}
+                        promotionDialogVariant={"vertical"}
+                        customArrows={props.customArrows || []}
+            />
+        </div>
+    </div>
 }
