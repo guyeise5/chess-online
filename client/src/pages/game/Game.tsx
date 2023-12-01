@@ -37,6 +37,10 @@ const Game = (): ReactElement => {
     }
 
     function clockTick(deltaSeconds: number) {
+        if(chess.isGameOver()) {
+            // No need to change the clock after the game is over
+            return
+        }
         if (chess.turn() == myColor) {
             setMyTime(v => v && Math.max(0, v - deltaSeconds))
         } else {
