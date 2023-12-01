@@ -1,0 +1,12 @@
+.createGameButton:hover {
+    transform: scale(1.1);
+    filter:brightness(110%);
+}
+.whiteKingCreateGame,
+.blackKingCreateGame {
+    scale: 80%;
+}
+
+.whiteBlackKingCreateGame {
+    scale: 1.2;
+}

@@ -1,5 +1,5 @@
 import {ChessRoom, ClientStatus, CreateRoomOptions, IStateManager} from "./IStateManager";
-import {Chess} from 'chess.js'
+import {BLACK, Chess, WHITE} from 'chess.js'
 import {v4} from "uuid";
 
 class LocalStateManager implements IStateManager {
@@ -33,10 +33,9 @@ class LocalStateManager implements IStateManager {
     }
 
     deleteRoom(roomId: string): void {
+        const room: ChessRoom | undefined = this.rooms[roomId];
+        room?.cancelClockTickInterval && room.cancelClockTickInterval()
         delete this.rooms[roomId]
-        if (this.quickPlayRoom?.id === roomId) {
-            this.quickPlayRoom = undefined
-        }
     }
 
     isRoomExists(roomId: string): boolean {
@@ -45,14 +44,15 @@ class LocalStateManager implements IStateManager {
 
     createRoom(options: CreateRoomOptions): ChessRoom {
         const roomId = Buffer.from(v4()).toString('base64').substring(0,15)
+        const selectedKey: keyof ChessRoom = options.selectedColor == WHITE ? 'whitePlayerId' : options.selectedColor == BLACK ? 'blackPlayerId' : Math.random() > 0.5 ? 'whitePlayerId' : 'blackPlayerId'
         const room: ChessRoom = {
             id: roomId,
             chess: new Chess(),
             hidden: !!options?.hidden,
-            whitePlayerSeconds: options?.whitePlayerSeconds,
-            blackPlayerSeconds: options?.blackPlayerSeconds,
-            whitePlayerIncSeconds: options?.whitePlayerIncSeconds || 0,
-            blackPlayerIncSeconds: options?.blackPlayerIncSeconds || 0
+            whitePlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
+            blackPlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
+            incSeconds: options?.incrementPerSide || 0,
+            [selectedKey]: options.userId
         };
 
         this.rooms[roomId] = room

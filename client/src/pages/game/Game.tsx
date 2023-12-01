@@ -1,14 +1,20 @@
-import {ReactElement, useEffect, useMemo, useState} from "react";
+import {ReactElement, useEffect, useMemo, useRef, useState} from "react";
 import './Game.css'
-import {Chess, Color, Move, Square, WHITE} from "chess.js";
+import {BLACK, Chess, Color, Move, Square, WHITE} from "chess.js";
 import axios from 'axios'
-import {useLocation, useNavigate} from "react-router-dom";
+import {useLocation} from "react-router-dom";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import {heartbeatIntervalMillis} from "../../config";
 import {getTopicName, MinimalMove, toColorFromString, toSquare} from "./utils";
 import {Piece} from "react-chessboard/dist/chessboard/types";
 import MyChessBoard from "../my-chess-board/MyChessBoard";
+import Clock from "../clock/Clock";
 
+type RoomTimesResponse = {
+    whitePlayerSeconds: number | null
+    blackPlayerSeconds: number | null
+    incrementSeconds: number
+}
 const Game = (): ReactElement => {
     const chess = useMemo(() => new Chess(), [])
     const checkmateSound = useMemo(() => new Audio("./mp3/checkmate.mp3"), [])
@@ -18,8 +24,37 @@ const Game = (): ReactElement => {
     const roomId = useMemo(() => params.get("roomId"), [params])
     const [fen, _setFen] = useState<string>(localStorage.getItem(`${roomId}-fen`) || chess.fen())
     const topicName = useMemo(() => getTopicName(roomId || ""), [roomId])
-    const navigate = useNavigate()
+    const [myTime, setMyTime] = useState<number | null>(null)
+    const [opponentTime, setOpponentTime] = useState<number | null>(null)
+    const timeIncrementSeconds = useRef<number>(0)
+    function fetchTimesFromServer() {
+        axios.get<RoomTimesResponse>(`/api/v1/room/${roomId}/times`).then(resp => {
+            const data = resp.data
+            setMyTime(myColor == BLACK ? data.blackPlayerSeconds : data.whitePlayerSeconds)
+            setOpponentTime(myColor == BLACK ? data.whitePlayerSeconds : data.blackPlayerSeconds)
+            timeIncrementSeconds.current= data.incrementSeconds
+        })
+    }
 
+    function clockTick(deltaSeconds: number) {
+        if (chess.turn() == myColor) {
+            setMyTime(v => v && Math.max(0, v - deltaSeconds))
+        } else {
+            setOpponentTime(v => v && Math.max(0, v - deltaSeconds))
+        }
+    }
+
+    useEffect(() => {
+        const ms = 100
+        const interval = setInterval(() => clockTick(ms / 1000), ms)
+        return () => clearInterval(interval)
+    }, []);
+
+    useEffect(() => {
+        fetchTimesFromServer()
+        const interval = setInterval(fetchTimesFromServer, 5000)
+        return () => clearInterval(interval)
+    }, []);
     const setFen = (newFen: string) => {
         if (newFen != fen) {
             _setFen(newFen)
@@ -76,16 +111,16 @@ const Game = (): ReactElement => {
 
         const data = message.data
         if (data.winner) {
-            if (data.winner == myColor) {
-                alert("You win!")
+            if(data.winner == myColor) {
+                alert(`You win !`)
             } else {
-                alert("You lose")
+                alert(`You lose !`)
             }
         } else {
             alert(data.type)
         }
 
-        navigate("/")
+        // navigate("/")
     }
 
     function gameDisconnectListener(message: SocketMessage<{ color: Color }>) {
@@ -104,6 +139,12 @@ const Game = (): ReactElement => {
         }
 
         const move = message.data
+        console.log("move", move)
+        if(move.color === myColor) {
+            setMyTime(v => v && (v + timeIncrementSeconds.current))
+        } else {
+            setOpponentTime(v => v && (v + timeIncrementSeconds.current))
+        }
         setFen(move.after)
     }
 
@@ -148,12 +189,14 @@ const Game = (): ReactElement => {
 
 
     return <div id={"mainGameDiv"}>
+        {opponentTime && <Clock seconds={opponentTime}/> }
         <MyChessBoard color={myColor}
                       fen={fen}
                       onPieceDrop={onPieceDrop}
                       isDraggablePiece={isDraggablePiece}
                       arePremovesAllowed={true}
         />
+        {myTime && <Clock seconds={myTime}/> }
     </div>
 }
 

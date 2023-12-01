@@ -1,5 +1,12 @@
-.center {
+.navElement {
     margin: auto;
     width: 33%;
     padding: 10px;
+}
+
+.center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }

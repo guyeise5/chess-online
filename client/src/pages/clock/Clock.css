@@ -1,0 +1,11 @@
+.clockLowTimeBackground {
+    background-color: rgba(255, 40, 0, 0.25);
+}
+
+.clockNormalTimeBackground {
+    background-color: #bababa20;
+}
+
+.clock {
+    color: white;
+}

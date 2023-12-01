@@ -1,4 +1,4 @@
-import {Chess} from 'chess.js'
+import {Chess, Color} from 'chess.js'
 
 export type ChessRoom = {
     chess: Chess,
@@ -8,18 +8,16 @@ export type ChessRoom = {
     blackPlayerSeconds: number | null,
     id: string,
     hidden?: boolean,
-    cancelWhitePlayerInterval?: () => void,
-    cancelBlackPlayerInterval?: () => void
-    whitePlayerIncSeconds: number
-    blackPlayerIncSeconds: number
+    cancelClockTickInterval?: () => void,
+    incSeconds: number
 }
 
 export type CreateRoomOptions = {
-    hidden: boolean,
-    whitePlayerSeconds: number | null,
-    blackPlayerSeconds: number | null
-    whitePlayerIncSeconds?: number,
-    blackPlayerIncSeconds?: number
+    userId: string,
+    selectedColor: Color,
+    minutesPerSide: number | null,
+    incrementPerSide: number,
+    hidden: boolean
 }
 
 export type ClientStatus = {

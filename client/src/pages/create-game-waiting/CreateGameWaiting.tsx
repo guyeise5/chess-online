@@ -5,6 +5,7 @@ import {socket} from "../../webSocket/webSocketManager";
 import {getTopicName, toColorFromString} from "../game/utils";
 import './CreateGameWaiting.css'
 import '../Main.css'
+
 function CreateGameWaiting(): ReactElement {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
@@ -28,6 +29,7 @@ function CreateGameWaiting(): ReactElement {
             console.log("player joined")
             navigate(`/room?roomId=${roomId}&color=${myColor}`)
         }
+
         socket().emitWithAck("subscribe", getTopicName(roomId))
             .then(() => {
                 console.log("ack")
@@ -48,9 +50,10 @@ function CreateGameWaiting(): ReactElement {
         })
     }
 
-    return <div className={"center"}>
+    return <div>
         <h1 className={"shareLinkTitle"}>Share this link</h1>
-        <input id={"linkInputBox"} className={"linkInput"} type={"text"} disabled={true} onClick={onLinkInputBoxClick} value={link}/>
+        <input id={"linkInputBox"} className={"linkInput"} type={"text"} disabled={true} onClick={onLinkInputBoxClick}
+               value={link}/>
         <button className={"copyLinkButton"} onClick={onCopyButtonClick}><FaRegCopy/></button>
     </div>
 }
