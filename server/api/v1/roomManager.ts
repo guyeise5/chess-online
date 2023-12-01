@@ -14,6 +14,7 @@ import {publish} from "../../servers/webSocketServer";
 import {Response} from 'express';
 import {ChessRoom, CreateRoomOptions} from "../../stateManager/IStateManager";
 import stateManager from "../../stateManager";
+import {getPublicAvailableRoomList, roomToWebSocketMessage} from "./utils";
 
 function roomNotExists(res: Response, roomId: string) {
     res.status(404).json({
@@ -141,6 +142,7 @@ function registerUserToRoom(room: ChessRoom, userId: string): Color {
     return userColor;
 }
 
+
 router.post("/:roomId/join", (req, res) => {
     const room = sm.getRoom(req.params.roomId)
 
@@ -158,7 +160,7 @@ router.post("/:roomId/join", (req, res) => {
 
     res.status(200).json(userColor)
     publish("playerJoined", `room-${room.id}`, "1")
-    publish("roomListUpdate", "room-list", sm.getRooms().map(r => r.id))
+    publishAvailableRoomList()
     startGame(room)
     return
 })
@@ -191,6 +193,11 @@ router.get(`/:roomId/times`, (req, res) => {
     res.status(200).json(responseData)
 
 })
+
+function publishAvailableRoomList() {
+    publish("roomListUpdate", "room-list", getPublicAvailableRoomList().map(roomToWebSocketMessage))
+}
+
 router.post("/create", (req, res) => {
     const options: CreateRoomOptions = {...req.body, userId: req.userId}
     const room = sm.createRoom(options)
@@ -201,8 +208,7 @@ router.post("/create", (req, res) => {
         incrementTimeSeconds: room.incSeconds
     }
     res.status(200).json(responseData)
-    !options.hidden && publish("roomListUpdate", "room-list", sm.getRooms()
-        .filter(room => !room.hidden).map(r => r.id))
+    publishAvailableRoomList();
     return
 })
 
@@ -251,8 +257,8 @@ router.post("/:roomId/move", (req, res) => {
     console.log(`#${roomId} - move`, move)
 })
 
-router.get("/ids", (_req, res) => {
-    res.status(200).json(sm.getRooms().filter(room => !room.hidden).map(room => room.id))
+router.get("/available", (_req, res) => {
+    res.status(200).json(getPublicAvailableRoomList().map(roomToWebSocketMessage))
 })
 
 router.post('/:roomId/heartbeat', (req, res) => {

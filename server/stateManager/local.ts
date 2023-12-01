@@ -52,7 +52,8 @@ class LocalStateManager implements IStateManager {
             whitePlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
             blackPlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
             incSeconds: options?.incrementPerSide || 0,
-            [selectedKey]: options.userId
+            [selectedKey]: options.userId,
+            randomChoice: options.selectedColor == "random"
         };
 
         this.rooms[roomId] = room

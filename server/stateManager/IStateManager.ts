@@ -10,11 +10,12 @@ export type ChessRoom = {
     hidden?: boolean,
     cancelClockTickInterval?: () => void,
     incSeconds: number
+    randomChoice?: boolean
 }
 
 export type CreateRoomOptions = {
     userId: string,
-    selectedColor: Color,
+    selectedColor: Color | "random",
     minutesPerSide: number | null,
     incrementPerSide: number,
     hidden: boolean

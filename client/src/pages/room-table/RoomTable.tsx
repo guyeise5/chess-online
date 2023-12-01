@@ -1,28 +1,64 @@
 import {ReactElement, useEffect, useState} from "react";
 import {socket, SocketMessage} from "../../webSocket/webSocketManager";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import {Link} from "react-router-dom";
+import {Color, WHITE} from "chess.js";
+import {ReactComponent as WhiteKing} from '../../img/wK.svg'
+import {ReactComponent as BlackKing} from '../../img/bK.svg'
+import {ReactComponent as BlackWhiteKing} from '../../img/wbK.svg'
+import {formatTime} from "../clock/utils";
 
-function buildTablesTrs(roomsIds: string[]): ReactElement[] {
-    return roomsIds.map(roomId => <tr>
-        <Link to={`/joinRoom?roomId=${roomId}`}>
-            <td>{roomId}</td>
-        </Link>
-    </tr>)
+function displayTime(seconds: number | null, increment: number): string {
+    if (!seconds) {
+        return "unlimited"
+    }
+    return `${formatTime(seconds)}+${increment}`
+}
+
+function getLogoImage(room: RoomInstanceWebSocketMessage): ReactElement {
+    if (room.randomChoice) {
+        return <BlackWhiteKing/>
+    }
+    if (room.color == WHITE) {
+        return <WhiteKing/>
+    }
+    return <BlackKing/>
+}
+
+function buildTablesTrs(rooms: RoomInstanceWebSocketMessage[]): ReactElement[] {
+    return rooms.map(room => <tr>
+            <Link to={`/joinRoom?roomId=${room.roomId}`}>
+                <td>
+                    {getLogoImage(room)}
+                </td>
+                <td>
+                    {displayTime(room.timeSeconds, room.incSeconds)}
+                </td>
+            </Link>
+        </tr>
+    )
+}
+
+type RoomInstanceWebSocketMessage = {
+    roomId: string,
+    timeSeconds: number | null,
+    incSeconds: number,
+    color: Color,
+    randomChoice: boolean
 }
 
 function RoomTable(): ReactElement {
-    const [rooms, setRooms] = useState<string[]>([])
+    const [rooms, setRooms] = useState<RoomInstanceWebSocketMessage[]>([])
 
-    function onRoomListUpdate(message: SocketMessage<string[]>) {
-        const roomsIds = message.data
-        setRooms(roomsIds)
+    function onRoomListUpdate(message: SocketMessage<RoomInstanceWebSocketMessage[]>) {
+        const rooms = message.data
+        setRooms(rooms)
     }
 
     useEffect(() => {
         socket().emit("subscribe", "room-list")
         socket().on("roomListUpdate", onRoomListUpdate)
-        axios.get("/api/v1/room/ids")
+        axios.get("/api/v1/room/available")
             .then(resp => setRooms(resp.data))
 
         return () => {
@@ -36,7 +72,10 @@ function RoomTable(): ReactElement {
             <tbody>
             <tr>
                 <th>
-                    roomId
+                    color
+                </th>
+                <th>
+                    time
                 </th>
             </tr>
             {buildTablesTrs(rooms)}
