@@ -42,3 +42,7 @@ export const publish = (type: string, topic: string, data: any): void => {
         data: data
     })
 }
+
+export function deleteTopic(topic: string) {
+    io?.socketsLeave(topic)
+}

@@ -11,8 +11,10 @@ import JoinRoom from "./pages/join-room/JoinRoom";
 import QuickPlayWait from "./pages/quick-play-wait/QuickPlayWait";
 // import React from "react";
 import Puzzles from "./pages/puzzles/Puzzles";
+import CreateRoomForm from "./pages/create-room-form/CreateRoomForm";
 
 configure()
+
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
@@ -27,6 +29,7 @@ root.render(
             <Route path={"/joinRoom"} element={<JoinRoom/>}/>
             <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
             <Route path={"/puzzle"} element={<Puzzles/>}/>
+            <Route path={"/createRoom"} element={<CreateRoomForm/>}/>
         </Routes>
     </BrowserRouter>
 );

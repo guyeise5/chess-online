@@ -1,5 +1,5 @@
 import {ChessRoom, ClientStatus, CreateRoomOptions, IStateManager} from "./IStateManager";
-import {Chess} from 'chess.js'
+import {BLACK, Chess, WHITE} from 'chess.js'
 import {v4} from "uuid";
 
 class LocalStateManager implements IStateManager {
@@ -9,22 +9,6 @@ class LocalStateManager implements IStateManager {
 
     public getRoom(roomId: string): ChessRoom | undefined {
         return this.rooms[roomId]
-    }
-
-    getOrCreateQuickRoom(): ChessRoom {
-        if (this.quickPlayRoom?.whitePlayerId && this.quickPlayRoom.blackPlayerId) {
-            this.quickPlayRoom = undefined
-        }
-
-        if (!this.quickPlayRoom) {
-            this.quickPlayRoom = {
-                chess: new Chess(),
-                id: v4()
-            }
-
-        }
-        this.rooms[this.quickPlayRoom.id] = this.quickPlayRoom
-        return this.quickPlayRoom
     }
 
     getClientsStatus(clientId: string | undefined, ...otherClientsIds: (string | undefined)[]): ClientStatus[] {
@@ -49,22 +33,26 @@ class LocalStateManager implements IStateManager {
     }
 
     deleteRoom(roomId: string): void {
+        const room: ChessRoom | undefined = this.rooms[roomId];
+        room?.cancelClockTickInterval && room.cancelClockTickInterval()
         delete this.rooms[roomId]
-        if (this.quickPlayRoom?.id === roomId) {
-            this.quickPlayRoom = undefined
-        }
     }
 
     isRoomExists(roomId: string): boolean {
         return this.quickPlayRoom?.id === roomId || !!this.rooms[roomId]
     }
 
-    createRoom(option: CreateRoomOptions): ChessRoom {
+    createRoom(options: CreateRoomOptions): ChessRoom {
         const roomId = Buffer.from(v4()).toString('base64').substring(0,15)
+        const selectedKey: keyof ChessRoom = options.selectedColor == WHITE ? 'whitePlayerId' : options.selectedColor == BLACK ? 'blackPlayerId' : Math.random() > 0.5 ? 'whitePlayerId' : 'blackPlayerId'
         const room: ChessRoom = {
             id: roomId,
             chess: new Chess(),
-            hidden: !!option?.hidden
+            hidden: !!options?.hidden,
+            whitePlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
+            blackPlayerSeconds: (options?.minutesPerSide) && (options?.minutesPerSide * 60),
+            incSeconds: options?.incrementPerSide || 0,
+            [selectedKey]: options.userId
         };
 
         this.rooms[roomId] = room

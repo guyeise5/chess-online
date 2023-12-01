@@ -2,8 +2,14 @@ import express from "express";
 import bodyParser from 'body-parser'
 
 import sm from "../../stateManager";
-import {BLACK, Move, WHITE} from "chess.js";
-import {isGameAvailable, /*isPlayerDisconnected, shutdownGame,*/ toSquare} from "../../utils";
+import {BLACK, Color, Move, WHITE} from "chess.js";
+import {
+    handleGameOver,
+    handleTimersOnTurnSwitch,
+    isGameAvailable,
+    startGame, /*isPlayerDisconnected, shutdownGame,*/
+    toSquare
+} from "../../utils";
 import {publish} from "../../servers/webSocketServer";
 import {Response} from 'express';
 import {ChessRoom, CreateRoomOptions} from "../../stateManager/IStateManager";
@@ -117,8 +123,8 @@ router.post("/:roomId/loadPgn", (req, res) => {
     }
 })
 
-function registerUserToRoom(room: ChessRoom, userId: string): string {
-    let userColor: string;
+function registerUserToRoom(room: ChessRoom, userId: string): Color {
+    let userColor: Color;
     if (room.blackPlayerId) {
         userColor = WHITE
     } else if (room.whitePlayerId) {
@@ -153,15 +159,48 @@ router.post("/:roomId/join", (req, res) => {
     res.status(200).json(userColor)
     publish("playerJoined", `room-${room.id}`, "1")
     publish("roomListUpdate", "room-list", sm.getRooms().map(r => r.id))
+    startGame(room)
     return
 })
 
-router.post("/create", (req, res) => {
-    const options: CreateRoomOptions = req.body
-    const room = sm.createRoom(options)
-    let userColor = registerUserToRoom(room, req.userId);
+type CreateRoomResponseData = {
+    color: Color,
+    roomId: string,
+    totalTimeSeconds: number | null,
+    incrementTimeSeconds: number
+}
 
-    res.status(200).json({color: userColor, roomId: room.id})
+type RoomTimesResponse = {
+    whitePlayerSeconds: number | null
+    blackPlayerSeconds: number | null
+    incrementSeconds: number
+}
+router.get(`/:roomId/times`, (req, res) => {
+    const roomId = req.params.roomId;
+    const room = sm.getRoom(roomId)
+    if (!room) {
+        return roomNotExists(res, roomId);
+    }
+
+    const responseData: RoomTimesResponse = {
+        whitePlayerSeconds: room.whitePlayerSeconds,
+        blackPlayerSeconds: room.blackPlayerSeconds,
+        incrementSeconds: room.incSeconds
+    }
+
+    res.status(200).json(responseData)
+
+})
+router.post("/create", (req, res) => {
+    const options: CreateRoomOptions = {...req.body, userId: req.userId}
+    const room = sm.createRoom(options)
+    const responseData: CreateRoomResponseData = {
+        color: (room.blackPlayerId && BLACK) || WHITE,
+        roomId: room.id,
+        totalTimeSeconds: room.whitePlayerSeconds,
+        incrementTimeSeconds: room.incSeconds
+    }
+    res.status(200).json(responseData)
     !options.hidden && publish("roomListUpdate", "room-list", sm.getRooms()
         .filter(room => !room.hidden).map(r => r.id))
     return
@@ -205,6 +244,10 @@ router.post("/:roomId/move", (req, res) => {
 
     res.status(201).json(chessMove)
     publish("move", `room-${roomId}`, chessMove)
+    if (room.chess.isGameOver()) {
+        handleGameOver(room)
+    }
+    handleTimersOnTurnSwitch(room)
     console.log(`#${roomId} - move`, move)
 })
 
