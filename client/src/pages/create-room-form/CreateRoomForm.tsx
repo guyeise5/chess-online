@@ -14,14 +14,20 @@ export type CreateRoomData = {
     selectedColor: Color | "random"
     minutesPerSide: number
     incrementPerSide: number
-    hidden: boolean
+    hidden: boolean,
+    name: string
 }
 export default function (): ReactElement {
     const [minutesPerSide, setMinutesPerSide] = useState<number>(Number(localStorage.getItem("minutesPerSide")) || 5)
     const [incrementPerSide, setIncrementPerSide] = useState<number>(Number(localStorage.getItem("incrementPerSide")) || 3)
     const navigate = useNavigate()
     const [params, _setParams] = useSearchParams()
+    const [name, setName] = useState<string>(localStorage.getItem("default-room-name") || "")
     const hidden: boolean = params.get("hidden") === "true"
+
+    useEffect(() => {
+        localStorage.setItem("default-room-name", name)
+    }, [name]);
 
     useEffect(() => {
         localStorage.setItem("minutesPerSide", String(minutesPerSide))
@@ -51,6 +57,7 @@ export default function (): ReactElement {
 
     function onButtonClick(color: Color | "random"): void {
         const data: CreateRoomData = {
+            name: name,
             selectedColor: color,
             incrementPerSide: incrementPerSide,
             minutesPerSide: minutesPerSide,
@@ -69,6 +76,10 @@ export default function (): ReactElement {
     return <div>
         <div className={"center"}>
             <div>
+                <label>Room Name</label>
+                <br/>
+                <input value={name} onChange={e => setName(e.target.value)}/>
+                <br/>
                 <label>Minutes per side: {minutesPerSide}</label>
                 <Slider aria-label="Minutes per side" min={1} max={180} value={minutesPerSide}
                         onChange={handleMinutesChanged}/>

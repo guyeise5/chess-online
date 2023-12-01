@@ -3,6 +3,7 @@ import {BLACK, Color, WHITE} from "chess.js";
 import stateManager from "../../stateManager";
 
 type RoomInstanceWebSocketMessage = {
+    name: string,
     roomId: string,
     timeSeconds: number | null,
     incSeconds: number,
@@ -12,6 +13,7 @@ type RoomInstanceWebSocketMessage = {
 
 export function roomToWebSocketMessage(room: ChessRoom): RoomInstanceWebSocketMessage {
     return {
+        name: room.name,
         timeSeconds: room.whitePlayerSeconds,
         roomId: room.id,
         incSeconds: room.incSeconds,

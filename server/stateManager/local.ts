@@ -46,6 +46,7 @@ class LocalStateManager implements IStateManager {
         const roomId = Buffer.from(v4()).toString('base64').substring(0,15)
         const selectedKey: keyof ChessRoom = options.selectedColor == WHITE ? 'whitePlayerId' : options.selectedColor == BLACK ? 'blackPlayerId' : Math.random() > 0.5 ? 'whitePlayerId' : 'blackPlayerId'
         const room: ChessRoom = {
+            name: options.name,
             id: roomId,
             chess: new Chess(),
             hidden: !!options?.hidden,

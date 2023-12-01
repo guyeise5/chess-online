@@ -32,6 +32,9 @@ function buildTablesTrs(rooms: RoomInstanceWebSocketMessage[]): ReactElement[] {
                     {getLogoImage(room)}
                 </td>
                 <td>
+                    {room.name}
+                </td>
+                <td>
                     {displayTime(room.timeSeconds, room.incSeconds)}
                 </td>
             </Link>
@@ -40,6 +43,7 @@ function buildTablesTrs(rooms: RoomInstanceWebSocketMessage[]): ReactElement[] {
 }
 
 type RoomInstanceWebSocketMessage = {
+    name: string,
     roomId: string,
     timeSeconds: number | null,
     incSeconds: number,
@@ -73,6 +77,9 @@ function RoomTable(): ReactElement {
             <tr>
                 <th>
                     color
+                </th>
+                <th>
+                    name
                 </th>
                 <th>
                     time

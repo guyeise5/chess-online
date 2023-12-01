@@ -1,6 +1,7 @@
 import {Chess, Color} from 'chess.js'
 
 export type ChessRoom = {
+    name: string,
     chess: Chess,
     whitePlayerId?: string
     blackPlayerId?: string,
@@ -14,6 +15,7 @@ export type ChessRoom = {
 }
 
 export type CreateRoomOptions = {
+    name: string,
     userId: string,
     selectedColor: Color | "random",
     minutesPerSide: number | null,
