@@ -1,20 +1,21 @@
 import express from "express";
 import bodyParser from 'body-parser'
 
-import sm from "../../stateManager";
 import {BLACK, Color, Move, WHITE} from "chess.js";
 import {
     handleGameOver,
     handleTimersOnTurnSwitch,
     isGameAvailable,
-    startGame, /*isPlayerDisconnected, shutdownGame,*/
-    toSquare
+    startGame
 } from "../../utils";
 import {publish} from "../../servers/webSocketServer";
 import {Response} from 'express';
 import {ChessRoom, CreateRoomOptions} from "../../stateManager/IStateManager";
-import stateManager from "../../stateManager";
 import {getPublicAvailableRoomList, roomToWebSocketMessage} from "./utils";
+import {dalGameManager, dalRoomManager} from "../../stateManager";
+import {RoomDBObject} from "../../stateManager/MongoRoomManager";
+import {CreateGameOptions, GameDBObject} from "../../stateManager/MongoGameManager";
+import gameManager from "./gameManager";
 
 function roomNotExists(res: Response, roomId: string) {
     res.status(404).json({
@@ -26,107 +27,11 @@ function roomNotExists(res: Response, roomId: string) {
 const router = express.Router()
 router.use(bodyParser.json())
 router.use(bodyParser.text())
-router.get("/:roomId/board", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    res.status(200).json(chess.board().flatMap(x => x).filter(Boolean))
-})
-router.get("/:roomId/turn", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    res.status(200).json(chess.turn())
-})
-router.get("/:roomId/moves", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    const square = toSquare(req.query.square?.toString())
-    if (square) {
-        res.status(200).json(chess.moves({square: square, verbose: true}))
-    } else {
-        res.status(200).json(chess.moves({verbose: true}))
 
-    }
-})
-router.get("/:roomId/gameState", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    res.status(200).json({
-        isGameOver: chess.isGameOver()
-        // winner: chess.
-    })
-})
-router.get("/:roomId/fen", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    res.status(200).json(chess.fen())
-})
-router.get("/:roomId/ascii", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    res.status(200).json(chess.ascii())
-})
-router.post("/:roomId/loadFen", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    try {
-        chess.load(req.body)
-        res.status(201).json(chess.fen())
-    } catch (e) {
-        res.status(400).json(e)
-    }
-})
 
-router.get("/:roomId/myColor", (req, res) => {
-    const room = sm.getRoom(req.params.roomId)
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    if (room.whitePlayerId === req.userId) {
-        res.status(200).json(WHITE)
-    } else if (room.blackPlayerId === req.userId) {
-        res.status(200).json(BLACK)
-    } else {
-        res.status(400).json("you are not part of the game")
-    }
-})
-router.post("/:roomId/loadPgn", (req, res) => {
-    const room = sm.getRoom(req.params.roomId);
-    if (!room) {
-        return roomNotExists(res, req.params.roomId);
-    }
-    const chess = room.chess
-    try {
-        chess.loadPgn(req.body)
-        res.status(201).json(chess.fen())
-    } catch (e) {
-        res.status(400).json(e)
-    }
-})
-
-function registerUserToRoom(room: ChessRoom, userId: string): Color {
+function registerUserToRoom(room: RoomDBObject, userId: string): Color {
     let userColor: Color;
-    if (room.blackPlayerId) {
+    if (room.color === WHI) {
         userColor = WHITE
     } else if (room.whitePlayerId) {
         userColor = BLACK
@@ -143,23 +48,27 @@ function registerUserToRoom(room: ChessRoom, userId: string): Color {
 }
 
 
-router.post("/:roomId/join", (req, res) => {
-    const room = sm.getRoom(req.params.roomId)
+router.post("/:roomId/join", async (req, res) => {
+    const room = await dalRoomManager.getById(req.params.roomId)
 
     if (!room) {
         return roomNotExists(res, req.params.roomId);
     }
 
-    if (room.blackPlayerId && room.whitePlayerId) {
-        res.status(400).json({
-            error: "room is full"
+    if (req.userId == room.userId) {
+        return res.status(400).json({
+            error: "same user"
         })
-        return
     }
-    let userColor = registerUserToRoom(room, req.userId);
-
-    res.status(200).json(userColor)
-    publish("playerJoined", `room-${room.id}`, "1")
+    const whitePlayerId = room.color == WHITE ? room.userId : room.color == BLACK ? req.userId : Math.random() < 0.5 ? room.userId : req.userId
+    const blackPlayerId = room.userId === whitePlayerId ? req.userId : room.userId
+    const createGameOptions: CreateGameOptions = {
+        pgn: "",
+        whitePlayerId: whitePlayerId,
+        blackPlayerId: blackPlayerId
+    }
+    await dalGameManager.create(createGameOptions)
+    publish("playerJoined", `room-${room._id}`, "1")
     publishAvailableRoomList()
     startGame(room)
     return
@@ -262,7 +171,7 @@ router.get("/available", (_req, res) => {
 })
 
 router.post('/:roomId/heartbeat', (req, res) => {
-    const room = stateManager.getRoom(req.params.roomId)
+    const room = stateManager.getById(req.params.roomId)
     if (!room) {
         return roomNotExists(res, req.params.roomId);
     }
@@ -271,7 +180,7 @@ router.post('/:roomId/heartbeat', (req, res) => {
     //
     // if (userId !== room.blackPlayerId && userId !== room.whitePlayerId) {
     //     return
-    // }
+    // }2
     //
     // stateManager.recordClientHeartbeat(req.userId)
     //

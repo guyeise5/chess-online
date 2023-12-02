@@ -14,14 +14,14 @@ export type ChessRoom = {
     randomChoice?: boolean
 }
 
-export type CreateRoomOptions = {
-    name: string,
-    userId: string,
+export type CreateRoomOptions = Readonly<{
+    name?: string,
+    userId: string
     selectedColor: Color | "random",
     minutesPerSide: number | null,
     incrementPerSide: number,
     hidden: boolean
-}
+}>
 
 export type ClientStatus = {
     userId: string,
@@ -34,7 +34,6 @@ export type IStateManager = {
     isRoomExists(roomId: string): boolean
     // return the last heart beat of each player
     // if never, it should return now and record the time
-    getClientsStatus(clientId: string, ...otherClientsIds: string[]): ClientStatus[]
     recordClientHeartbeat(clientId: string): void
     getRooms(): ChessRoom[]
 }

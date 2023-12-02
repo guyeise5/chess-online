@@ -1,7 +1,7 @@
 import IPuzzleDAL, {Puzzle} from "./IPuzzleDAL";
 import {MongoClient} from "mongodb";
 import {toPuzzle} from "../utils";
-import {mongodbPuzzlesCollectionName} from "../config";
+import {mongoClient, mongodbPuzzlesCollectionName} from "../config";
 import * as console from "console";
 
 export class MongoDBPuzzleDAL implements IPuzzleDAL {
@@ -9,10 +9,8 @@ export class MongoDBPuzzleDAL implements IPuzzleDAL {
     private readonly client: MongoClient;
     private dbName: string;
 
-    constructor(connectionString: string, dbName: string) {
-        this.client = new MongoClient(connectionString, {
-            readPreference: "secondaryPreferred"
-        });
+    constructor(dbName: string) {
+        this.client = mongoClient()
         this.dbName = dbName
     }
 
