@@ -1,0 +1,21 @@
+.quickPlayGridElement {
+  margin: 1px;
+  padding: 30px;
+  border: 1px white solid;
+  position: relative;
+  text-align: center;
+  transition: width 1s;
+  user-select: none;
+}
+
+.quickPlayGridElement:hover {
+  background-color: tomato;
+  opacity: 70%;
+  color: white;
+}
+
+.quickPlayContainer {
+  display:  grid;
+  grid-template-columns: auto auto auto;
+
+}

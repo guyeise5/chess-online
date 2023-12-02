@@ -7,12 +7,12 @@ import Game from "./pages/game/Game";
 import {configure} from "./config";
 import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
 import JoinRoom from "./pages/join-room/JoinRoom";
-import QuickPlayWait from "./pages/quick-play-wait/QuickPlayWait";
-// import React from "react";
 import Puzzles from "./pages/puzzles/Puzzles";
 import CreateRoomForm from "./pages/create-room-form/CreateRoomForm";
 import Analyze from "./pages/analyze/Analyze";
 import MiniNav from "./pages/mini-nav/MiniNav";
+import RoomTable from "./pages/room-table/RoomTable";
+import QuickPlay from "./pages/quick-play/QuickPlay";
 
 configure()
 
@@ -25,13 +25,15 @@ root.render(
     <BrowserRouter>
         <MiniNav/>
         <Routes>
+            <Route path={"/"} element={<QuickPlay/>}/>
             <Route path={"/room"} element={<Game/>}/>
             <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
             <Route path={"/joinRoom"} element={<JoinRoom/>}/>
-            <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
+            <Route path={"/quickPlay"} element={<QuickPlay/>}/>
             <Route path={"/puzzle"} element={<Puzzles/>}/>
             <Route path={"/createRoom"} element={<CreateRoomForm/>}/>
-            <Route path={"/Analyze"} element={<Analyze/>}/>
+            <Route path={"/analyze"} element={<Analyze/>}/>
+            <Route path={"/lobby"} element={<RoomTable/>}/>
         </Routes>
     </BrowserRouter>
 );

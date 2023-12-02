@@ -73,13 +73,23 @@ export default function (): ReactElement {
 
     }
 
+    function roomNameElement(): ReactElement {
+        if (hidden) {
+            return <div></div>
+        }
+
+        return <div>
+            <label>Room Name</label>
+            <br/>
+            <input value={name} onChange={e => setName(e.target.value)}/>
+            <br/>
+        </div>
+    }
+
     return <div>
         <div className={"center"}>
             <div>
-                <label>Room Name</label>
-                <br/>
-                <input value={name} onChange={e => setName(e.target.value)}/>
-                <br/>
+                {roomNameElement()}
                 <label>Minutes per side: {minutesPerSide}</label>
                 <Slider aria-label="Minutes per side" min={1} max={180} value={minutesPerSide}
                         onChange={handleMinutesChanged}/>
