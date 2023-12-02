@@ -1,15 +1,27 @@
-import {  BLACK, WHITE,  Square, SQUARES} from "chess.js";
-
+import {BLACK, WHITE, Square, SQUARES} from "chess.js";
 
 
 export function toSquare(s: string | undefined | null): Square | undefined {
     return SQUARES.find(x => s == x)
 }
 
+export type Promotion = 'n' | 'b' | 'r' | 'q'
 export type MinimalMove = {
     from: Square
     to: Square
-    promotion: 'n' | 'b' | 'r' | 'q'
+    promotion: Promotion
+}
+
+export function toPromotion(s: string): Promotion {
+    switch (s) {
+        case 'n':
+        case 'b':
+        case 'r':
+        case 'q':
+            return s
+        default:
+            return 'q'
+    }
 }
 
 export function toColorFromString(s?: string | null) {

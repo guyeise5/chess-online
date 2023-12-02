@@ -4,7 +4,6 @@ import './index.css';
 import reportWebVitals from './reportWebVitals';
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import Game from "./pages/game/Game";
-import App from "./pages/app/App";
 import {configure} from "./config";
 import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
 import JoinRoom from "./pages/join-room/JoinRoom";
@@ -12,6 +11,8 @@ import QuickPlayWait from "./pages/quick-play-wait/QuickPlayWait";
 // import React from "react";
 import Puzzles from "./pages/puzzles/Puzzles";
 import CreateRoomForm from "./pages/create-room-form/CreateRoomForm";
+import Analyze from "./pages/analyze/Analyze";
+import MiniNav from "./pages/mini-nav/MiniNav";
 
 configure()
 
@@ -22,14 +23,15 @@ const root = ReactDOM.createRoot(
 
 root.render(
     <BrowserRouter>
+        <MiniNav/>
         <Routes>
-            <Route path={"/"} element={<App/>}/>
             <Route path={"/room"} element={<Game/>}/>
             <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
             <Route path={"/joinRoom"} element={<JoinRoom/>}/>
             <Route path={"/quickPlay"} element={<QuickPlayWait/>}/>
             <Route path={"/puzzle"} element={<Puzzles/>}/>
             <Route path={"/createRoom"} element={<CreateRoomForm/>}/>
+            <Route path={"/Analyze"} element={<Analyze/>}/>
         </Routes>
     </BrowserRouter>
 );

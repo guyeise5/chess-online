@@ -4,3 +4,10 @@ export function sleep(ms: number): Promise<void> {
     })
 }
 
+export function tryOrUndefined<T>(f: () => T): T | undefined {
+    try {
+        return f()
+    } catch (e) {
+        return undefined
+    }
+}

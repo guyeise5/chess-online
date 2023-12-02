@@ -4,3 +4,11 @@ button {
     padding: 0.5em 0.2em;
     position: relative;
 }
+
+.MiniNavContainer {
+    padding-bottom: 10px;
+}
+
+.miniNavSelectedButton {
+    background-color: seagreen;
+}

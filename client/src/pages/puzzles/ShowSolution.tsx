@@ -2,8 +2,9 @@ import React, {ReactElement, useMemo, useState} from "react";
 import {BLACK, Chess, WHITE} from "chess.js";
 import {Arrow, BoardOrientation} from "react-chessboard/dist/chessboard/types";
 import {toSquare} from "../game/utils";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
+import {FaArrowLeft, FaArrowRight} from "react-icons/fa6";
 import MyChessBoard from "../my-chess-board/MyChessBoard";
+import {useNavigate} from "react-router-dom";
 
 type ShowSolutionProps = {
     fen: string
@@ -17,6 +18,7 @@ export default function (props: ShowSolutionProps): ReactElement {
     const moves = props.moves
     const [moveIndex, setMoveIndex] = useState<number>(0)
     const myColor = props.boardOrientation == 'black' ? BLACK : WHITE
+    const navigate = useNavigate()
 
     function handleLeftArrowPressed() {
         try {
@@ -87,5 +89,6 @@ export default function (props: ShowSolutionProps): ReactElement {
         <button onClick={handleLeftArrowPressed} disabled={moveIndex <= 0}><FaArrowLeft/></button>
         <button onClick={handleRightArrowPressed} disabled={moveIndex >= moves.length}><FaArrowRight/></button>
         <button onClick={props.nextPuzzleClick}>Next puzzle</button>
+        <button onClick={() => navigate(`/analyze?fen=${props.fen}&color=${myColor}`)}>Analyze</button>
     </div>
 }
