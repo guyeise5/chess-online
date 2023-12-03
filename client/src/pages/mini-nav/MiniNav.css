@@ -1,7 +1,9 @@
-button {
+.navElement {
+    margin: auto;
+    width: 20%;
+    padding: 10px;
     flex: 1 1 auto;
     text-align: center;
-    padding: 0.5em 0.2em;
     position: relative;
 }
 

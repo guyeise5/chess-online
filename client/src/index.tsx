@@ -25,7 +25,7 @@ root.render(
     <BrowserRouter>
         <MiniNav/>
         <Routes>
-            <Route path={"/"} element={<QuickPlay/>}/>
+            <Route path={"/"} element={<RoomTable/>}/>
             <Route path={"/room"} element={<Game/>}/>
             <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
             <Route path={"/joinRoom"} element={<JoinRoom/>}/>

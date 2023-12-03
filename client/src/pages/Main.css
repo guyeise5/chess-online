@@ -1,12 +1,15 @@
-.navElement {
-    margin: auto;
-    width: 20%;
-    padding: 10px;
-}
 
 .center {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: default;
 }

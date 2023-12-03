@@ -12,6 +12,7 @@
   background-color: tomato;
   opacity: 70%;
   color: white;
+  cursor: pointer;
 }
 
 .quickPlayContainer {

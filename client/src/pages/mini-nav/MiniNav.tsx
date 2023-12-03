@@ -32,7 +32,7 @@ const MiniNav = (): ReactElement => {
     }
 
     return <div className={"MiniNavContainer"}>
-        <button className={"navElement"} onClick={quickPlay}><FaRegChessKnight/> Quick play</button>
+        <button disabled={true} className={"navElement"} onClick={quickPlay}><FaRegChessKnight/> Quick play</button>
         <button className={"navElement"} onClick={lobbyClick}><BiSolidChess/> Lobby</button>
         <button className={"navElement"} onClick={createRoomClick}><LiaChessSolid/> Create room</button>
         <button className={"navElement"} onClick={playWithFriend}><LiaUserFriendsSolid/> Play with a friend</button>
