@@ -1,8 +1,8 @@
 import {ReactElement, useEffect, useState} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 import {FaRegCopy} from "react-icons/fa";
-import {socket} from "../../webSocket/webSocketManager";
-import {getTopicName, toColorFromString} from "../game/utils";
+import {socketEmit, socketEmitWithAck, SocketMessage, socketOff, socketOn} from "../../webSocket/webSocketManager";
+import {getRoomTopicName} from "../game/utils";
 import './CreateGameWaiting.css'
 import '../Main.css'
 
@@ -10,7 +10,6 @@ function CreateGameWaiting(): ReactElement {
     const {search} = useLocation()
     const params = new URLSearchParams(search)
     const roomId = params.get("roomId") || undefined
-    const myColor = toColorFromString(params.get("color"))
     const [link, setLink] = useState<string>("")
     const navigate = useNavigate()
 
@@ -25,21 +24,22 @@ function CreateGameWaiting(): ReactElement {
     }
 
     useEffect(() => {
-        function onPlayerJoinListener() {
+        function onPlayerJoinListener(message: SocketMessage<{ gameId: string }>
+        ) {
             console.log("player joined")
-            navigate(`/room?roomId=${roomId}&color=${myColor}`)
+            navigate(`/game?gameId=${message.data.gameId}`)
         }
 
-        socket().emitWithAck("subscribe", getTopicName(roomId))
+        socketEmitWithAck("subscribe", getRoomTopicName(roomId))
             .then(() => {
                 console.log("ack")
                 setLink(window.location.origin + `/joinRoom?roomId=${roomId}`)
             })
 
-        socket().on("playerJoined", onPlayerJoinListener)
+        socketOn("player-joined", onPlayerJoinListener)
         return () => {
-            socket().off("playerJoined", onPlayerJoinListener)
-            socket().emit("unsubscribe", getTopicName(roomId))
+            socketOff(onPlayerJoinListener)
+            socketEmit("unsubscribe", getRoomTopicName(roomId))
         }
     }, []);
 

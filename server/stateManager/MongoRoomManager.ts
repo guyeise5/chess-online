@@ -1,6 +1,5 @@
-import {CreateRoomOptions} from "./IStateManager";
-import {Collection, MongoClient, ObjectId, WithId} from "mongodb";
-import {mongoClient, mongodbDbName, mongodbPuzzlesCollectionName} from "../config";
+import {Collection, ObjectId, WithId} from "mongodb";
+import {mongoClient, mongodbDbName, mongodbRoomsCollectionName} from "../config";
 import {Color} from "chess.js";
 
 export type RoomDBObject = Readonly<WithId<{
@@ -8,59 +7,64 @@ export type RoomDBObject = Readonly<WithId<{
     userId: string
     color: Color | "random"
     hidden: boolean
-    timeMinutes: number | null
+    timeMinutes: number
     incrementSeconds: number
 }>>
-export type GetAllOptions = {
-    limit?: number
+
+export type CreateRoomOptions = {
+    selectedColor: Color | "random"
+    minutesPerSide: number
+    incrementPerSide: number
+    hidden: boolean,
+    name: string
 }
 
 export class MongoRoomManager {
-    private client: MongoClient
     private dbName: string
 
     constructor() {
-        this.client = mongoClient()
         this.dbName = mongodbDbName
     }
 
-    private collection(): Collection<RoomDBObject> {
-        return this.client.db(this.dbName).collection(mongodbPuzzlesCollectionName)
+    private async collection(): Promise<Collection<Omit<RoomDBObject, "_id">>> {
+        return (await mongoClient())
+            .db(this.dbName)
+            .collection(mongodbRoomsCollectionName)
     }
 
-    public async getAll(options?: GetAllOptions): Promise<RoomDBObject[]> {
-        let query = this.collection().find();
-        if (options?.limit) {
-            query = query.limit(options.limit)
-        }
+    public async getAvailable(userId: string): Promise<RoomDBObject[]> {
+        return await (await this.collection()).find({
+            $and: [
+                {userId: {$not: {$eq: userId}}},
+                {hidden: false}
+            ]
 
-        return query.toArray()
+        }).toArray()
     }
 
-    public async create(options: CreateRoomOptions): Promise<void> {
-        const name = options.name || null
-        const selectedColor = options.selectedColor
+    public async create(options: CreateRoomOptions & { userId: string }): Promise<string> {
+        const name = options.name || "Anonymous"
+        const selectedColor = options.selectedColor || "random"
         const userId = options.userId
-        const minPerSide = options.minutesPerSide
-        const incPerSide = options.incrementPerSide
-        const doc: RoomDBObject = {
-            _id: new ObjectId(),
+        const minPerSide = options.minutesPerSide || Infinity
+        const incPerSide = options.incrementPerSide || 0
+
+        return (await (await this.collection()).insertOne({
             name: name,
             userId: userId,
             color: selectedColor,
             timeMinutes: minPerSide,
             incrementSeconds: incPerSide,
             hidden: options.hidden,
-        }
-
-        await this.collection().insertOne(doc)
+        })).insertedId.toString()
     }
 
     public async delete(roomId: string): Promise<void> {
-        await this.collection().deleteOne({roomId: roomId})
+        const deleteResult = await (await this.collection()).deleteOne({_id: new ObjectId(roomId)});
+        console.log("deleted" , deleteResult)
     }
 
     public async getById(roomId: string): Promise<RoomDBObject | null> {
-        return this.collection().findOne({_id: new ObjectId(roomId)})
+        return (await this.collection()).findOne({_id: new ObjectId(roomId)})
     }
 }

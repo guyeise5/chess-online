@@ -59,7 +59,7 @@ export default function (props: PuzzleProps): ReactElement {
             return false
         }
         const topMove = moves.at(-1) || ""
-        const promotion = piece[1].toLowerCase()
+        const promotion = piece[1]?.toLowerCase()
         const playedMoves = [sourceSquare + targetSquare, sourceSquare + targetSquare + promotion]
         if (playedMoves.includes(topMove)) {
             makeAMoveImmediately()

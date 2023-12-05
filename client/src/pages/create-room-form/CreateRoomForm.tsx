@@ -64,11 +64,11 @@ export default function (): ReactElement {
             hidden: hidden
         };
 
-        axios.post("/api/v1/room/create", data)
+        axios.post("/api/v2/room/create", data)
             .then(resp => {
-                const data: { color: Color, roomId: string } = resp.data
+                const data: { roomId: string } = resp.data
                 console.log("data", data)
-                navigate(`/waitingRoom?roomId=${data.roomId}&color=${data.color}`)
+                navigate(`/waitingRoom?roomId=${data.roomId}`)
             })
 
     }

@@ -37,7 +37,7 @@ export default function () {
         const mv: MinimalMove = {
             from: from,
             to: to,
-            promotion: toPromotion(piece[1].toLowerCase()) ?? "q"
+            promotion: toPromotion(piece?.[1]?.toLowerCase() || "")
         };
 
         tryOrUndefined(() => chess.move(mv))
