@@ -34,13 +34,13 @@ export default function (): ReactElement {
 
     function fetchPuzzle(rate: number, id?: string) {
         if (id) {
-            axios.get<Puzzle>(`/api/v1/puzzle/${id}`)
+            axios.get<Puzzle>(`/api/v2/puzzle/${id}`)
                 .then(resp => {
                     setPuzzle(resp.data)
                 })
             return
         }
-        axios.get<Puzzle>(`/api/v1/puzzle/byRating/${rate}`)
+        axios.get<Puzzle>(`/api/v2/puzzle/byRating/${rate}`)
             .then(resp => {
                 setPuzzle(resp.data)
                 setSearchParams(params => {

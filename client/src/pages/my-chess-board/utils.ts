@@ -5,6 +5,8 @@ export function cleanSquareHighlight() {
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("selectedPiece")
         document?.querySelectorAll(`[data-square="${square}"]`)?.item(0)?.classList?.remove("possibleMove")
     })
+    document?.querySelectorAll('[data-piece="bK"]')?.item(0)?.classList?.remove("checked")
+    document?.querySelectorAll('[data-piece="wK"]')?.item(0)?.classList?.remove("checked")
 }
 
 export function highlightSquares(chess: Chess, selectedSquare?: Square) {

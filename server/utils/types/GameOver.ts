@@ -11,9 +11,11 @@ type Winner = Base & {
 
 export type Draw = Base & {
     type: "DRAW"
+    pgn: string
 }
 export type CheckMate = Winner & {
     type: "CHECKMATE"
+    pgn: string
 }
 export type Flag = Winner & {
     type: "FLAG"

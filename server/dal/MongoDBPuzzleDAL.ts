@@ -1,29 +1,15 @@
 import IPuzzleDAL, {Puzzle} from "./IPuzzleDAL";
-import {MongoClient} from "mongodb";
+import {Collection} from "mongodb";
 import {toPuzzle} from "../utils";
-import {mongodbPuzzlesCollectionName} from "../config";
-import * as console from "console";
+import {mongoClient, mongodbDbName, mongodbPuzzlesCollectionName} from "../config";
 
 export class MongoDBPuzzleDAL implements IPuzzleDAL {
-    private isConnectedPromise: Promise<void> | undefined = undefined
-    private readonly client: MongoClient;
-    private dbName: string;
 
-    constructor(connectionString: string, dbName: string) {
-        this.client = new MongoClient(connectionString, {
-            readPreference: "secondaryPreferred"
-        });
-        this.dbName = dbName
+    async collection():Promise<Collection<Puzzle>> {
+        return (await mongoClient()).db(mongodbDbName).collection(mongodbPuzzlesCollectionName)
     }
-
-    close(): PromiseLike<void> {
-        return this.client.close()
-    }
-
     async getPuzzleById(puzzleId: string): Promise<Puzzle | undefined> {
-        await this.connectIfNeeded()
-        const document = await this.client.db(this.dbName)
-            .collection(mongodbPuzzlesCollectionName)
+        const document = await (await this.collection())
             .find({puzzleId: puzzleId})
             .next()
 
@@ -32,9 +18,7 @@ export class MongoDBPuzzleDAL implements IPuzzleDAL {
     }
 
     async getPuzzleByRating(rating: number): Promise<Puzzle | undefined> {
-        await this.connectIfNeeded()
-        const document = await this.client.db(this.dbName)
-            .collection(mongodbPuzzlesCollectionName)
+        const document = await (await this.collection())
             .aggregate([
                 {$match: {rating: rating}},
                 {$sample: {size: 1}}
@@ -43,20 +27,9 @@ export class MongoDBPuzzleDAL implements IPuzzleDAL {
         return toPuzzle(document)
     }
 
-    connectIfNeeded() {
-        if (!this.isConnectedPromise) {
-            this.isConnectedPromise = new Promise<void>((resolve) => {
-                this.client.connect().then(() => resolve())
-            }).then(() => console.log("connected to mongodb"))
-        }
-        return this.isConnectedPromise
-    }
 
     async getAvailableRatings(): Promise<Set<number>> {
-        await this.connectIfNeeded()
-        const ratings = this.client
-            .db(this.dbName)
-            .collection(mongodbPuzzlesCollectionName)
+        const ratings = (await this.collection())
             .distinct("rating");
         return new Set(await ratings
         )

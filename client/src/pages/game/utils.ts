@@ -1,5 +1,4 @@
-import {BLACK, WHITE, Square, SQUARES} from "chess.js";
-
+import {BLACK, WHITE, Square, SQUARES, Chess} from "chess.js";
 
 export function toSquare(s: string | undefined | null): Square | undefined {
     return SQUARES.find(x => s == x)
@@ -35,9 +34,19 @@ export function toColorFromString(s?: string | null) {
     }
 }
 
-export function getTopicName(roomId?: string): string | undefined {
+export function getRoomTopicName(roomId?: string): string | undefined {
     if (!roomId) {
         return undefined
     }
     return `room-${roomId}`;
+}
+
+export function getGameTopicName(gameId: string): string {
+    return `game-${gameId}`;
+}
+
+export function chessFromPgn(pgn: string): Chess  {
+    const chess = new Chess()
+    chess.loadPgn(pgn)
+    return chess
 }

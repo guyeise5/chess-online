@@ -9,7 +9,9 @@
     "postbuild": "mkdir ./build/client && cp -r ../client/build ./build/client",
     "start": "node ./build/server/index.js",
     "dev": "NODE_ENV=development nodemon index.ts",
-    "seed": "ts-node ./db/seed-mongo.ts"
+    "seed": "ts-node ./db/seed-mongo.ts",
+    "clock": "ts-node ./db/clockTick.ts",
+    "clean": "rm -rf ./build"
   },
   "engines": {
     "node": ">=18.0.0"

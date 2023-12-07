@@ -64,9 +64,6 @@ export default function (props: Properties) {
             } else {
                 document?.querySelectorAll('[data-piece="wK"]')?.item(0)?.classList?.add("checked")
             }
-        } else {
-            document?.querySelectorAll('[data-piece="bK"]')?.item(0)?.classList?.remove("checked")
-            document?.querySelectorAll('[data-piece="wK"]')?.item(0)?.classList?.remove("checked")
         }
     }, [props.fen]);
 
@@ -77,7 +74,7 @@ export default function (props: Properties) {
 
     return<div className={"chessBoardContainer"}>
         <div>
-            <Chessboard id={props.id || ""}
+            <Chessboard id={xprops.id || ""}
                         boardWidth={props.width || 500}
                         position={props.fen || DEFAULT_POSITION}
                         onPieceDragBegin={onPieceDragBegin}

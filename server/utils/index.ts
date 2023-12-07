@@ -1,38 +1,11 @@
-import {ChessRoom, ClientStatus} from "../stateManager/IStateManager";
-import {BLACK, Color, Square, SQUARES, WHITE} from "chess.js";
-import {noHeartbeatMaxTimeMillis} from "../config";
-import stateManager from "../stateManager";
+import {BLACK, Chess, Color, WHITE} from "chess.js";
 import {Puzzle} from "../dal/IPuzzleDAL";
 import {Flag, GameOverReason} from "./types/GameOver";
 import {deleteTopic, publish} from "../servers/webSocketServer";
-
-export const isGameAvailable = (room: ChessRoom | undefined): boolean => {
-    if (!room) {
-        return false;
-    }
-
-    if (!room.blackPlayerId || !room.whitePlayerId) {
-        return false;
-    }
-
-    return !room.chess.isGameOver()
-}
-
-export const toSquare = (s: string | undefined): Square | undefined => {
-    return SQUARES.find(square => square === s)
-}
+import {dalGameManager} from "../stateManager";
 
 export function isProd(): boolean {
     return process.env.NODE_ENV != 'development'
-}
-
-export function isPlayerDisconnected(clientStatus: ClientStatus, now: Date = new Date()): boolean {
-    return millisecondsSince(clientStatus.lastHeartbeat, now) > noHeartbeatMaxTimeMillis
-}
-
-function millisecondsSince(date?: Date, now: Date = new Date()): number {
-    const s = date || new Date(0)
-    return now.valueOf() - s.valueOf()
 }
 
 
@@ -49,74 +22,38 @@ export function toPuzzle(obj: unknown): Puzzle | undefined {
     return undefined
 }
 
-type CancelFunction = () => void
 
-function clockTick(room: ChessRoom): CancelFunction {
-    const interval = setInterval(() => {
-        const color = room.chess.turn()
-        const timeKey: keyof ChessRoom = color === WHITE ? "whitePlayerSeconds" : "blackPlayerSeconds"
-        if (room[timeKey]) {
-            let playerSecondsLeft = room[timeKey];
-            if (playerSecondsLeft) {
-                playerSecondsLeft = playerSecondsLeft - 0.1
-                if (playerSecondsLeft <= 0) {
-                    handleTimeOver(room, color)
-                }
 
-                room[timeKey] = playerSecondsLeft
-            }
-        }
-    }, 100)
-
-    return () => clearInterval(interval)
+async function clearGame(gameId: string) {
+    deleteTopic(`game-${gameId}`)
+    await dalGameManager.delete(gameId)
 }
 
-export function startGame(room: ChessRoom): void {
-    room.cancelClockTickInterval = clockTick(room)
+export async function triggerGameOver(gameId: string, reason: GameOverReason) {
+    publish("gameOver", `game-${gameId}`, reason)
+    await clearGame(gameId)
 }
 
-function incrementTime(room: ChessRoom, color: Color) {
-    const timeKey: keyof ChessRoom = color === BLACK ? "whitePlayerSeconds" : "blackPlayerSeconds"
-    const curTime = room[timeKey]
-    if (curTime) {
-        room[timeKey] = curTime + room.incSeconds
-    }
-}
-
-export function handleTimersOnTurnSwitch(room: ChessRoom) {
-    const color = room.chess.turn()
-    incrementTime(room, color)
-}
-
-function clearGame(roomId: string) {
-    deleteTopic(`room-${roomId}`)
-    stateManager.deleteRoom(roomId)
-}
-
-function triggerGameOver(roomId: string, reason: GameOverReason) {
-    publish("gameOver", `room-${roomId}`, reason)
-    clearGame(roomId)
-}
-
-function handleTimeOver(room: ChessRoom, color: Color) {
+export async function handleTimeOver(gameId: string, color: Color) {
     const reason: Flag = {
         type: "FLAG",
         winner: color == WHITE ? BLACK : WHITE
     }
-    triggerGameOver(room.id, reason)
+    await triggerGameOver(gameId, reason)
 }
 
-export function handleGameOver(room: ChessRoom) {
-    const chess = room.chess
+export function handleGameOverIfNeeded(gameId: string, chess: Chess) {
     let reason: GameOverReason | undefined = undefined
     if (chess.isCheckmate()) {
         reason = {
             type: "CHECKMATE",
-            winner: chess.turn() == WHITE ? BLACK : WHITE
+            winner: chess.turn() == WHITE ? BLACK : WHITE,
+            pgn: chess.pgn()
         }
     } else if (chess.isDraw()) {
         reason = {
-            type: "DRAW"
+            type: "DRAW",
+            pgn: chess.pgn()
         }
 
         if (chess.isStalemate()) {
@@ -128,5 +65,5 @@ export function handleGameOver(room: ChessRoom) {
         }
     }
 
-    reason && triggerGameOver(room.id, reason)
+    reason && triggerGameOver(gameId, reason)
 }

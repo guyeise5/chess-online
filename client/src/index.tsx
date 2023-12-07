@@ -1,9 +1,7 @@
-// import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
-import Game from "./pages/game/Game";
 import {configure} from "./config";
 import CreateGameWaiting from "./pages/create-game-waiting/CreateGameWaiting";
 import JoinRoom from "./pages/join-room/JoinRoom";
@@ -13,6 +11,7 @@ import Analyze from "./pages/analyze/Analyze";
 import MiniNav from "./pages/mini-nav/MiniNav";
 import RoomTable from "./pages/room-table/RoomTable";
 import QuickPlay from "./pages/quick-play/QuickPlay";
+import GameWrapper from "./pages/game/GameWrapper";
 
 configure()
 
@@ -26,7 +25,7 @@ root.render(
         <MiniNav/>
         <Routes>
             <Route path={"/"} element={<RoomTable/>}/>
-            <Route path={"/room"} element={<Game/>}/>
+            <Route path={"/game"} element={<GameWrapper/>}/>
             <Route path={"/waitingRoom"} element={<CreateGameWaiting/>}/>
             <Route path={"/joinRoom"} element={<JoinRoom/>}/>
             <Route path={"/quickPlay"} element={<QuickPlay/>}/>

@@ -1,5 +1,5 @@
 import {ReactElement, useEffect, useState} from "react";
-import {socket, SocketMessage} from "../../webSocket/webSocketManager";
+import {socketEmit, SocketMessage, socketOff, socketOn} from "../../webSocket/webSocketManager";
 import axios from "axios";
 import {Link} from "react-router-dom";
 import {Color, WHITE} from "chess.js";
@@ -16,13 +16,13 @@ function displayTime(seconds: number | null, increment: number): string {
 }
 
 function getLogoImage(room: RoomInstanceWebSocketMessage): ReactElement {
-    if (room.randomChoice) {
+    if (room.color === 'random') {
         return <BlackWhiteKing/>
     }
     if (room.color == WHITE) {
-        return <WhiteKing/>
+        return <BlackKing/>
     }
-    return <BlackKing/>
+    return <WhiteKing/>
 }
 
 function buildTablesTrs(rooms: RoomInstanceWebSocketMessage[]): ReactElement[] {
@@ -47,27 +47,26 @@ type RoomInstanceWebSocketMessage = {
     roomId: string,
     timeSeconds: number | null,
     incSeconds: number,
-    color: Color,
-    randomChoice: boolean
+    color: Color | "random"
 }
 
 function RoomTable(): ReactElement {
     const [rooms, setRooms] = useState<RoomInstanceWebSocketMessage[]>([])
 
-    function onRoomListUpdate(message: SocketMessage<RoomInstanceWebSocketMessage[]>) {
-        const rooms = message.data
+    function onRoomListUpdate(_message: SocketMessage<RoomInstanceWebSocketMessage[]>) {
+        axios.get("/api/v2/room/available").then(resp => setRooms(resp.data))
         setRooms(rooms)
     }
 
     useEffect(() => {
-        socket().emit("subscribe", "room-list")
-        socket().on("roomListUpdate", onRoomListUpdate)
-        axios.get("/api/v1/room/available")
+        socketEmit("subscribe", "roomList")
+        socketOn("roomListUpdate", onRoomListUpdate)
+        axios.get<RoomInstanceWebSocketMessage[]>("/api/v2/room/available")
             .then(resp => setRooms(resp.data))
 
         return () => {
-            socket().emit("unsubscribe", "room-list")
-            socket().off("roomListUpdate", onRoomListUpdate)
+            socketEmit("unsubscribe", "roomList")
+            socketOff(onRoomListUpdate)
         }
     }, []);
 

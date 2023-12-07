@@ -1,2 +1,4 @@
-import {instance as localStateManager} from './local'
-export default localStateManager
+import {MongoRoomManager} from "./MongoRoomManager";
+import {MongoGameManager} from "./MongoGameManager";
+export const dalRoomManager = new MongoRoomManager()
+export const dalGameManager = new MongoGameManager()
