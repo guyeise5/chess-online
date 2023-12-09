@@ -74,7 +74,7 @@ export default function (props: Properties) {
 
     return<div className={"chessBoardContainer"}>
         <div>
-            <Chessboard id={xprops.id || ""}
+            <Chessboard id={props.id || ""}
                         boardWidth={props.width || 500}
                         position={props.fen || DEFAULT_POSITION}
                         onPieceDragBegin={onPieceDragBegin}
