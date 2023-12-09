@@ -26,8 +26,20 @@ export type CreateGameOptions = {
 
 export class MongoGameManager {
 
+    public async getByUserId(userId: string): Promise<GameDBObject[]> {
+        return (await this.collection()).find({
+            $or: [
+                {whitePlayerId: userId},
+                {blackPlayerId: userId}
+            ]
+        }).toArray()
+
+    }
     public async getById(gameId: string): Promise<GameDBObject | null> {
-        return (await this.collection()).findOne({_id: new ObjectId(gameId)})
+        return (await this.collection()).findOne({_id: new ObjectId(gameId)}).catch(e => {
+            console.log(e)
+            return null
+        })
     }
 
 

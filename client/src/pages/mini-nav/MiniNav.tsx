@@ -6,7 +6,8 @@ import {SlPuzzle} from "react-icons/sl";
 import {LiaUserFriendsSolid} from "react-icons/lia";
 import {LiaChessSolid} from "react-icons/lia";
 import { BiSolidChess } from "react-icons/bi";
-import { FaRegChessKnight } from "react-icons/fa6";
+import { SlCup } from "react-icons/sl";
+
 
 
 const MiniNav = (): ReactElement => {
@@ -27,16 +28,21 @@ const MiniNav = (): ReactElement => {
         navigate("/puzzle")
     }
 
-    function quickPlay() {
-        navigate("/quickPlay")
+    // function quickPlay() {
+    //     navigate("/quickPlay")
+    // }
+
+    function myGames() {
+        navigate("/myGames")
     }
 
     return <div className={"MiniNavContainer"}>
-        <button disabled={true} className={"navElement"} onClick={quickPlay}><FaRegChessKnight/> Quick play</button>
-        <button className={"navElement"} onClick={lobbyClick}><BiSolidChess/> Lobby</button>
-        <button className={"navElement"} onClick={createRoomClick}><LiaChessSolid/> Create room</button>
-        <button className={"navElement"} onClick={playWithFriend}><LiaUserFriendsSolid/> Play with a friend</button>
-        <button className={"navElement"} onClick={puzzles}><SlPuzzle/> Puzzles</button>
+        {/*<span disabled={true} className={"navElement"} onClick={quickPlay}><FaRegChessKnight/> Quick play</span>*/}
+        <span className={"navElement"} onClick={lobbyClick}><SlCup /> Lobby</span>
+        <span className={"navElement"} onClick={createRoomClick}><LiaChessSolid/> Create room</span>
+        <span className={"navElement"} onClick={playWithFriend}><LiaUserFriendsSolid/> Play with a friend</span>
+        <span className={"navElement"} onClick={puzzles}><SlPuzzle/> Puzzles</span>
+        <span className={"navElement"} onClick={myGames}><BiSolidChess/> My open games</span>
     </div>
 }
 

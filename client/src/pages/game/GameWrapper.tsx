@@ -12,7 +12,8 @@ type RoomTimesResponse = {
     blackPlayerSeconds: number
     incrementSeconds: number
 }
-type GameDBObject = Readonly<{
+export type GameDBObject = Readonly<{
+    _id: string
     sourceRoomId: string
     whitePlayerId: string
     blackPlayerId: string

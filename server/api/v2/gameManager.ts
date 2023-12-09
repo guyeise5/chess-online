@@ -127,7 +127,12 @@ router.get(`/:gameId/times`, async (req, res) => {
     }
 
     return res.status(200).json(responseData)
+})
 
+router.get("/get/my-games", async (req, res) => {
+    const userGames = await dalGameManager.getByUserId(req.userId);
+    const minimalGames = userGames.map(toMinimalGame)
+    res.status(200).json(minimalGames)
 })
 
 export default router

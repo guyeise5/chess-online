@@ -1,10 +1,15 @@
 .navElement {
-    margin: auto;
     width: 20%;
-    padding: 10px;
+    padding: 15px;
     flex: 1 1 auto;
     text-align: center;
     position: relative;
+    cursor: pointer;
+}
+
+.navElement:hover {
+    background-color: tomato;
+    color: white;
 }
 
 .MiniNavContainer {

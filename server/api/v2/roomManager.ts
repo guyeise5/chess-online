@@ -8,9 +8,9 @@ import {dalGameManager, dalRoomManager} from "../../stateManager";
 import {CreateGameOptions} from "../../stateManager/MongoGameManager";
 import {CreateRoomOptions} from "../../stateManager/MongoRoomManager";
 
-function roomNotExists(res: Response, roomId: string) {
-    res.status(404).json({
-        status: 404,
+function roomNotExists(res: Response, roomId: string, status: number = 404) {
+    res.status(status).json({
+        status: status,
         message: `room ${roomId} not found`
     })
 }
@@ -52,7 +52,7 @@ router.post("/:roomId/join", async (req, res) => {
 
 
 router.post("/create", async (req, res) => {
-    const options: CreateRoomOptions & {userId: string} = {...req.body, userId: req.userId}
+    const options: CreateRoomOptions & { userId: string } = {...req.body, userId: req.userId}
     const roomId = await dalRoomManager.create(options)
     res.status(200).json({roomId: roomId})
     return
@@ -65,6 +65,25 @@ router.get("/available", async (req, res) => {
 
 router.post('/:roomId/heartbeat', (_req, res) => {
     res.status(200).json({ok: 1})
+})
+
+router.delete("/:roomId", async (req, res) => {
+    const roomId = req.params.roomId;
+    const room = await dalRoomManager.getById(roomId)
+
+    if (!room) {
+        return roomNotExists(res, roomId, 200)
+    }
+
+    if (room.userId !== req.userId) {
+        return res.status(403).json({
+            error: "forbidden"
+        })
+    }
+
+    await dalRoomManager.delete(roomId)
+    res.status(200).json({ok: 1})
+
 })
 
 export default router

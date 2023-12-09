@@ -5,6 +5,7 @@ import {socketEmit, socketEmitWithAck, SocketMessage, socketOff, socketOn} from 
 import {getRoomTopicName} from "../game/utils";
 import './CreateGameWaiting.css'
 import '../Main.css'
+import axios from "axios";
 
 function CreateGameWaiting(): ReactElement {
     const {search} = useLocation()
@@ -23,6 +24,12 @@ function CreateGameWaiting(): ReactElement {
         element.setSelectionRange(0, 999999)
     }
 
+    useEffect(() => {
+        return () => {
+            axios.delete(`/api/v2/room/${roomId}`).catch(() => {
+            })
+        }
+    }, []);
     useEffect(() => {
         function onPlayerJoinListener(message: SocketMessage<{ gameId: string }>
         ) {

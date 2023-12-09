@@ -10,6 +10,7 @@ import {publish} from "../servers/webSocketServer";
 import {handleGameOverIfNeeded, triggerGameOver} from "../utils";
 import {BLACK, Chess, WHITE} from "chess.js";
 import {RoomDBObject} from "./MongoRoomManager";
+import {toMinimalGame} from "../api/v2/utils";
 
 async function handleGameStream(gamesStream: ChangeStream<GameDBObject, ChangeStreamDocument<GameDBObject>>) {
     for await (const change of gamesStream) {
@@ -75,7 +76,7 @@ async function onUpdateGame(change: ChangeStreamUpdateDocument<GameDBObject>) {
         return
     }
     if (change.updateDescription.updatedFields?.pgn) {
-        publish("pgn_update", `game-${game._id.toString()}`, game)
+        publish("pgn_update", `game-${game._id.toString()}`, toMinimalGame(game))
         const chess = new Chess()
         chess.loadPgn(game.pgn)
         handleGameOverIfNeeded(game._id.toString(), chess)
