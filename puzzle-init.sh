@@ -4,7 +4,6 @@ set -e
 BUNDLED_ZST="/app/bundled/lichess_db_puzzle.csv.zst"
 WORK_ZST="/tmp/lichess_db_puzzle.csv.zst"
 WORK_CSV="/tmp/lichess_db_puzzle.csv"
-DOWNLOAD_URL="https://database.lichess.org/lichess_db_puzzle.csv.zst"
 
 echo "Checking if puzzles are already imported..."
 NEEDS_IMPORT=$(node -e "
@@ -22,13 +21,8 @@ if [ "$NEEDS_IMPORT" = "no" ]; then
   exit 0
 fi
 
-echo "Attempting to download latest puzzle database..."
-if wget -q -O "$WORK_ZST" "$DOWNLOAD_URL" 2>/dev/null; then
-  echo "Download successful, using latest version."
-else
-  echo "Download failed, using bundled version from image."
-  cp "$BUNDLED_ZST" "$WORK_ZST"
-fi
+echo "Using bundled puzzle database from image."
+cp "$BUNDLED_ZST" "$WORK_ZST"
 
 echo "Decompressing..."
 zstd -d "$WORK_ZST" -o "$WORK_CSV" --rm

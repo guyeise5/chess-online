@@ -1,0 +1,27 @@
+---
+description: On-prem deployment constraint — no internet access at runtime
+alwaysApply: true
+---
+
+# On-Prem / Offline Environment
+
+This project runs in an air-gapped, on-premises environment. After Docker images are built, there is **no internet access**.
+
+## Rules
+
+- All assets (fonts, icons, images, JS/CSS libraries) MUST be bundled locally — never loaded from CDNs or external URLs at runtime.
+- Docker images must contain everything needed to run. No runtime downloads (`wget`, `curl`, `fetch` to external hosts).
+- NPM dependencies must be installed at build time only.
+- No external API calls at runtime (analytics, telemetry, error reporting, external auth providers).
+- Database seeds/imports must be baked into the Docker image or mounted from a local volume.
+- If a build-time step fetches from the internet, there MUST be a fallback to a local copy already in the image.
+
+## Verification Checklist
+
+When adding features, verify:
+
+1. No `<link>`, `<script>`, or `<img>` tags pointing to external domains
+2. No Google Fonts, CDN-hosted libraries, or remote stylesheets
+3. No runtime `fetch()` / `XMLHttpRequest` to external hosts
+4. No Docker `CMD` or `ENTRYPOINT` that downloads files
+5. All static assets exist in the repo or are generated at build time
