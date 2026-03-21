@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "mkdir -p public/stockfish && cp node_modules/stockfish/bin/stockfish-18-lite-single.js public/stockfish/ && cp node_modules/stockfish/bin/stockfish-18-lite-single.wasm public/stockfish/"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
@@ -15,7 +16,8 @@
     "react-chessboard": "^5.10.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.13.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "stockfish": "^18.0.5"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Lobby from "./components/Lobby";
 import GameRoom from "./components/GameRoom";
+import ComputerGame from "./components/ComputerGame";
 import PuzzleTrainer from "./components/PuzzleTrainer";
 import NamePrompt from "./components/NamePrompt";
 
@@ -37,6 +38,10 @@ export default function App() {
       <Route
         path="/game/:roomId"
         element={<GameRoom playerName={playerName} />}
+      />
+      <Route
+        path="/play/computer"
+        element={<ComputerGame playerName={playerName} />}
       />
       <Route path="/puzzles" element={<PuzzleTrainer />} />
       <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />

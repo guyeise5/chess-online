@@ -148,6 +148,48 @@
   font-size: 0.95rem;
 }
 
+.levelGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.levelBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.3rem;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.levelBtn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.levelBtnActive {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.levelNum {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.levelRating {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
 .colorOptions {
   display: flex;
   gap: 0.5rem;

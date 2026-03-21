@@ -1,0 +1,18 @@
+---
+description: Use Lichess as the reference for UI/UX and chess behavior decisions
+alwaysApply: true
+---
+
+# Lichess as Reference
+
+When in doubt about UI/UX decisions, chess behavior, or feature design, follow how Lichess (lichess.org) does it.
+
+This applies to:
+- Board appearance and piece styling
+- Move animations, highlights, and visual feedback
+- Check/checkmate indicators
+- Promotion dialogs
+- Game controls (resign, draw, undo)
+- Puzzle trainer flow
+- Time controls and clock display
+- Sound effects and notifications

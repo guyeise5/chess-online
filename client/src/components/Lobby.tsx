@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { socket } from "../socket";
 import { RoomData, TimeFormat, ColorChoice } from "../types";
+import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
 import styles from "./Lobby.module.css";
 
 interface Props {
@@ -29,6 +30,20 @@ export default function Lobby({ playerName, onChangeName }: Props) {
   const [timeFormat, setTimeFormat] = useState<TimeFormat>("blitz");
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
   const [creating, setCreating] = useState(false);
+
+  const [showComputer, setShowComputer] = useState(false);
+  const [compLevel, setCompLevel] = useState(3);
+  const [compColor, setCompColor] = useState<"white" | "black" | "random">("white");
+
+  const handlePlayComputer = () => {
+    const actualColor = compColor === "random"
+      ? (Math.random() < 0.5 ? "white" : "black")
+      : compColor;
+    localStorage.removeItem("chess-computer-game");
+    navigate("/play/computer", {
+      state: { level: compLevel, color: actualColor },
+    });
+  };
 
   useEffect(() => {
     const handleRoomsList = (data: RoomData[]) => setRooms(data);
@@ -90,6 +105,55 @@ export default function Lobby({ playerName, onChangeName }: Props) {
       </header>
 
       <main className={styles.main}>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Play vs Computer</h2>
+            <button
+              className={styles.createBtn}
+              onClick={() => setShowComputer(!showComputer)}
+            >
+              {showComputer ? "Cancel" : "Setup Game"}
+            </button>
+          </div>
+
+          {showComputer && (
+            <div className={styles.createForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Stockfish Level</label>
+                <div className={styles.levelGrid}>
+                  {STOCKFISH_LEVELS.map((l) => (
+                    <button
+                      key={l.level}
+                      className={`${styles.levelBtn} ${compLevel === l.level ? styles.levelBtnActive : ""}`}
+                      onClick={() => setCompLevel(l.level)}
+                    >
+                      <span className={styles.levelNum}>{l.level}</span>
+                      <span className={styles.levelRating}>{l.rating}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Play as</label>
+                <div className={styles.colorOptions}>
+                  {(["white", "black", "random"] as const).map((c) => (
+                    <button
+                      key={c}
+                      className={`${styles.colorBtn} ${compColor === c ? styles.colorBtnActive : ""}`}
+                      onClick={() => setCompColor(c)}
+                    >
+                      {COLOR_LABELS[c]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button className={styles.submitBtn} onClick={handlePlayComputer}>
+                Play
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Available Rooms</h2>
