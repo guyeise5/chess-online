@@ -76,7 +76,8 @@ describe("room:create", () => {
 
     const res = await emitWithAck(client, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -100,7 +101,8 @@ describe("room:create", () => {
 
     await emitWithAck(client1, "room:create", {
       playerName: "Alice",
-      timeFormat: "rapid",
+      timeControl: 600,
+      increment: 5,
       colorChoice: "random",
     });
 
@@ -142,7 +144,8 @@ describe("room:join", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -190,7 +193,8 @@ describe("room:rejoin", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -218,7 +222,8 @@ describe("room:rejoin", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -282,7 +287,8 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -359,7 +365,8 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "bullet",
+      timeControl: 60,
+      increment: 0,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -401,7 +408,8 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -446,7 +454,8 @@ describe("room:leave", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -477,7 +486,8 @@ describe("room:leave", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -511,7 +521,8 @@ describe("room:leave", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -543,7 +554,8 @@ describe("room:leave", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -575,7 +587,8 @@ describe("room:leave", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -610,7 +623,8 @@ describe("game:move", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -649,7 +663,8 @@ describe("game:move", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
 
@@ -686,7 +701,8 @@ describe("game:resign", () => {
 
     const createRes = await emitWithAck(owner, "room:create", {
       playerName: "Alice",
-      timeFormat: "blitz",
+      timeControl: 300,
+      increment: 2,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;
@@ -723,7 +739,8 @@ describe("full game flow", () => {
 
     const createRes = await emitWithAck(white, "room:create", {
       playerName: "Alice",
-      timeFormat: "rapid",
+      timeControl: 600,
+      increment: 5,
       colorChoice: "white",
     });
     const roomId = createRes.room.roomId;

@@ -1,0 +1,184 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.logoIcon {
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.playerName {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.changeNameBtn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.changeNameBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+.title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.levelGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.levelBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.3rem;
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.levelBtn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.levelBtnActive {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.levelNum {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.levelRating {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.colorOptions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.colorBtn {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.colorBtn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.colorBtnActive {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.playBtn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  background: var(--success);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.playBtn:hover {
+  opacity: 0.9;
+}

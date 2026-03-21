@@ -35,7 +35,7 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 describe("createRoom", () => {
   it("creates a bullet room with correct time controls", async () => {
-    const room = await gm.createRoom("Alice", "bullet", "white");
+    const room = await gm.createRoom("Alice", 60, 0, "white");
 
     expect(room.owner).toBe("Alice");
     expect(room.timeFormat).toBe("bullet");
@@ -49,7 +49,7 @@ describe("createRoom", () => {
   });
 
   it("creates a blitz room with 5 min + 2s increment", async () => {
-    const room = await gm.createRoom("Bob", "blitz", "random");
+    const room = await gm.createRoom("Bob", 300, 2, "random");
 
     expect(room.timeControl).toBe(300);
     expect(room.timeIncrement).toBe(2);
@@ -58,21 +58,21 @@ describe("createRoom", () => {
   });
 
   it("creates a rapid room with 10 min + 5s increment", async () => {
-    const room = await gm.createRoom("Carol", "rapid", "black");
+    const room = await gm.createRoom("Carol", 600, 5, "black");
 
     expect(room.timeControl).toBe(600);
     expect(room.timeIncrement).toBe(5);
   });
 
   it("creates a classical room with 30 min + 10s increment", async () => {
-    const room = await gm.createRoom("Dave", "classical", "white");
+    const room = await gm.createRoom("Dave", 1800, 10, "white");
 
     expect(room.timeControl).toBe(1800);
     expect(room.timeIncrement).toBe(10);
   });
 
   it("persists the room to MongoDB", async () => {
-    const room = await gm.createRoom("Eve", "blitz", "random");
+    const room = await gm.createRoom("Eve", 300, 2, "random");
     const found = await Room.findOne({ roomId: room.roomId });
 
     expect(found).not.toBeNull();
@@ -80,7 +80,7 @@ describe("createRoom", () => {
   });
 
   it("sets initial FEN to starting position", async () => {
-    const room = await gm.createRoom("Frank", "blitz", "white");
+    const room = await gm.createRoom("Frank", 300, 2, "white");
 
     expect(room.fen).toBe(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -93,10 +93,10 @@ describe("createRoom", () => {
 // ---------------------------------------------------------------------------
 describe("getRooms", () => {
   it("returns only rooms with status 'waiting'", async () => {
-    await gm.createRoom("Alice", "blitz", "white");
-    await gm.createRoom("Bob", "rapid", "black");
+    await gm.createRoom("Alice", 300, 2, "white");
+    await gm.createRoom("Bob", 600, 5, "black");
 
-    const r = await gm.createRoom("Carol", "bullet", "random");
+    const r = await gm.createRoom("Carol", 60, 0, "random");
     r.status = "playing";
     await r.save();
 
@@ -121,7 +121,7 @@ describe("joinRoom", () => {
   });
 
   it("returns room unchanged when owner rejoins their waiting room", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const sock = mockSocket();
 
     const result = await gm.joinRoom(room.roomId, "Alice", sock);
@@ -132,7 +132,7 @@ describe("joinRoom", () => {
   });
 
   it("starts the game when an opponent joins", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const sock = mockSocket("sock-2");
 
     const result = await gm.joinRoom(room.roomId, "Bob", sock);
@@ -143,7 +143,7 @@ describe("joinRoom", () => {
   });
 
   it("assigns colors correctly when owner picks white", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const result = await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     expect(result!.whitePlayer).toBe("Alice");
@@ -151,7 +151,7 @@ describe("joinRoom", () => {
   });
 
   it("assigns colors correctly when owner picks black", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "black");
+    const room = await gm.createRoom("Alice", 300, 2, "black");
     const result = await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     expect(result!.whitePlayer).toBe("Bob");
@@ -159,7 +159,7 @@ describe("joinRoom", () => {
   });
 
   it("assigns colors randomly when owner picks random", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "random");
+    const room = await gm.createRoom("Alice", 300, 2, "random");
     const result = await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     const players = [result!.whitePlayer, result!.blackPlayer].sort();
@@ -167,7 +167,7 @@ describe("joinRoom", () => {
   });
 
   it("returns existing room when joining an in-progress game", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket("s1"));
 
     const sock2 = mockSocket("s2");
@@ -188,7 +188,7 @@ describe("rejoinRoom", () => {
   });
 
   it("returns null for a non-participant", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     const result = await gm.rejoinRoom(room.roomId, "Eve", mockSocket("s3"));
@@ -196,7 +196,7 @@ describe("rejoinRoom", () => {
   });
 
   it("allows the owner to rejoin", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     const sock = mockSocket("s4");
@@ -207,7 +207,7 @@ describe("rejoinRoom", () => {
   });
 
   it("allows the opponent to rejoin", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     const sock = mockSocket("s5");
@@ -218,7 +218,7 @@ describe("rejoinRoom", () => {
   });
 
   it("allows rejoining a finished game", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     await gm.resign(room.roomId, "Alice");
 
@@ -235,7 +235,7 @@ describe("makeMove", () => {
   async function createPlayingRoom(
     ownerColor: "white" | "black" = "white"
   ) {
-    const room = await gm.createRoom("Alice", "blitz", ownerColor);
+    const room = await gm.createRoom("Alice", 300, 2, ownerColor);
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     const fresh = await Room.findOne({ roomId: room.roomId });
     return fresh!;
@@ -248,7 +248,7 @@ describe("makeMove", () => {
   });
 
   it("rejects a move on a waiting room", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const result = await gm.makeMove(room.roomId, "Alice", "e2", "e4");
     expect(result.success).toBe(false);
     expect(result.error).toBe("Game not active");
@@ -347,7 +347,7 @@ describe("makeMove", () => {
 // ---------------------------------------------------------------------------
 describe("resign", () => {
   async function createPlayingRoom() {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     return (await Room.findOne({ roomId: room.roomId }))!;
   }
@@ -375,7 +375,7 @@ describe("resign", () => {
   });
 
   it("does nothing on a non-playing room", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.resign(room.roomId, "Alice");
 
     const dbRoom = await Room.findOne({ roomId: room.roomId });
@@ -388,7 +388,7 @@ describe("resign", () => {
 // ---------------------------------------------------------------------------
 describe("rejoinRoom — reconnection", () => {
   async function createPlayingRoom() {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     return (await Room.findOne({ roomId: room.roomId }))!;
   }
@@ -476,7 +476,9 @@ describe("rejoinRoom — reconnection", () => {
 // ---------------------------------------------------------------------------
 describe("timer behavior", () => {
   async function createPlayingRoom(format: "bullet" | "blitz" = "blitz") {
-    const room = await gm.createRoom("Alice", format, "white");
+    const [timeControl, increment] =
+      format === "bullet" ? [60, 0] : [300, 2];
+    const room = await gm.createRoom("Alice", timeControl, increment, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     return (await Room.findOne({ roomId: room.roomId }))!;
   }
@@ -531,7 +533,7 @@ describe("timer behavior", () => {
 // ---------------------------------------------------------------------------
 describe("draw detection", () => {
   it("detects insufficient material (K vs K after capture)", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     // White King e1, White Bishop c4 vs Black King e8 — after Bxf7 style scenario
@@ -559,7 +561,7 @@ describe("draw detection", () => {
 // ---------------------------------------------------------------------------
 describe("closeRoom", () => {
   it("deletes a waiting room when called by the owner", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const result = await gm.closeRoom(room.roomId, "Alice");
 
     expect(result).toBe(true);
@@ -573,7 +575,7 @@ describe("closeRoom", () => {
   });
 
   it("returns false when room is already playing", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     const result = await gm.closeRoom(room.roomId, "Alice");
@@ -584,7 +586,7 @@ describe("closeRoom", () => {
   });
 
   it("returns false when caller is not the owner", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const result = await gm.closeRoom(room.roomId, "Bob");
 
     expect(result).toBe(false);
@@ -593,7 +595,7 @@ describe("closeRoom", () => {
   });
 
   it("returns false when room is finished", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     await gm.resign(room.roomId, "Alice");
 
@@ -602,8 +604,8 @@ describe("closeRoom", () => {
   });
 
   it("removes room from lobby listing after close", async () => {
-    const room1 = await gm.createRoom("Alice", "blitz", "white");
-    await gm.createRoom("Bob", "rapid", "black");
+    const room1 = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.createRoom("Bob", 600, 5, "black");
 
     await gm.closeRoom(room1.roomId, "Alice");
 
@@ -618,7 +620,7 @@ describe("closeRoom", () => {
 // ---------------------------------------------------------------------------
 describe("undoToPlayer", () => {
   async function createPlayingRoom() {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
     return (await Room.findOne({ roomId: room.roomId }))!;
   }
@@ -726,7 +728,7 @@ describe("undoToPlayer", () => {
 // ---------------------------------------------------------------------------
 describe("serializeRoom", () => {
   it("serializes all expected fields", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const serialized = gm.serializeRoom(room);
 
     expect(serialized).toEqual(
@@ -751,7 +753,7 @@ describe("serializeRoom", () => {
   });
 
   it("does not leak internal Mongoose fields", async () => {
-    const room = await gm.createRoom("Alice", "blitz", "white");
+    const room = await gm.createRoom("Alice", 300, 2, "white");
     const serialized = gm.serializeRoom(room);
     const keys = Object.keys(serialized);
 

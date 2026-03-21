@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export type TimeFormat = "bullet" | "blitz" | "rapid" | "classical";
+export type TimeFormat = "ultrabullet" | "bullet" | "blitz" | "rapid" | "classical";
 export type ColorChoice = "white" | "black" | "random";
 export type RoomStatus = "waiting" | "playing" | "finished";
 
@@ -27,12 +27,18 @@ export interface IRoom extends Document {
   updatedAt: Date;
 }
 
-const TIME_CONTROLS: Record<TimeFormat, { time: number; timeIncrement: number }> = {
-  bullet: { time: 60, timeIncrement: 0 },
-  blitz: { time: 300, timeIncrement: 2 },
-  rapid: { time: 600, timeIncrement: 5 },
-  classical: { time: 1800, timeIncrement: 10 },
-};
+/**
+ * Derive time format category from time + increment using Lichess's formula:
+ * estimated game duration = time + 40 * increment
+ */
+export function deriveTimeFormat(time: number, increment: number): TimeFormat {
+  const estimated = time + 40 * increment;
+  if (estimated < 29) return "ultrabullet";
+  if (estimated < 180) return "bullet";
+  if (estimated < 480) return "blitz";
+  if (estimated < 1500) return "rapid";
+  return "classical";
+}
 
 const RoomSchema = new Schema<IRoom>(
   {
@@ -41,7 +47,7 @@ const RoomSchema = new Schema<IRoom>(
     opponent: { type: String, default: null },
     timeFormat: {
       type: String,
-      enum: ["bullet", "blitz", "rapid", "classical"],
+      enum: ["ultrabullet", "bullet", "blitz", "rapid", "classical"],
       required: true,
     },
     timeControl: { type: Number, required: true },
@@ -72,5 +78,4 @@ const RoomSchema = new Schema<IRoom>(
 
 RoomSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 
-export { TIME_CONTROLS };
 export default mongoose.model<IRoom>("Room", RoomSchema);

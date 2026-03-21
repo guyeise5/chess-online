@@ -1,4 +1,4 @@
-export type TimeFormat = "bullet" | "blitz" | "rapid" | "classical";
+export type TimeFormat = "ultrabullet" | "bullet" | "blitz" | "rapid" | "classical";
 export type ColorChoice = "white" | "black" | "random";
 export type RoomStatus = "waiting" | "playing" | "finished";
 

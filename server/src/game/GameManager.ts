@@ -1,6 +1,6 @@
 import { Chess } from "chess.js";
 import { Server, Socket } from "socket.io";
-import Room, { IRoom, TIME_CONTROLS, TimeFormat, ColorChoice } from "../models/Room";
+import Room, { IRoom, deriveTimeFormat, ColorChoice } from "../models/Room";
 import { v4 as uuidv4 } from "uuid";
 
 interface TimerState {
@@ -25,21 +25,22 @@ export class GameManager {
 
   async createRoom(
     ownerName: string,
-    timeFormat: TimeFormat,
+    timeControl: number,
+    increment: number,
     colorChoice: ColorChoice
   ): Promise<IRoom> {
     const roomId = uuidv4().slice(0, 8);
-    const tc = TIME_CONTROLS[timeFormat];
+    const timeFormat = deriveTimeFormat(timeControl, increment);
 
     const room = new Room({
       roomId,
       owner: ownerName,
       timeFormat,
-      timeControl: tc.time,
-      timeIncrement: tc.timeIncrement,
+      timeControl,
+      timeIncrement: increment,
       colorChoice,
-      whiteTime: tc.time,
-      blackTime: tc.time,
+      whiteTime: timeControl,
+      blackTime: timeControl,
     });
 
     await room.save();

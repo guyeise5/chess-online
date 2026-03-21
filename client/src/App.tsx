@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import Home from "./components/Home";
 import Lobby from "./components/Lobby";
-import GameRoom from "./components/GameRoom";
+import ComputerSetup from "./components/ComputerSetup";
 import ComputerGame from "./components/ComputerGame";
+import GameRoom from "./components/GameRoom";
 import PuzzleTrainer from "./components/PuzzleTrainer";
 import NamePrompt from "./components/NamePrompt";
 
@@ -32,16 +34,31 @@ export default function App() {
       <Route
         path="/"
         element={
+          <Home playerName={playerName} onChangeName={handleChangeName} />
+        }
+      />
+      <Route
+        path="/rooms"
+        element={
           <Lobby playerName={playerName} onChangeName={handleChangeName} />
         }
       />
       <Route
-        path="/game/:roomId"
-        element={<GameRoom playerName={playerName} />}
+        path="/computer"
+        element={
+          <ComputerSetup
+            playerName={playerName}
+            onChangeName={handleChangeName}
+          />
+        }
       />
       <Route
         path="/play/computer"
         element={<ComputerGame playerName={playerName} />}
+      />
+      <Route
+        path="/game/:roomId"
+        element={<GameRoom playerName={playerName} />}
       />
       <Route path="/puzzles" element={<PuzzleTrainer />} />
       <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />

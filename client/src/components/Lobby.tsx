@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { socket } from "../socket";
-import { RoomData, TimeFormat, ColorChoice } from "../types";
-import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
+import { RoomData, ColorChoice } from "../types";
 import styles from "./Lobby.module.css";
 
 interface Props {
@@ -10,12 +9,57 @@ interface Props {
   onChangeName: () => void;
 }
 
-const TIME_FORMAT_LABELS: Record<TimeFormat, string> = {
-  bullet: "Bullet (1 min)",
-  blitz: "Blitz (5 min)",
-  rapid: "Rapid (10 min)",
-  classical: "Classical (30 min)",
-};
+interface TimePreset {
+  time: number;
+  increment: number;
+  label: string;
+}
+
+interface TimeCategory {
+  name: string;
+  presets: TimePreset[];
+}
+
+const TIME_CATEGORIES: TimeCategory[] = [
+  {
+    name: "Bullet",
+    presets: [
+      { time: 60, increment: 0, label: "1+0" },
+      { time: 120, increment: 1, label: "2+1" },
+    ],
+  },
+  {
+    name: "Blitz",
+    presets: [
+      { time: 180, increment: 0, label: "3+0" },
+      { time: 180, increment: 2, label: "3+2" },
+      { time: 300, increment: 0, label: "5+0" },
+      { time: 300, increment: 3, label: "5+3" },
+    ],
+  },
+  {
+    name: "Rapid",
+    presets: [
+      { time: 600, increment: 0, label: "10+0" },
+      { time: 600, increment: 5, label: "10+5" },
+      { time: 900, increment: 10, label: "15+10" },
+    ],
+  },
+  {
+    name: "Classical",
+    presets: [
+      { time: 1800, increment: 0, label: "30+0" },
+      { time: 1800, increment: 20, label: "30+20" },
+    ],
+  },
+];
+
+const DEFAULT_PRESET = TIME_CATEGORIES[1].presets[2]; // 5+0
+
+function formatTimeLabel(timeControl: number, increment: number): string {
+  const mins = Math.floor(timeControl / 60);
+  return `${mins}+${increment}`;
+}
 
 const COLOR_LABELS: Record<ColorChoice, string> = {
   white: "White",
@@ -27,23 +71,9 @@ export default function Lobby({ playerName, onChangeName }: Props) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [timeFormat, setTimeFormat] = useState<TimeFormat>("blitz");
+  const [selectedPreset, setSelectedPreset] = useState<TimePreset>(DEFAULT_PRESET);
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
   const [creating, setCreating] = useState(false);
-
-  const [showComputer, setShowComputer] = useState(false);
-  const [compLevel, setCompLevel] = useState(3);
-  const [compColor, setCompColor] = useState<"white" | "black" | "random">("white");
-
-  const handlePlayComputer = () => {
-    const actualColor = compColor === "random"
-      ? (Math.random() < 0.5 ? "white" : "black")
-      : compColor;
-    localStorage.removeItem("chess-computer-game");
-    navigate("/play/computer", {
-      state: { level: compLevel, color: actualColor },
-    });
-  };
 
   useEffect(() => {
     const handleRoomsList = (data: RoomData[]) => setRooms(data);
@@ -66,7 +96,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
     setCreating(true);
     socket.emit(
       "room:create",
-      { playerName, timeFormat, colorChoice },
+      { playerName, timeControl: selectedPreset.time, increment: selectedPreset.increment, colorChoice },
       (res: any) => {
         setCreating(false);
         if (res.success) {
@@ -91,10 +121,8 @@ export default function Lobby({ playerName, onChangeName }: Props) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess</h1>
-        <Link to="/puzzles" className={styles.puzzlesLink}>
-          <span className={styles.puzzlesIcon}>&#129513;</span>
-          Puzzles
+        <Link to="/" className={styles.logo}>
+          <img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess
         </Link>
         <div className={styles.user}>
           <span className={styles.playerName}>{playerName}</span>
@@ -107,56 +135,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
       <main className={styles.main}>
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2>Play vs Computer</h2>
-            <button
-              className={styles.createBtn}
-              onClick={() => setShowComputer(!showComputer)}
-            >
-              {showComputer ? "Cancel" : "Setup Game"}
-            </button>
-          </div>
-
-          {showComputer && (
-            <div className={styles.createForm}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Stockfish Level</label>
-                <div className={styles.levelGrid}>
-                  {STOCKFISH_LEVELS.map((l) => (
-                    <button
-                      key={l.level}
-                      className={`${styles.levelBtn} ${compLevel === l.level ? styles.levelBtnActive : ""}`}
-                      onClick={() => setCompLevel(l.level)}
-                    >
-                      <span className={styles.levelNum}>{l.level}</span>
-                      <span className={styles.levelRating}>{l.rating}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Play as</label>
-                <div className={styles.colorOptions}>
-                  {(["white", "black", "random"] as const).map((c) => (
-                    <button
-                      key={c}
-                      className={`${styles.colorBtn} ${compColor === c ? styles.colorBtnActive : ""}`}
-                      onClick={() => setCompColor(c)}
-                    >
-                      {COLOR_LABELS[c]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button className={styles.submitBtn} onClick={handlePlayComputer}>
-                Play
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Available Rooms</h2>
+            <h2>Play Online</h2>
             <button
               className={styles.createBtn}
               onClick={() => setShowCreate(!showCreate)}
@@ -168,16 +147,31 @@ export default function Lobby({ playerName, onChangeName }: Props) {
           {showCreate && (
             <div className={styles.createForm}>
               <div className={styles.formGroup}>
-                <label className={styles.label}>Time Format</label>
-                <select
-                  className={styles.select}
-                  value={timeFormat}
-                  onChange={(e) => setTimeFormat(e.target.value as TimeFormat)}
-                >
-                  {Object.entries(TIME_FORMAT_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
+                <label className={styles.label}>Time Control</label>
+                <div className={styles.timeGrid}>
+                  {TIME_CATEGORIES.map((cat) => (
+                    <div key={cat.name} className={styles.timeCategory}>
+                      <div className={styles.timeCategoryLabel}>
+                        {cat.name}
+                      </div>
+                      <div className={styles.timePresets}>
+                        {cat.presets.map((p) => (
+                          <button
+                            key={p.label}
+                            className={`${styles.timePresetBtn} ${
+                              selectedPreset.time === p.time && selectedPreset.increment === p.increment
+                                ? styles.timePresetBtnActive
+                                : ""
+                            }`}
+                            onClick={() => setSelectedPreset(p)}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </select>
+                </div>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>Play as</label>
@@ -216,7 +210,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
                   <div className={styles.roomInfo}>
                     <span className={styles.roomOwner}>{room.owner}</span>
                     <span className={styles.roomFormat}>
-                      {TIME_FORMAT_LABELS[room.timeFormat]}
+                      {formatTimeLabel(room.timeControl, room.increment)} &middot; {room.timeFormat}
                     </span>
                     <span className={styles.roomColor}>
                       Owner plays: {COLOR_LABELS[room.colorChoice]}

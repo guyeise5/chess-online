@@ -1,6 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager";
-import { ColorChoice, TimeFormat } from "../models/Room";
+import { ColorChoice } from "../models/Room";
 
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
   io.on("connection", (socket: Socket) => {
@@ -15,7 +15,8 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       async (
         data: {
           playerName: string;
-          timeFormat: TimeFormat;
+          timeControl: number;
+          increment: number;
           colorChoice: ColorChoice;
         },
         callback: (res: any) => void
@@ -23,7 +24,8 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const room = await gm.createRoom(
             data.playerName,
-            data.timeFormat,
+            data.timeControl,
+            data.increment,
             data.colorChoice
           );
           socket.join(room.roomId);
