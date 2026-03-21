@@ -7,6 +7,18 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  puzzle-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.puzzle-init
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/chess-online
+    volumes:
+      - ./data:/data
+    depends_on:
+      - mongo
+    restart: "no"
+
   app:
     build: .
     restart: unless-stopped

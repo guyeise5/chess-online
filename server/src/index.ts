@@ -41,8 +41,39 @@ async function main() {
   const gm = new GameManager(io);
   registerSocketHandlers(io, gm);
 
+  const Puzzle = (await import("./models/Puzzle")).default;
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.get("/api/puzzles/random", async (req, res) => {
+    try {
+      const rating = parseInt(req.query.rating as string, 10) || 1500;
+      const range = 200;
+
+      const puzzles = await Puzzle.aggregate([
+        { $match: { rating: { $gte: rating - range, $lte: rating + range } } },
+        { $sample: { size: 1 } },
+      ]);
+
+      if (puzzles.length === 0) {
+        res.status(404).json({ error: "No puzzles found in rating range" });
+        return;
+      }
+
+      const p = puzzles[0];
+      res.json({
+        puzzleId: p.puzzleId,
+        fen: p.fen,
+        moves: p.moves,
+        rating: p.rating,
+        themes: p.themes,
+      });
+    } catch (err) {
+      console.error("Puzzle fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch puzzle" });
+    }
   });
 
   app.get("*", (_req, res) => {

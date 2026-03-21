@@ -1,0 +1,236 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.backBtn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.ratingBadge {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1.5rem;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.boardArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(560px, calc(100vh - 210px));
+  width: 100%;
+}
+
+.board {
+  line-height: 0;
+  aspect-ratio: 1;
+  width: 100%;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 280px;
+  min-width: 220px;
+}
+
+.puzzleInfo {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.puzzleRating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.puzzleRating span:first-child {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.puzzleRating span:last-child {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.theme {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.statusBanner {
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.statusSolving {
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.statusCorrect {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+
+.statusFailed {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+}
+
+.moveHint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.movesPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  max-height: 300px;
+}
+
+.movesTitle {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.movesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.movePair {
+  display: grid;
+  grid-template-columns: 2rem 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.movePair:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.moveNum {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.moveWhite,
+.moveBlack {
+  font-family: monospace;
+}
+
+.nextBtn {
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.nextBtn:hover {
+  opacity: 0.9;
+}
+
+.playerRating {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.playerRating .label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.playerRating .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: var(--text-secondary);
+}

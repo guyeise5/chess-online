@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { socket } from "../socket";
 import { RoomData, TimeFormat, ColorChoice } from "../types";
 import styles from "./Lobby.module.css";
@@ -78,6 +78,9 @@ export default function Lobby({ playerName, onChangeName }: Props) {
       <header className={styles.header}>
         <h1 className={styles.logo}>&#9822; Chess Online</h1>
         <div className={styles.user}>
+          <Link to="/puzzles" className={styles.joinBtn} style={{ textDecoration: "none", fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}>
+            Puzzles
+          </Link>
           <span className={styles.playerName}>{playerName}</span>
           <button className={styles.changeNameBtn} onClick={onChangeName}>
             Change

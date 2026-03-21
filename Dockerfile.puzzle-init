@@ -1,0 +1,18 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY server/package.json server/package-lock.json* ./
+RUN npm install
+COPY server/ ./server/
+WORKDIR /app/server
+RUN npx tsc
+
+FROM node:20-alpine
+RUN apk add --no-cache zstd
+WORKDIR /app
+COPY server/package.json server/package-lock.json* ./
+RUN npm install --omit=dev
+COPY --from=build /app/server/dist ./dist
+COPY puzzle-init.sh ./
+RUN chmod +x puzzle-init.sh
+
+CMD ["./puzzle-init.sh"]
