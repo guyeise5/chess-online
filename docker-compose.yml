@@ -13,8 +13,6 @@ services:
       dockerfile: Dockerfile.puzzle-init
     environment:
       - MONGO_URI=mongodb://mongo:27017/chess-online
-    volumes:
-      - ./data:/data
     depends_on:
       - mongo
     restart: "no"

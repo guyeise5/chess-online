@@ -51,18 +51,40 @@ async function main() {
     try {
       const rating = parseInt(req.query.rating as string, 10) || 1500;
       const range = 200;
+      const min = rating - range;
+      const max = rating + range;
 
-      const puzzles = await Puzzle.aggregate([
-        { $match: { rating: { $gte: rating - range, $lte: rating + range } } },
-        { $sample: { size: 1 } },
-      ]);
+      const randomRating = min + Math.random() * (max - min);
+      let p = await Puzzle.findOne({ rating: { $gte: randomRating, $lte: max } }).lean();
+      if (!p) {
+        p = await Puzzle.findOne({ rating: { $gte: min, $lte: max } }).lean();
+      }
 
-      if (puzzles.length === 0) {
+      if (!p) {
         res.status(404).json({ error: "No puzzles found in rating range" });
         return;
       }
 
-      const p = puzzles[0];
+      res.json({
+        puzzleId: p.puzzleId,
+        fen: p.fen,
+        moves: p.moves,
+        rating: p.rating,
+        themes: p.themes,
+      });
+    } catch (err) {
+      console.error("Puzzle fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch puzzle" });
+    }
+  });
+
+  app.get("/api/puzzles/:puzzleId", async (req, res) => {
+    try {
+      const p = await Puzzle.findOne({ puzzleId: req.params.puzzleId }).lean();
+      if (!p) {
+        res.status(404).json({ error: "Puzzle not found" });
+        return;
+      }
       res.json({
         puzzleId: p.puzzleId,
         fen: p.fen,

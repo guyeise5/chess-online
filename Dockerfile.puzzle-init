@@ -6,12 +6,17 @@ COPY server/ ./server/
 WORKDIR /app/server
 RUN npx tsc
 
+FROM node:20-alpine AS download
+RUN apk add --no-cache wget
+RUN wget -q -O /tmp/lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
+
 FROM node:20-alpine
 RUN apk add --no-cache zstd
 WORKDIR /app
 COPY server/package.json server/package-lock.json* ./
 RUN npm install --omit=dev
 COPY --from=build /app/server/dist ./dist
+COPY --from=download /tmp/lichess_db_puzzle.csv.zst /app/bundled/lichess_db_puzzle.csv.zst
 COPY puzzle-init.sh ./
 RUN chmod +x puzzle-init.sh
 

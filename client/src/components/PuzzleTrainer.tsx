@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import styles from "./PuzzleTrainer.module.css";
@@ -17,7 +17,7 @@ interface PuzzleData {
   themes: string[];
 }
 
-type PuzzleStatus = "loading" | "solving" | "correct" | "failed";
+type PuzzleStatus = "loading" | "showing" | "solving" | "correct" | "failed";
 
 function getRating(): number {
   const stored = localStorage.getItem(PUZZLE_RATING_KEY);
@@ -30,6 +30,7 @@ function setRating(r: number): void {
 
 export default function PuzzleTrainer() {
   const navigate = useNavigate();
+  const { puzzleId: urlPuzzleId } = useParams<{ puzzleId?: string }>();
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
   const [game, setGame] = useState<Chess>(new Chess());
   const [fen, setFen] = useState("start");
@@ -38,6 +39,9 @@ export default function PuzzleTrainer() {
   const [moveIndex, setMoveIndex] = useState(0);
   const [playedMoves, setPlayedMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [wrongFlash, setWrongFlash] = useState(false);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const orientation = useMemo(() => {
@@ -46,17 +50,27 @@ export default function PuzzleTrainer() {
     return g.turn() === "w" ? "black" : "white";
   }, [puzzle]);
 
-  const fetchPuzzle = useCallback(async () => {
+  const fetchPuzzle = useCallback(async (specificId?: string) => {
     setStatus("loading");
     setPlayedMoves([]);
     setSelectedSquare(null);
+    setLastMove(null);
+    setHasFailed(false);
+    setWrongFlash(false);
     setMoveIndex(0);
 
     try {
-      const res = await fetch(`${API_BASE}/api/puzzles/random?rating=${getRating()}`);
+      const url = specificId
+        ? `${API_BASE}/api/puzzles/${specificId}`
+        : `${API_BASE}/api/puzzles/random?rating=${getRating()}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch");
       const data: PuzzleData = await res.json();
       setPuzzle(data);
+
+      if (!specificId || specificId !== data.puzzleId) {
+        navigate(`/puzzles/${data.puzzleId}`, { replace: true });
+      }
 
       const g = new Chess(data.fen);
       const opponentMove = data.moves[0];
@@ -64,25 +78,27 @@ export default function PuzzleTrainer() {
       const to = opponentMove.slice(2, 4);
       const promotion = opponentMove.length > 4 ? opponentMove[4] : undefined;
 
+      setGame(new Chess(data.fen));
+      setFen(data.fen);
+      setStatus("showing");
+
       setTimeout(() => {
         g.move({ from, to, promotion });
         setGame(g);
         setFen(g.fen());
         setMoveIndex(1);
         setPlayedMoves([g.history().slice(-1)[0]]);
-        setStatus("solving");
-      }, 400);
-
-      setGame(new Chess(data.fen));
-      setFen(data.fen);
+        setLastMove({ from, to });
+        setTimeout(() => setStatus("solving"), 500);
+      }, 800);
     } catch (err) {
       console.error("Failed to fetch puzzle:", err);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    fetchPuzzle();
-  }, [fetchPuzzle]);
+    fetchPuzzle(urlPuzzleId);
+  }, []);
 
   useEffect(() => {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,19 +125,15 @@ export default function PuzzleTrainer() {
           : undefined;
 
       if (from !== expectedFrom || to !== expectedTo) {
-        const newRating = Math.max(100, playerRating - RATING_DELTA);
-        setPlayerRating(newRating);
-        setRating(newRating);
-        setStatus("failed");
-
-        const reveal = new Chess(game.fen());
-        try {
-          reveal.move({ from: expectedFrom, to: expectedTo, promotion: expectedPromo });
-          setGame(reveal);
-          setFen(reveal.fen());
-          const san = reveal.history().slice(-1)[0];
-          setPlayedMoves((prev) => [...prev, san]);
-        } catch { /* ignore */ }
+        if (!hasFailed) {
+          const newRating = Math.max(100, playerRating - RATING_DELTA);
+          setPlayerRating(newRating);
+          setRating(newRating);
+          setHasFailed(true);
+        }
+        setWrongFlash(true);
+        setTimeout(() => setWrongFlash(false), 600);
+        setSelectedSquare(null);
         return false;
       }
 
@@ -132,14 +144,17 @@ export default function PuzzleTrainer() {
       setGame(gameCopy);
       setFen(gameCopy.fen());
       setSelectedSquare(null);
+      setLastMove({ from, to });
       setPlayedMoves((prev) => [...prev, move.san]);
 
       const nextIndex = moveIndex + 1;
 
       if (nextIndex >= puzzle.moves.length) {
-        const newRating = playerRating + RATING_DELTA;
-        setPlayerRating(newRating);
-        setRating(newRating);
+        if (!hasFailed) {
+          const newRating = playerRating + RATING_DELTA;
+          setPlayerRating(newRating);
+          setRating(newRating);
+        }
         setStatus("correct");
         setMoveIndex(nextIndex);
         return true;
@@ -156,16 +171,47 @@ export default function PuzzleTrainer() {
         if (replyMove) {
           setGame(afterReply);
           setFen(afterReply.fen());
+          setLastMove({ from: replyFrom, to: replyTo });
           setPlayedMoves((prev) => [...prev, replyMove.san]);
           setMoveIndex(nextIndex + 1);
         }
-      }, 400);
+      }, 600);
 
       setMoveIndex(nextIndex);
       return true;
     },
-    [status, puzzle, moveIndex, game, playerRating]
+    [status, puzzle, moveIndex, game, playerRating, hasFailed]
   );
+
+  const showSolution = useCallback(() => {
+    if (!puzzle) return;
+    setStatus("failed");
+    setSelectedSquare(null);
+
+    const remaining = puzzle.moves.slice(moveIndex);
+    let g = new Chess(game.fen());
+    let delay = 0;
+
+    for (const uci of remaining) {
+      const from = uci.slice(0, 2);
+      const to = uci.slice(2, 4);
+      const promo = uci.length > 4 ? uci[4] : undefined;
+      const snapshot = new Chess(g.fen());
+      const move = snapshot.move({ from, to, promotion: promo });
+      if (!move) break;
+      const newFen = snapshot.fen();
+      const san = move.san;
+      g = snapshot;
+
+      setTimeout(() => {
+        setGame(new Chess(newFen));
+        setFen(newFen);
+        setLastMove({ from, to });
+        setPlayedMoves((prev) => [...prev, san]);
+      }, delay);
+      delay += 600;
+    }
+  }, [puzzle, moveIndex, game]);
 
   const getLegalMovesForSquare = useCallback(
     (square: string): string[] => {
@@ -189,19 +235,29 @@ export default function PuzzleTrainer() {
   const HIGHLIGHT_CAPTURE: React.CSSProperties = {
     background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)",
   };
+  const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
+    backgroundColor: "rgba(155, 199, 0, 0.41)",
+  };
 
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
-    if (!selectedSquare) return {};
-    const targets = getLegalMovesForSquare(selectedSquare);
-    const result: Record<string, React.CSSProperties> = {
-      [selectedSquare]: HIGHLIGHT_SOURCE,
-    };
-    for (const sq of targets) {
-      const pieceOnTarget = game.get(sq as Square);
-      result[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+    const result: Record<string, React.CSSProperties> = {};
+
+    if (lastMove) {
+      result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
+      result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
     }
+
+    if (selectedSquare) {
+      result[selectedSquare] = HIGHLIGHT_SOURCE;
+      const targets = getLegalMovesForSquare(selectedSquare);
+      for (const sq of targets) {
+        const pieceOnTarget = game.get(sq as Square);
+        result[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+      }
+    }
+
     return result;
-  }, [selectedSquare, game, getLegalMovesForSquare]);
+  }, [selectedSquare, lastMove, game, getLegalMovesForSquare]);
 
   const onDrop = useCallback(
     ({ sourceSquare, targetSquare }: { piece: { pieceType: string }; sourceSquare: string; targetSquare: string | null }): boolean => {
@@ -293,7 +349,7 @@ export default function PuzzleTrainer() {
                 onSquareClick: onSquareClick,
                 squareStyles: highlightStyles,
                 boardOrientation: orientation,
-                animationDurationInMs: 200,
+                animationDurationInMs: 500,
                 boardStyle: {
                   borderRadius: "4px",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
@@ -337,33 +393,50 @@ export default function PuzzleTrainer() {
 
           <div
             className={`${styles.statusBanner} ${
-              status === "solving"
-                ? styles.statusSolving
+              status === "showing" || status === "solving"
+                ? wrongFlash
+                  ? styles.statusWrong
+                  : hasFailed
+                  ? styles.statusRetry
+                  : styles.statusSolving
                 : status === "correct"
-                ? styles.statusCorrect
+                ? hasFailed
+                  ? styles.statusRetry
+                  : styles.statusCorrect
                 : styles.statusFailed
             }`}
           >
-            {status === "solving" && `Find the best move for ${orientation}`}
-            {status === "correct" && "Correct! Well done."}
-            {status === "failed" && "Incorrect. The correct move is shown."}
+            {status === "showing" && "Opponent is playing..."}
+            {status === "solving" &&
+              (wrongFlash
+                ? "That's not it — try again!"
+                : hasFailed
+                ? "Keep trying..."
+                : `Find the best move for ${orientation}`)}
+            {status === "correct" &&
+              (hasFailed
+                ? "Solved!"
+                : "Correct! Well done.")}
+            {status === "failed" && "Solution"}
           </div>
 
-          <div className={styles.puzzleInfo}>
-            <div className={styles.puzzleRating}>
-              <span>Puzzle Rating</span>
-              <span>{puzzle.rating}</span>
-            </div>
-            {puzzle.themes.length > 0 && (
-              <div className={styles.themes}>
-                {puzzle.themes.map((t) => (
-                  <span key={t} className={styles.theme}>
-                    {t}
-                  </span>
-                ))}
+          {(status === "correct" || status === "failed") && (
+            <div className={styles.puzzleInfo}>
+              <div className={styles.puzzleRating}>
+                <span>Puzzle Rating</span>
+                <span>{puzzle.rating}</span>
               </div>
-            )}
-          </div>
+              {puzzle.themes.length > 0 && (
+                <div className={styles.themes}>
+                  {puzzle.themes.map((t) => (
+                    <span key={t} className={styles.theme}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={styles.movesPanel}>
             <h3 className={styles.movesTitle}>Moves</h3>
@@ -379,8 +452,14 @@ export default function PuzzleTrainer() {
             </div>
           </div>
 
+          {hasFailed && status === "solving" && (
+            <button className={styles.showSolutionBtn} onClick={showSolution}>
+              Show Solution
+            </button>
+          )}
+
           {(status === "correct" || status === "failed") && (
-            <button className={styles.nextBtn} onClick={fetchPuzzle}>
+            <button className={styles.nextBtn} onClick={() => fetchPuzzle()}>
               Next Puzzle
             </button>
           )}

@@ -39,6 +39,7 @@ export default function App() {
         element={<GameRoom playerName={playerName} />}
       />
       <Route path="/puzzles" element={<PuzzleTrainer />} />
+      <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -137,6 +137,27 @@
   color: #e74c3c;
 }
 
+.statusWrong {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  animation: shake 0.4s ease-in-out;
+}
+
+.statusRetry {
+  background: rgba(243, 156, 18, 0.15);
+  border: 1px solid #f39c12;
+  color: #f39c12;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
 .moveHint {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -189,6 +210,22 @@
 .moveWhite,
 .moveBlack {
   font-family: monospace;
+}
+
+.showSolutionBtn {
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.showSolutionBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
 }
 
 .nextBtn {

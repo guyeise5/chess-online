@@ -1,9 +1,10 @@
 #!/bin/sh
 set -e
 
-DATA_DIR="/data"
-CSV_FILE="$DATA_DIR/lichess_db_puzzle.csv"
-ZST_FILE="$DATA_DIR/lichess_db_puzzle.csv.zst"
+BUNDLED_ZST="/app/bundled/lichess_db_puzzle.csv.zst"
+WORK_ZST="/tmp/lichess_db_puzzle.csv.zst"
+WORK_CSV="/tmp/lichess_db_puzzle.csv"
+DOWNLOAD_URL="https://database.lichess.org/lichess_db_puzzle.csv.zst"
 
 echo "Checking if puzzles are already imported..."
 NEEDS_IMPORT=$(node -e "
@@ -21,17 +22,19 @@ if [ "$NEEDS_IMPORT" = "no" ]; then
   exit 0
 fi
 
-if [ ! -f "$CSV_FILE" ] && [ -f "$ZST_FILE" ]; then
-  echo "Decompressing $ZST_FILE..."
-  zstd -d "$ZST_FILE" -o "$CSV_FILE" --keep
+echo "Attempting to download latest puzzle database..."
+if wget -q -O "$WORK_ZST" "$DOWNLOAD_URL" 2>/dev/null; then
+  echo "Download successful, using latest version."
+else
+  echo "Download failed, using bundled version from image."
+  cp "$BUNDLED_ZST" "$WORK_ZST"
 fi
 
-if [ ! -f "$CSV_FILE" ]; then
-  echo "ERROR: No puzzle file found. Place lichess_db_puzzle.csv or lichess_db_puzzle.csv.zst in the data/ directory."
-  echo "Download from: https://database.lichess.org/#puzzles"
-  exit 1
-fi
+echo "Decompressing..."
+zstd -d "$WORK_ZST" -o "$WORK_CSV" --rm
 
 echo "Importing puzzles into MongoDB..."
-CSV_PATH="$CSV_FILE" node dist/scripts/import-puzzles.js
+CSV_PATH="$WORK_CSV" node dist/scripts/import-puzzles.js
+
+rm -f "$WORK_CSV"
 echo "Puzzle import complete."
