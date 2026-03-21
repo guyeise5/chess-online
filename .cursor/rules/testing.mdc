@@ -1,19 +1,28 @@
 ---
-description: Always run tests after making code changes
+description: Write and run tests for every code change or new feature
 alwaysApply: true
 ---
 
 # Testing Policy
 
-After every code change, run the relevant test suite before considering the task complete.
+Every code change or new feature must include tests. Run the full test suite before considering the task complete.
 
-## Commands
+## Write tests
+
+- Add tests for every new feature, bug fix, refactor, or behavior change
+- Server tests go in `server/src/__tests__/` using Jest + mongodb-memory-server
+- Client tests go in `client/src/__tests__/` using Vitest + jsdom
+- Follow existing patterns: use `setupDB`/`teardownDB`/`clearDB` for server, mock socket and localStorage for client
+- Test both success and failure paths
+- Call `gm.stopAllTimers()` in `afterEach` for any server test that creates playing rooms
+
+## Run tests
 
 - **Server changes:** `cd server && npm test`
 - **Client changes:** `cd client && npm test`
 - **Both changed:** run both commands
 
-## When to run
+## When
 
 - After modifying any `.ts` or `.tsx` source file
 - After adding, removing, or updating dependencies

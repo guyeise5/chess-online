@@ -437,6 +437,166 @@ describe("room:rejoin — reconnection scenarios", () => {
 });
 
 // ---------------------------------------------------------------------------
+// room:leave
+// ---------------------------------------------------------------------------
+describe("room:leave", () => {
+  it("owner can close a waiting room", async () => {
+    const owner = connectClient();
+    await waitForEvent(owner, "connect");
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeFormat: "blitz",
+      colorChoice: "white",
+    });
+
+    const res = await emitWithAck(owner, "room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+
+    expect(res.success).toBe(true);
+
+    // Verify room no longer exists via rejoin
+    const rejoinRes = await emitWithAck(owner, "room:rejoin", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+    expect(rejoinRes.success).toBe(false);
+
+    owner.disconnect();
+  });
+
+  it("broadcasts room:closed to other clients in the room", async () => {
+    const owner = connectClient();
+    const watcher = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(watcher, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeFormat: "blitz",
+      colorChoice: "white",
+    });
+
+    // Watcher joins the socket room via rejoin (owner is the only participant for waiting rooms)
+    // Instead, we use room:join so watcher's socket joins the room
+    await emitWithAck(watcher, "room:join", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice", // same name = owner rejoins, socket joins room
+    });
+
+    const closedPromise = waitForEvent(watcher, "room:closed");
+
+    await emitWithAck(owner, "room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+
+    await closedPromise; // resolves if event is received
+
+    owner.disconnect();
+    watcher.disconnect();
+  });
+
+  it("broadcasts updated rooms list after closing", async () => {
+    const owner = connectClient();
+    const lobby = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(lobby, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeFormat: "blitz",
+      colorChoice: "white",
+    });
+
+    // Wait for the initial rooms:list broadcast to settle
+    await new Promise((r) => setTimeout(r, 50));
+
+    const roomsPromise = waitForEvent<any[]>(lobby, "rooms:list");
+
+    await emitWithAck(owner, "room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+
+    const rooms = await roomsPromise;
+    const found = rooms.find((r: any) => r.roomId === createRes.room.roomId);
+    expect(found).toBeUndefined();
+
+    owner.disconnect();
+    lobby.disconnect();
+  });
+
+  it("returns false when non-owner tries to close", async () => {
+    const owner = connectClient();
+    const other = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(other, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeFormat: "blitz",
+      colorChoice: "white",
+    });
+
+    const res = await emitWithAck(other, "room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Bob",
+    });
+
+    expect(res.success).toBe(false);
+
+    // Room should still exist
+    const rejoinRes = await emitWithAck(owner, "room:rejoin", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+    expect(rejoinRes.success).toBe(true);
+
+    owner.disconnect();
+    other.disconnect();
+  });
+
+  it("returns false for a playing room", async () => {
+    const owner = connectClient();
+    const joiner = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(joiner, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeFormat: "blitz",
+      colorChoice: "white",
+    });
+
+    await emitWithAck(joiner, "room:join", {
+      roomId: createRes.room.roomId,
+      playerName: "Bob",
+    });
+
+    const res = await emitWithAck(owner, "room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+
+    expect(res.success).toBe(false);
+
+    owner.disconnect();
+    joiner.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // game:move
 // ---------------------------------------------------------------------------
 describe("game:move", () => {

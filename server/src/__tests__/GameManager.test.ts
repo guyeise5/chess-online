@@ -555,6 +555,65 @@ describe("draw detection", () => {
 });
 
 // ---------------------------------------------------------------------------
+// closeRoom
+// ---------------------------------------------------------------------------
+describe("closeRoom", () => {
+  it("deletes a waiting room when called by the owner", async () => {
+    const room = await gm.createRoom("Alice", "blitz", "white");
+    const result = await gm.closeRoom(room.roomId, "Alice");
+
+    expect(result).toBe(true);
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom).toBeNull();
+  });
+
+  it("returns false for a non-existent room", async () => {
+    const result = await gm.closeRoom("nonexistent", "Alice");
+    expect(result).toBe(false);
+  });
+
+  it("returns false when room is already playing", async () => {
+    const room = await gm.createRoom("Alice", "blitz", "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+
+    const result = await gm.closeRoom(room.roomId, "Alice");
+    expect(result).toBe(false);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom).not.toBeNull();
+  });
+
+  it("returns false when caller is not the owner", async () => {
+    const room = await gm.createRoom("Alice", "blitz", "white");
+    const result = await gm.closeRoom(room.roomId, "Bob");
+
+    expect(result).toBe(false);
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom).not.toBeNull();
+  });
+
+  it("returns false when room is finished", async () => {
+    const room = await gm.createRoom("Alice", "blitz", "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    await gm.resign(room.roomId, "Alice");
+
+    const result = await gm.closeRoom(room.roomId, "Alice");
+    expect(result).toBe(false);
+  });
+
+  it("removes room from lobby listing after close", async () => {
+    const room1 = await gm.createRoom("Alice", "blitz", "white");
+    await gm.createRoom("Bob", "rapid", "black");
+
+    await gm.closeRoom(room1.roomId, "Alice");
+
+    const rooms = await gm.getRooms();
+    expect(rooms).toHaveLength(1);
+    expect(rooms[0].owner).toBe("Bob");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // serializeRoom
 // ---------------------------------------------------------------------------
 describe("serializeRoom", () => {
