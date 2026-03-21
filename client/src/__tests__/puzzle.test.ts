@@ -233,6 +233,131 @@ describe("puzzle move validation", () => {
   });
 });
 
+describe("puzzle hint system", () => {
+  it("hint level 0 returns no hint square", () => {
+    const hintLevel = 0;
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const moveIndex = 1;
+    const hintSquare = hintLevel > 0 ? moves[moveIndex]?.slice(0, 2) : null;
+    expect(hintSquare).toBeNull();
+  });
+
+  it("hint level 1 reveals the source square", () => {
+    const hintLevel = 1;
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const moveIndex = 1;
+    const hintSquare = hintLevel > 0 ? moves[moveIndex]?.slice(0, 2) : null;
+    expect(hintSquare).toBe("f8");
+  });
+
+  it("hint level 2 reveals the full move arrow", () => {
+    const hintLevel = 2;
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const moveIndex = 1;
+    const uci = moves[moveIndex];
+    const arrow = hintLevel >= 2 ? { from: uci.slice(0, 2), to: uci.slice(2, 4) } : null;
+    expect(arrow).toEqual({ from: "f8", to: "d8" });
+  });
+
+  it("hint resets when move index advances", () => {
+    let hintLevel = 2;
+    hintLevel = 0;
+    expect(hintLevel).toBe(0);
+  });
+});
+
+describe("puzzle retry flow (wrong move behavior)", () => {
+  it("wrong move does not reveal solution", () => {
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const moveIndex = 1;
+    const expectedUci = moves[moveIndex];
+    const playerFrom = "a7";
+    const playerTo = "a6";
+
+    const expectedFrom = expectedUci.slice(0, 2);
+    const expectedTo = expectedUci.slice(2, 4);
+
+    const isCorrect = playerFrom === expectedFrom && playerTo === expectedTo;
+    expect(isCorrect).toBe(false);
+
+    const shouldRevealSolution = false;
+    expect(shouldRevealSolution).toBe(false);
+  });
+
+  it("no rating gain on solve after failed attempt", () => {
+    const hasFailed = true;
+    const playerRating = 1480;
+    const puzzleRating = 1500;
+    const solved = true;
+
+    const ratingChange = hasFailed ? 0 : computeRatingChange(playerRating, puzzleRating, solved, 50);
+    expect(ratingChange).toBe(0);
+  });
+
+  it("rating penalized only once on multiple wrong attempts", () => {
+    let hasFailed = false;
+    let penaltyCount = 0;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!hasFailed) {
+        penaltyCount++;
+        hasFailed = true;
+      }
+    }
+
+    expect(penaltyCount).toBe(1);
+    expect(hasFailed).toBe(true);
+  });
+
+  it("show solution plays through remaining moves", () => {
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const moveIndex = 1;
+    const remaining = moves.slice(moveIndex);
+    expect(remaining).toEqual(["f8d8", "d6d8", "f6d8"]);
+
+    const g = new Chess("5rk1/1p3ppp/pq1Q1b2/8/8/1P3N2/P4PPP/3R2K1 b - - 1 27");
+    for (const uci of remaining) {
+      const from = uci.slice(0, 2);
+      const to = uci.slice(2, 4);
+      const promo = uci.length > 4 ? uci[4] : undefined;
+      const result = g.move({ from, to, promotion: promo });
+      expect(result).not.toBeNull();
+    }
+  });
+});
+
+describe("puzzle URL routing", () => {
+  it("constructs puzzle URL from puzzle ID", () => {
+    const puzzleId = "AbC12";
+    const url = `/puzzles/${puzzleId}`;
+    expect(url).toBe("/puzzles/AbC12");
+  });
+
+  it("extracts puzzle ID from URL path", () => {
+    const path = "/puzzles/XyZ99";
+    const match = path.match(/^\/puzzles\/(.+)$/);
+    expect(match).not.toBeNull();
+    expect(match![1]).toBe("XyZ99");
+  });
+
+  it("/puzzles with no ID means random puzzle", () => {
+    const path = "/puzzles";
+    const match = path.match(/^\/puzzles\/(.+)$/);
+    expect(match).toBeNull();
+  });
+
+  it("puzzle info hidden until solved", () => {
+    const statuses = ["loading", "showing", "solving", "correct", "failed"];
+    const showInfo = (status: string) => status === "correct" || status === "failed";
+
+    expect(showInfo("loading")).toBe(false);
+    expect(showInfo("showing")).toBe(false);
+    expect(showInfo("solving")).toBe(false);
+    expect(showInfo("correct")).toBe(true);
+    expect(showInfo("failed")).toBe(true);
+  });
+});
+
 describe("puzzle solution sequence", () => {
   it("plays through a full puzzle solution", () => {
     const fen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";

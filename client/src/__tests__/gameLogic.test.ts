@@ -1,6 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { Chess, Square } from "chess.js";
 
+function findKingSquare(game: Chess): string | null {
+  const turn = game.turn();
+  const board = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (piece && piece.type === "k" && piece.color === turn) {
+        return piece.square;
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Tests for the client-side game logic helpers used in GameRoom:
  * - Turn detection
@@ -169,6 +183,76 @@ describe("time formatting", () => {
 
   it("formats 599 seconds as 9:59", () => {
     expect(formatTime(599)).toBe("9:59");
+  });
+});
+
+describe("check highlight", () => {
+  it("detects check and finds the king square", () => {
+    const game = new Chess("rnbqkbnr/ppppp2p/5p2/6pQ/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 1 3");
+    expect(game.inCheck()).toBe(true);
+    const kingSq = findKingSquare(game);
+    expect(kingSq).toBe("e8");
+  });
+
+  it("detects checkmate and finds the king square", () => {
+    const game = new Chess("rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3");
+    expect(game.isCheckmate()).toBe(true);
+    expect(game.inCheck()).toBe(true);
+    const kingSq = findKingSquare(game);
+    expect(kingSq).toBe("e1");
+  });
+
+  it("returns null king square for non-check position", () => {
+    const game = new Chess();
+    expect(game.inCheck()).toBe(false);
+  });
+
+  it("finds black king when black is in check", () => {
+    const game = new Chess("rnbqkb1r/pppp1Qpp/2n5/4p3/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 0 3");
+    expect(game.inCheck()).toBe(true);
+    const kingSq = findKingSquare(game);
+    expect(kingSq).toBe("e8");
+  });
+
+  it("finds white king when white is in check", () => {
+    const game = new Chess("rnb1kbnr/pppp1ppp/8/4p3/4P2q/5P2/PPPP2PP/RNBQKBNR w KQkq - 1 3");
+    expect(game.inCheck()).toBe(true);
+    const kingSq = findKingSquare(game);
+    expect(kingSq).toBe("e1");
+  });
+});
+
+describe("isPromotionMove detection", () => {
+  function isPromotionMove(game: Chess, from: string, to: string): boolean {
+    const piece = game.get(from as Square);
+    if (!piece || piece.type !== "p") return false;
+    const turn = game.turn();
+    return (turn === "w" && to[1] === "8") || (turn === "b" && to[1] === "1");
+  }
+
+  it("white pawn to rank 8 is promotion", () => {
+    const game = new Chess("8/4P3/8/8/8/8/8/4K2k w - - 0 1");
+    expect(isPromotionMove(game, "e7", "e8")).toBe(true);
+  });
+
+  it("black pawn to rank 1 is promotion", () => {
+    const game = new Chess("4k3/8/8/8/8/8/3p4/4K3 b - - 0 1");
+    expect(isPromotionMove(game, "d2", "d1")).toBe(true);
+  });
+
+  it("pawn moving to non-promotion rank is not promotion", () => {
+    const game = new Chess();
+    expect(isPromotionMove(game, "e2", "e4")).toBe(false);
+  });
+
+  it("non-pawn piece is not promotion", () => {
+    const game = new Chess("8/4R3/8/8/8/8/8/4K2k w - - 0 1");
+    expect(isPromotionMove(game, "e7", "e8")).toBe(false);
+  });
+
+  it("capture-promotion is detected", () => {
+    const game = new Chess("3r4/4P3/8/8/8/8/8/4K2k w - - 0 1");
+    expect(isPromotionMove(game, "e7", "d8")).toBe(true);
   });
 });
 

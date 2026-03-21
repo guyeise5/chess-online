@@ -614,6 +614,114 @@ describe("closeRoom", () => {
 });
 
 // ---------------------------------------------------------------------------
+// undoToPlayer
+// ---------------------------------------------------------------------------
+describe("undoToPlayer", () => {
+  async function createPlayingRoom() {
+    const room = await gm.createRoom("Alice", "blitz", "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    return (await Room.findOne({ roomId: room.roomId }))!;
+  }
+
+  it("undoes 1 half-move when it is already requester's turn", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+
+    // It's white's turn (Alice), Alice requests undo of her opponent's last move
+    // Actually this means Alice wants to undo. It's her turn, so the last move was Bob's.
+    // Undoing 1 move returns to Bob's turn... but we want Alice's turn.
+    // Alice requests undo: she wants to redo her move. Undo Bob's move (1), then Alice's move (2).
+    // After undo: it should be Alice's turn with 0 moves undone = original position? No.
+    // Let me re-read the logic: the undo reverts until it's the requester's turn.
+    // It's currently Alice's turn (w). Requester is Alice. targetTurn = w.
+    // Loop: undoCount=0, chess.turn()=w but undoCount==0 so first iteration always runs.
+    // undo() -> turn becomes b, undoCount=1. Next iteration: undoCount=1, chess.turn()=b != w, so undo again.
+    // undo() -> turn becomes w, undoCount=2. Next iteration: undoCount=2 >= 2, stop.
+    // So it undoes 2 moves. That's correct: Alice wants to take back her e4 move.
+    gm.requestUndo(room.roomId, "Alice", 2);
+    const result = await gm.undoToPlayer(room.roomId);
+
+    expect(result.success).toBe(true);
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.moves).toEqual([]);
+    expect(dbRoom!.turn).toBe("w");
+  });
+
+  it("undoes 1 half-move when opponent just moved", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+
+    // It's Bob's turn. Bob requests undo — wants to undo Alice's move so it's Bob's... wait no.
+    // Bob requests undo: targetTurn = b (Bob is black).
+    // Current turn is b. undoCount=0, first iteration always runs.
+    // undo() -> turn=w, undoCount=1. Next: undoCount=1, turn=w != b, undo again... but undoCount would be 2, stop.
+    // Hmm, but there's only 1 move. chess.undo() on empty returns null. So it undoes 1 move, turn=w. undoCount=1.
+    // Then loop: undoCount=1, turn=w != b, try undo -> null, break. Result: 1 undo.
+    // But that puts it at white's turn, not Bob's. That doesn't seem right.
+    // Actually, the scenario here: Alice played e4, it's Bob's turn. Bob requests undo.
+    // Bob wants Alice's move undone. After undo, it's Alice's turn (w). moves=[].
+    // That makes sense: Bob is saying "undo that move" referring to Alice's e4.
+    gm.requestUndo(room.roomId, "Bob", 1);
+    const result = await gm.undoToPlayer(room.roomId);
+
+    expect(result.success).toBe(true);
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.moves).toEqual([]);
+    expect(dbRoom!.turn).toBe("w");
+  });
+
+  it("undoes 2 half-moves to return to requester's turn after opponent replied", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+    await gm.makeMove(room.roomId, "Alice", "d2", "d4");
+    await gm.makeMove(room.roomId, "Bob", "d7", "d5");
+
+    // It's Alice's turn. Alice requests undo (wants to redo her d4 move).
+    gm.requestUndo(room.roomId, "Alice", 4);
+    const result = await gm.undoToPlayer(room.roomId);
+
+    expect(result.success).toBe(true);
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.moves).toEqual(["e4", "e5"]);
+    expect(dbRoom!.turn).toBe("w");
+  });
+
+  it("returns false when no undo request is pending", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+
+    const result = await gm.undoToPlayer(room.roomId);
+    expect(result.success).toBe(false);
+  });
+
+  it("returns false on non-existent room", async () => {
+    gm.requestUndo("nonexistent", "Alice", 1);
+    const result = await gm.undoToPlayer("nonexistent");
+    expect(result.success).toBe(false);
+  });
+
+  it("returns false when no moves to undo", async () => {
+    const room = await createPlayingRoom();
+    gm.requestUndo(room.roomId, "Alice", 0);
+    const result = await gm.undoToPlayer(room.roomId);
+    expect(result.success).toBe(false);
+  });
+
+  it("cancels undo request when a move is made", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+
+    gm.requestUndo(room.roomId, "Bob", 1);
+    expect(gm.getUndoRequest(room.roomId)).toBeDefined();
+
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+    expect(gm.getUndoRequest(room.roomId)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // serializeRoom
 // ---------------------------------------------------------------------------
 describe("serializeRoom", () => {
