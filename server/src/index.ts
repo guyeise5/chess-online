@@ -50,15 +50,15 @@ async function main() {
   app.get("/api/puzzles/random", async (req, res) => {
     try {
       const rating = parseInt(req.query.rating as string, 10) || 1500;
-      const range = 200;
+      const range = 15;
       const min = rating - range;
       const max = rating + range;
 
-      const randomRating = min + Math.random() * (max - min);
-      let p = await Puzzle.findOne({ rating: { $gte: randomRating, $lte: max } }).lean();
-      if (!p) {
-        p = await Puzzle.findOne({ rating: { $gte: min, $lte: max } }).lean();
-      }
+      const filter = { rating: { $gte: min, $lte: max } };
+      const count = await Puzzle.countDocuments(filter);
+      const p = count > 0
+        ? await Puzzle.findOne(filter).skip(Math.floor(Math.random() * count)).lean()
+        : null;
 
       if (!p) {
         res.status(404).json({ error: "No puzzles found in rating range" });

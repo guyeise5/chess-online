@@ -212,7 +212,30 @@
   font-family: monospace;
 }
 
+.hintRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.hintBtn {
+  flex: 1;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(96, 165, 250, 1);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.hintBtn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
 .showSolutionBtn {
+  flex: 1;
   padding: 0.7rem 1.2rem;
   border-radius: 8px;
   background: transparent;
@@ -263,6 +286,7 @@
   font-size: 1.6rem;
   font-weight: 700;
 }
+
 
 .loading {
   display: flex;

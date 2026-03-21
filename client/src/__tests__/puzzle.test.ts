@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Chess } from "chess.js";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
+const PUZZLE_COUNT_KEY = "chess-puzzle-count";
 const DEFAULT_RATING = 1500;
-const RATING_DELTA = 15;
+const MIN_RATING = 100;
 
 let store: Map<string, string>;
 
@@ -23,6 +24,38 @@ function setRating(r: number): void {
   setItem(PUZZLE_RATING_KEY, String(r));
 }
 
+function getPuzzleCount(): number {
+  const stored = getItem(PUZZLE_COUNT_KEY);
+  return stored ? parseInt(stored, 10) : 0;
+}
+
+function setPuzzleCount(count: number): void {
+  setItem(PUZZLE_COUNT_KEY, String(count));
+}
+
+function getKFactor(puzzlesPlayed: number): number {
+  if (puzzlesPlayed < 10) return 40;
+  if (puzzlesPlayed < 30) return 30;
+  if (puzzlesPlayed < 100) return 20;
+  return 12;
+}
+
+function expectedScore(playerRating: number, puzzleRating: number): number {
+  return 1 / (1 + Math.pow(10, (puzzleRating - playerRating) / 400));
+}
+
+function computeRatingChange(
+  playerRating: number,
+  puzzleRating: number,
+  solved: boolean,
+  puzzlesPlayed: number
+): number {
+  const k = getKFactor(puzzlesPlayed);
+  const expected = expectedScore(playerRating, puzzleRating);
+  const actual = solved ? 1 : 0;
+  return Math.round(k * (actual - expected));
+}
+
 beforeEach(() => {
   store = new Map();
 });
@@ -37,25 +70,83 @@ describe("puzzle rating storage", () => {
     expect(getRating()).toBe(1600);
   });
 
-  it("increases rating on correct solve", () => {
-    setRating(1500);
-    const newRating = getRating() + RATING_DELTA;
-    setRating(newRating);
-    expect(getRating()).toBe(1515);
-  });
-
-  it("decreases rating on failed solve", () => {
-    setRating(1500);
-    const newRating = Math.max(100, getRating() - RATING_DELTA);
-    setRating(newRating);
-    expect(getRating()).toBe(1485);
-  });
-
   it("does not go below 100", () => {
     setRating(105);
-    const newRating = Math.max(100, getRating() - RATING_DELTA);
+    const delta = computeRatingChange(105, 105, false, 0);
+    const newRating = Math.max(MIN_RATING, 105 + delta);
     setRating(newRating);
-    expect(getRating()).toBe(100);
+    expect(getRating()).toBe(MIN_RATING);
+  });
+
+  it("tracks puzzle count", () => {
+    expect(getPuzzleCount()).toBe(0);
+    setPuzzleCount(5);
+    expect(getPuzzleCount()).toBe(5);
+  });
+});
+
+describe("Elo rating system", () => {
+  it("K-factor is 40 for new players (<10 puzzles)", () => {
+    expect(getKFactor(0)).toBe(40);
+    expect(getKFactor(9)).toBe(40);
+  });
+
+  it("K-factor is 30 for 10-29 puzzles", () => {
+    expect(getKFactor(10)).toBe(30);
+    expect(getKFactor(29)).toBe(30);
+  });
+
+  it("K-factor is 20 for 30-99 puzzles", () => {
+    expect(getKFactor(30)).toBe(20);
+    expect(getKFactor(99)).toBe(20);
+  });
+
+  it("K-factor is 12 for 100+ puzzles", () => {
+    expect(getKFactor(100)).toBe(12);
+    expect(getKFactor(500)).toBe(12);
+  });
+
+  it("expected score is ~0.5 for equal ratings", () => {
+    const e = expectedScore(1500, 1500);
+    expect(e).toBeCloseTo(0.5, 2);
+  });
+
+  it("expected score is higher when player is stronger", () => {
+    const e = expectedScore(1700, 1500);
+    expect(e).toBeGreaterThan(0.7);
+  });
+
+  it("expected score is lower when puzzle is harder", () => {
+    const e = expectedScore(1300, 1500);
+    expect(e).toBeLessThan(0.3);
+  });
+
+  it("gains more from solving a harder puzzle", () => {
+    const gainEasy = computeRatingChange(1500, 1500, true, 50);
+    const gainHard = computeRatingChange(1500, 1700, true, 50);
+    expect(gainHard).toBeGreaterThan(gainEasy);
+  });
+
+  it("loses more from failing an easy puzzle", () => {
+    const lossEasy = computeRatingChange(1500, 1300, false, 50);
+    const lossHard = computeRatingChange(1500, 1700, false, 50);
+    expect(lossEasy).toBeLessThan(lossHard);
+  });
+
+  it("new players have larger rating swings", () => {
+    const deltaNew = computeRatingChange(1500, 1500, true, 1);
+    const deltaOld = computeRatingChange(1500, 1500, true, 200);
+    expect(Math.abs(deltaNew)).toBeGreaterThan(Math.abs(deltaOld));
+  });
+
+  it("solving equal-rated puzzle gives positive delta", () => {
+    const delta = computeRatingChange(1500, 1500, true, 50);
+    expect(delta).toBeGreaterThan(0);
+  });
+
+  it("failing equal-rated puzzle gives negative delta", () => {
+    const delta = computeRatingChange(1500, 1500, false, 50);
+    expect(delta).toBeLessThan(0);
   });
 });
 

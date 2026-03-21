@@ -5,8 +5,9 @@ import { Chess, Square } from "chess.js";
 import styles from "./PuzzleTrainer.module.css";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
+const PUZZLE_COUNT_KEY = "chess-puzzle-count";
 const DEFAULT_RATING = 1500;
-const RATING_DELTA = 15;
+const MIN_RATING = 100;
 const API_BASE = import.meta.env.PROD ? "" : "http://localhost:3001";
 
 interface PuzzleData {
@@ -28,6 +29,40 @@ function setRating(r: number): void {
   localStorage.setItem(PUZZLE_RATING_KEY, String(r));
 }
 
+function getPuzzleCount(): number {
+  const stored = localStorage.getItem(PUZZLE_COUNT_KEY);
+  return stored ? parseInt(stored, 10) : 0;
+}
+
+function incrementPuzzleCount(): number {
+  const count = getPuzzleCount() + 1;
+  localStorage.setItem(PUZZLE_COUNT_KEY, String(count));
+  return count;
+}
+
+function getKFactor(puzzlesPlayed: number): number {
+  if (puzzlesPlayed < 10) return 40;
+  if (puzzlesPlayed < 30) return 30;
+  if (puzzlesPlayed < 100) return 20;
+  return 12;
+}
+
+function expectedScore(playerRating: number, puzzleRating: number): number {
+  return 1 / (1 + Math.pow(10, (puzzleRating - playerRating) / 400));
+}
+
+function computeRatingChange(
+  playerRating: number,
+  puzzleRating: number,
+  solved: boolean,
+  puzzlesPlayed: number
+): number {
+  const k = getKFactor(puzzlesPlayed);
+  const expected = expectedScore(playerRating, puzzleRating);
+  const actual = solved ? 1 : 0;
+  return Math.round(k * (actual - expected));
+}
+
 export default function PuzzleTrainer() {
   const navigate = useNavigate();
   const { puzzleId: urlPuzzleId } = useParams<{ puzzleId?: string }>();
@@ -36,12 +71,14 @@ export default function PuzzleTrainer() {
   const [fen, setFen] = useState("start");
   const [status, setStatus] = useState<PuzzleStatus>("loading");
   const [playerRating, setPlayerRating] = useState(getRating);
+  const [puzzleCount, setPuzzleCount] = useState(getPuzzleCount);
   const [moveIndex, setMoveIndex] = useState(0);
   const [playedMoves, setPlayedMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const orientation = useMemo(() => {
@@ -57,6 +94,7 @@ export default function PuzzleTrainer() {
     setLastMove(null);
     setHasFailed(false);
     setWrongFlash(false);
+    setHintLevel(0);
     setMoveIndex(0);
 
     try {
@@ -126,7 +164,10 @@ export default function PuzzleTrainer() {
 
       if (from !== expectedFrom || to !== expectedTo) {
         if (!hasFailed) {
-          const newRating = Math.max(100, playerRating - RATING_DELTA);
+          const count = incrementPuzzleCount();
+          setPuzzleCount(count);
+          const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
+          const newRating = Math.max(MIN_RATING, playerRating + delta);
           setPlayerRating(newRating);
           setRating(newRating);
           setHasFailed(true);
@@ -145,13 +186,17 @@ export default function PuzzleTrainer() {
       setFen(gameCopy.fen());
       setSelectedSquare(null);
       setLastMove({ from, to });
+      setHintLevel(0);
       setPlayedMoves((prev) => [...prev, move.san]);
 
       const nextIndex = moveIndex + 1;
 
       if (nextIndex >= puzzle.moves.length) {
         if (!hasFailed) {
-          const newRating = playerRating + RATING_DELTA;
+          const count = incrementPuzzleCount();
+          setPuzzleCount(count);
+          const delta = computeRatingChange(playerRating, puzzle.rating, true, count);
+          const newRating = Math.max(MIN_RATING, playerRating + delta);
           setPlayerRating(newRating);
           setRating(newRating);
         }
@@ -238,6 +283,23 @@ export default function PuzzleTrainer() {
   const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
     backgroundColor: "rgba(155, 199, 0, 0.41)",
   };
+  const HIGHLIGHT_HINT: React.CSSProperties = {
+    backgroundColor: "rgba(96, 165, 250, 0.5)",
+  };
+
+  const hintSquare = useMemo(() => {
+    if (hintLevel === 0 || !puzzle || status !== "solving") return null;
+    const uci = puzzle.moves[moveIndex];
+    if (!uci) return null;
+    return uci.slice(0, 2);
+  }, [hintLevel, puzzle, moveIndex, status]);
+
+  const hintArrow = useMemo(() => {
+    if (hintLevel < 2 || !puzzle || status !== "solving") return [];
+    const uci = puzzle.moves[moveIndex];
+    if (!uci) return [];
+    return [{ startSquare: uci.slice(0, 2), endSquare: uci.slice(2, 4), color: "rgba(96, 165, 250, 0.8)" }];
+  }, [hintLevel, puzzle, moveIndex, status]);
 
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
     const result: Record<string, React.CSSProperties> = {};
@@ -245,6 +307,10 @@ export default function PuzzleTrainer() {
     if (lastMove) {
       result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
       result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
+    }
+
+    if (hintSquare) {
+      result[hintSquare] = HIGHLIGHT_HINT;
     }
 
     if (selectedSquare) {
@@ -257,7 +323,7 @@ export default function PuzzleTrainer() {
     }
 
     return result;
-  }, [selectedSquare, lastMove, game, getLegalMovesForSquare]);
+  }, [selectedSquare, lastMove, hintSquare, game, getLegalMovesForSquare]);
 
   const onDrop = useCallback(
     ({ sourceSquare, targetSquare }: { piece: { pieceType: string }; sourceSquare: string; targetSquare: string | null }): boolean => {
@@ -348,6 +414,7 @@ export default function PuzzleTrainer() {
                 onPieceClick: onPieceClick,
                 onSquareClick: onSquareClick,
                 squareStyles: highlightStyles,
+                arrows: hintArrow,
                 boardOrientation: orientation,
                 animationDurationInMs: 500,
                 boardStyle: {
@@ -452,10 +519,33 @@ export default function PuzzleTrainer() {
             </div>
           </div>
 
-          {hasFailed && status === "solving" && (
-            <button className={styles.showSolutionBtn} onClick={showSolution}>
-              Show Solution
-            </button>
+          {status === "solving" && (
+            <div className={styles.hintRow}>
+              {hintLevel < 2 && (
+                <button
+                  className={styles.hintBtn}
+                  onClick={() => {
+                    if (!hasFailed && puzzle) {
+                      const count = incrementPuzzleCount();
+                      setPuzzleCount(count);
+                      const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
+                      const newRating = Math.max(MIN_RATING, playerRating + delta);
+                      setPlayerRating(newRating);
+                      setRating(newRating);
+                      setHasFailed(true);
+                    }
+                    setHintLevel((prev) => prev + 1);
+                  }}
+                >
+                  {hintLevel === 0 ? "Hint: Show piece" : "Hint: Show move"}
+                </button>
+              )}
+              {hasFailed && (
+                <button className={styles.showSolutionBtn} onClick={showSolution}>
+                  Show Solution
+                </button>
+              )}
+            </div>
           )}
 
           {(status === "correct" || status === "failed") && (
