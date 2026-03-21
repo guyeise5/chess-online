@@ -29,4 +29,8 @@ ENV PORT=3001
 
 EXPOSE 3001
 
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]

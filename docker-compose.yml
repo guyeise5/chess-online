@@ -25,6 +25,7 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/chess-online
       - PORT=3001
+      - AUTHOR_URL=${AUTHOR_URL:-}
     depends_on:
       - mongo
 

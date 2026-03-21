@@ -105,6 +105,25 @@
   text-align: center;
 }
 
+.watermark {
+  position: fixed;
+  bottom: 0.75rem;
+  left: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.watermarkLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.watermarkLink:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
 @media (max-width: 550px) {
   .grid {
     grid-template-columns: 1fr;
