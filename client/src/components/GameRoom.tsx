@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
@@ -6,9 +7,7 @@ import { RoomData, MoveData, GameOverData, TimerData } from "../types";
 import styles from "./GameRoom.module.css";
 
 interface Props {
-  room: RoomData;
   playerName: string;
-  onLeave: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -27,22 +26,63 @@ const HIGHLIGHT_CAPTURE: React.CSSProperties = {
   background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)",
 };
 
-export default function GameRoom({ room, playerName, onLeave }: Props) {
-  const [game, setGame] = useState(new Chess(room.fen));
-  const [fen, setFen] = useState(room.fen);
-  const [whiteTime, setWhiteTime] = useState(room.whiteTime);
-  const [blackTime, setBlackTime] = useState(room.blackTime);
-  const [status, setStatus] = useState(room.status);
-  const [result, setResult] = useState(room.result);
-  const [moves, setMoves] = useState<string[]>(room.moves || []);
+export default function GameRoom({ playerName }: Props) {
+  const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
+
+  const [room, setRoom] = useState<RoomData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [game, setGame] = useState<Chess>(new Chess());
+  const [fen, setFen] = useState("start");
+  const [whiteTime, setWhiteTime] = useState(0);
+  const [blackTime, setBlackTime] = useState(0);
+  const [status, setStatus] = useState<RoomData["status"]>("waiting");
+  const [result, setResult] = useState<string | null>(null);
+  const [moves, setMoves] = useState<string[]>([]);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
-  const isWhite = room.whitePlayer === playerName;
-  const isBlack = room.blackPlayer === playerName;
-  const isPlayer = isWhite || isBlack;
-  const orientation = isBlack ? "black" : "white";
+  const rejoin = useCallback(() => {
+    if (!roomId) return;
+    setLoading(true);
+    socket.emit(
+      "room:rejoin",
+      { roomId, playerName },
+      (res: { success: boolean; room?: RoomData }) => {
+        setLoading(false);
+        if (res.success && res.room) {
+          const r = res.room;
+          setRoom(r);
+          const g = new Chess(r.fen);
+          setGame(g);
+          setFen(r.fen);
+          setWhiteTime(r.whiteTime);
+          setBlackTime(r.blackTime);
+          setStatus(r.status);
+          setResult(r.result);
+          setMoves(r.moves || []);
+        } else {
+          navigate("/", { replace: true });
+        }
+      }
+    );
+  }, [roomId, playerName, navigate]);
+
+  useEffect(() => {
+    if (socket.connected) {
+      rejoin();
+    } else {
+      socket.once("connect", rejoin);
+    }
+
+    socket.io.on("reconnect", rejoin);
+
+    return () => {
+      socket.off("connect", rejoin);
+      socket.io.off("reconnect", rejoin);
+    };
+  }, [rejoin]);
 
   useEffect(() => {
     const handleMove = (data: MoveData) => {
@@ -68,6 +108,7 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
     };
 
     const handleStart = (roomData: RoomData) => {
+      setRoom(roomData);
       setStatus(roomData.status);
     };
 
@@ -88,6 +129,11 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [moves]);
 
+  const isWhite = room?.whitePlayer === playerName;
+  const isBlack = room?.blackPlayer === playerName;
+  const isPlayer = isWhite || isBlack;
+  const orientation = isBlack ? "black" : "white";
+
   const getLegalMovesForSquare = useCallback(
     (square: string): string[] => {
       try {
@@ -105,14 +151,14 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
     if (!selectedSquare) return {};
 
     const targets = getLegalMovesForSquare(selectedSquare);
-    const result: Record<string, React.CSSProperties> = {
+    const styles: Record<string, React.CSSProperties> = {
       [selectedSquare]: HIGHLIGHT_SOURCE,
     };
     for (const sq of targets) {
       const pieceOnTarget = game.get(sq as Square);
-      result[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+      styles[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
     }
-    return result;
+    return styles;
   }, [selectedSquare, game, getLegalMovesForSquare]);
 
   const isMyTurn = useCallback(() => {
@@ -123,6 +169,7 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
 
   const tryMove = useCallback(
     (from: string, to: string): boolean => {
+      if (!roomId) return false;
       const turn = game.turn();
       const piece = game.get(from as Square);
       const isPawn = piece && piece.type === "p";
@@ -134,13 +181,7 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
 
       socket.emit(
         "game:move",
-        {
-          roomId: room.roomId,
-          playerName,
-          from,
-          to,
-          promotion,
-        },
+        { roomId, playerName, from, to, promotion },
         (res: any) => {
           if (!res.success) {
             console.warn("Move rejected:", res.error);
@@ -150,11 +191,7 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
 
       try {
         const gameCopy = new Chess(fen);
-        const move = gameCopy.move({
-          from,
-          to,
-          promotion: promotion || "q",
-        });
+        const move = gameCopy.move({ from, to, promotion: promotion || "q" });
         if (move) {
           setGame(gameCopy);
           setFen(gameCopy.fen());
@@ -166,7 +203,7 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
       }
       return false;
     },
-    [game, fen, playerName, room.roomId]
+    [game, fen, playerName, roomId]
   );
 
   const onDrop = useCallback(
@@ -201,7 +238,6 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
         return;
       }
 
-      // If a piece is already selected and we click a target square with an enemy piece, try the move
       if (selectedSquare && selectedSquare !== square) {
         const targets = getLegalMovesForSquare(selectedSquare);
         if (targets.includes(square)) {
@@ -210,7 +246,6 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
         }
       }
 
-      // Select this piece if it's ours
       const piece = game.get(square as Square);
       if (!piece) { setSelectedSquare(null); return; }
       const myColor = isWhite ? "w" : "b";
@@ -236,9 +271,17 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
 
   const handleResign = () => {
     if (window.confirm("Are you sure you want to resign?")) {
-      socket.emit("game:resign", { roomId: room.roomId, playerName });
+      socket.emit("game:resign", { roomId, playerName });
     }
   };
+
+  if (loading || !room) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "var(--text-secondary)" }}>
+        Loading game...
+      </div>
+    );
+  }
 
   const topPlayer = orientation === "white" ? room.blackPlayer : room.whitePlayer;
   const bottomPlayer = orientation === "white" ? room.whitePlayer : room.blackPlayer;
@@ -266,11 +309,11 @@ export default function GameRoom({ room, playerName, onLeave }: Props) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <button className={styles.backBtn} onClick={onLeave}>
+        <button className={styles.backBtn} onClick={() => navigate("/")}>
           &larr; Lobby
         </button>
         <h1 className={styles.logo}>&#9822; Chess Online</h1>
-        <span className={styles.roomId}>Room: {room.roomId}</span>
+        <span className={styles.roomId}>Room: {roomId}</span>
       </header>
 
       <main className={styles.main}>

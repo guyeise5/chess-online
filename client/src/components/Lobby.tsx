@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { RoomData, TimeFormat, ColorChoice } from "../types";
 import styles from "./Lobby.module.css";
 
 interface Props {
-  rooms: RoomData[];
   playerName: string;
-  onJoinRoom: (room: RoomData) => void;
   onChangeName: () => void;
 }
 
@@ -23,11 +22,30 @@ const COLOR_LABELS: Record<ColorChoice, string> = {
   random: "Random",
 };
 
-export default function Lobby({ rooms, playerName, onJoinRoom, onChangeName }: Props) {
+export default function Lobby({ playerName, onChangeName }: Props) {
+  const navigate = useNavigate();
+  const [rooms, setRooms] = useState<RoomData[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>("blitz");
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    const handleRoomsList = (data: RoomData[]) => setRooms(data);
+
+    const handleGameStart = (room: RoomData) => {
+      navigate(`/game/${room.roomId}`);
+    };
+
+    socket.on("rooms:list", handleRoomsList);
+    socket.on("game:start", handleGameStart);
+    socket.emit("rooms:list");
+
+    return () => {
+      socket.off("rooms:list", handleRoomsList);
+      socket.off("game:start", handleGameStart);
+    };
+  }, [navigate]);
 
   const handleCreate = () => {
     setCreating(true);
@@ -37,7 +55,7 @@ export default function Lobby({ rooms, playerName, onJoinRoom, onChangeName }: P
       (res: any) => {
         setCreating(false);
         if (res.success) {
-          onJoinRoom(res.room);
+          navigate(`/game/${res.room.roomId}`);
         }
       }
     );
@@ -49,7 +67,7 @@ export default function Lobby({ rooms, playerName, onJoinRoom, onChangeName }: P
       { roomId, playerName },
       (res: any) => {
         if (res.success) {
-          onJoinRoom(res.room);
+          navigate(`/game/${roomId}`);
         }
       }
     );
