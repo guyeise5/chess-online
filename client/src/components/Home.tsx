@@ -24,13 +24,13 @@ export default function Home({ playerName, onChangeName }: Props) {
       <main className={styles.main}>
         <div className={styles.grid}>
           <Link to="/rooms" className={styles.card}>
-            <span className={styles.cardIcon}>&#9822;</span>
+            <span className={styles.cardIcon}>&#127760;</span>
             <span className={styles.cardTitle}>Play Online</span>
             <span className={styles.cardDesc}>Create or join a room</span>
           </Link>
 
           <Link to="/computer" className={styles.card}>
-            <span className={styles.cardIcon}>&#9812;</span>
+            <span className={styles.cardIcon}>&#129302;</span>
             <span className={styles.cardTitle}>vs Computer</span>
             <span className={styles.cardDesc}>Play against Stockfish</span>
           </Link>

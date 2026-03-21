@@ -2,6 +2,8 @@ import { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager";
 import { ColorChoice } from "../models/Room";
 
+const socketPlayers = new Map<string, string>();
+
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
   io.on("connection", (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
@@ -29,6 +31,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
             data.colorChoice
           );
           socket.join(room.roomId);
+          socketPlayers.set(socket.id, data.playerName);
           callback({ success: true, room: gm.serializeRoom(room) });
           await gm.broadcastRooms();
         } catch (err) {
@@ -146,8 +149,13 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       }
     );
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);
+      const playerName = socketPlayers.get(socket.id);
+      if (playerName) {
+        socketPlayers.delete(socket.id);
+        await gm.closeWaitingRoomsByOwner(playerName);
+      }
     });
   });
 }

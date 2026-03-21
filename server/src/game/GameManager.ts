@@ -229,6 +229,18 @@ export class GameManager {
     return true;
   }
 
+  async closeWaitingRoomsByOwner(playerName: string): Promise<void> {
+    const rooms = await Room.find({ owner: playerName, status: "waiting" });
+    for (const room of rooms) {
+      await Room.deleteOne({ roomId: room.roomId });
+      this.io.to(room.roomId).emit("room:closed");
+      this.io.in(room.roomId).socketsLeave(room.roomId);
+    }
+    if (rooms.length > 0) {
+      await this.broadcastRooms();
+    }
+  }
+
   requestUndo(roomId: string, playerName: string, moveCount: number): void {
     this.undoRequests.set(roomId, { playerName, moveCount });
   }
