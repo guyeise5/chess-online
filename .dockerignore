@@ -1,5 +1,16 @@
 node_modules
 dist
 .git
-*.md
+.gitignore
 .env
+*.md
+*.log
+data/
+.cursor/
+.vscode/
+**/__tests__
+**/*.test.ts
+**/jest.config.*
+**/vitest.config.*
+coverage/
+.nyc_output/
