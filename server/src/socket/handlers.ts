@@ -117,6 +117,27 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     );
 
     socket.on(
+      "game:undo-request",
+      (data: { roomId: string; playerName: string; moveCount: number }) => {
+        gm.requestUndo(data.roomId, data.playerName, data.moveCount);
+        socket.to(data.roomId).emit("game:undo-request", {
+          playerName: data.playerName,
+        });
+      }
+    );
+
+    socket.on(
+      "game:undo-response",
+      async (data: { roomId: string; accepted: boolean }) => {
+        if (data.accepted) {
+          await gm.undoToPlayer(data.roomId);
+        } else {
+          io.to(data.roomId).emit("game:undo-declined");
+        }
+      }
+    );
+
+    socket.on(
       "game:resign",
       async (data: { roomId: string; playerName: string }) => {
         await gm.resign(data.roomId, data.playerName);

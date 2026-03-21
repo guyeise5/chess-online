@@ -19,7 +19,7 @@ export default function NamePrompt({ onSubmit }: Props) {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>&#9822; Chess Online</h1>
+        <h1 className={styles.title}>&#9822; Chess</h1>
         <p className={styles.subtitle}>Enter your name to get started</p>
         <form onSubmit={handleSubmit} className={styles.form}>
           <input

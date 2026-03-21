@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
-import { RoomData, MoveData, GameOverData, TimerData } from "../types";
+import { RoomData, MoveData, GameOverData, TimerData, UndoData } from "../types";
 import PromotionDialog from "./PromotionDialog";
 import styles from "./GameRoom.module.css";
 
@@ -60,6 +60,8 @@ export default function GameRoom({ playerName }: Props) {
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
+  const [undoRequester, setUndoRequester] = useState<string | null>(null);
+  const [undoPending, setUndoPending] = useState(false);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const rejoin = useCallback(() => {
@@ -131,16 +133,49 @@ export default function GameRoom({ playerName }: Props) {
       setStatus(roomData.status);
     };
 
+    const handleUndoRequest = (data: { playerName: string }) => {
+      setUndoRequester(data.playerName);
+    };
+
+    const handleUndo = (data: UndoData) => {
+      const newGame = new Chess(data.fen);
+      setGame(newGame);
+      setFen(data.fen);
+      setWhiteTime(data.whiteTime);
+      setBlackTime(data.blackTime);
+      setMoves(data.moves);
+      setUndoRequester(null);
+      setUndoPending(false);
+    };
+
+    const handleUndoDeclined = () => {
+      setUndoRequester(null);
+      setUndoPending(false);
+    };
+
+    const handleUndoCancelled = () => {
+      setUndoRequester(null);
+      setUndoPending(false);
+    };
+
     socket.on("game:move", handleMove);
     socket.on("game:over", handleGameOver);
     socket.on("game:timer", handleTimer);
     socket.on("game:start", handleStart);
+    socket.on("game:undo-request", handleUndoRequest);
+    socket.on("game:undo", handleUndo);
+    socket.on("game:undo-declined", handleUndoDeclined);
+    socket.on("game:undo-cancelled", handleUndoCancelled);
 
     return () => {
       socket.off("game:move", handleMove);
       socket.off("game:over", handleGameOver);
       socket.off("game:timer", handleTimer);
       socket.off("game:start", handleStart);
+      socket.off("game:undo-request", handleUndoRequest);
+      socket.off("game:undo", handleUndo);
+      socket.off("game:undo-declined", handleUndoDeclined);
+      socket.off("game:undo-cancelled", handleUndoCancelled);
     };
   }, []);
 
@@ -366,7 +401,7 @@ export default function GameRoom({ playerName }: Props) {
         <button className={styles.backBtn} onClick={handleLeave}>
           &larr; Lobby
         </button>
-        <h1 className={styles.logo}>&#9822; Chess Online</h1>
+        <h1 className={styles.logo}>&#9822; Chess</h1>
         <span className={styles.roomId}>Room: {roomId}</span>
       </header>
 
@@ -477,10 +512,42 @@ export default function GameRoom({ playerName }: Props) {
             </div>
           </div>
 
+          {undoRequester && undoRequester !== playerName && (
+            <div className={styles.undoBanner}>
+              <span>{undoRequester} requests to undo</span>
+              <div className={styles.undoActions}>
+                <button
+                  className={styles.undoAccept}
+                  onClick={() => socket.emit("game:undo-response", { roomId, accepted: true })}
+                >
+                  Accept
+                </button>
+                <button
+                  className={styles.undoDecline}
+                  onClick={() => socket.emit("game:undo-response", { roomId, accepted: false })}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          )}
+
           {isPlayer && status === "playing" && (
-            <button className={styles.resignBtn} onClick={handleResign}>
-              Resign
-            </button>
+            <div className={styles.gameActions}>
+              <button
+                className={styles.undoBtn}
+                disabled={moves.length === 0 || undoPending}
+                onClick={() => {
+                  setUndoPending(true);
+                  socket.emit("game:undo-request", { roomId, playerName, moveCount: moves.length });
+                }}
+              >
+                {undoPending ? "Undo requested..." : "Undo"}
+              </button>
+              <button className={styles.resignBtn} onClick={handleResign}>
+                Resign
+              </button>
+            </div>
           )}
         </div>
       </main>

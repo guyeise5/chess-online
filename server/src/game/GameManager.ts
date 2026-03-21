@@ -8,10 +8,16 @@ interface TimerState {
   lastTick: number;
 }
 
+interface UndoRequest {
+  playerName: string;
+  moveCount: number;
+}
+
 export class GameManager {
   private io: Server;
   private timers: Map<string, TimerState> = new Map();
   private games: Map<string, Chess> = new Map();
+  private undoRequests: Map<string, UndoRequest> = new Map();
 
   constructor(io: Server) {
     this.io = io;
@@ -186,6 +192,11 @@ export class GameManager {
         this.games.delete(roomId);
       }
 
+      if (this.undoRequests.has(roomId)) {
+        this.undoRequests.delete(roomId);
+        this.io.to(roomId).emit("game:undo-cancelled");
+      }
+
       await room.save();
 
       this.io.to(roomId).emit("game:move", {
@@ -215,6 +226,63 @@ export class GameManager {
     this.io.in(roomId).socketsLeave(roomId);
     await this.broadcastRooms();
     return true;
+  }
+
+  requestUndo(roomId: string, playerName: string, moveCount: number): void {
+    this.undoRequests.set(roomId, { playerName, moveCount });
+  }
+
+  getUndoRequest(roomId: string): UndoRequest | undefined {
+    return this.undoRequests.get(roomId);
+  }
+
+  async undoToPlayer(
+    roomId: string
+  ): Promise<{ success: boolean; room?: IRoom }> {
+    const request = this.undoRequests.get(roomId);
+    if (!request) return { success: false };
+    this.undoRequests.delete(roomId);
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing" || room.moves.length === 0) {
+      return { success: false };
+    }
+
+    let chess = this.games.get(roomId);
+    if (!chess) {
+      chess = new Chess(room.fen);
+      this.games.set(roomId, chess);
+    }
+
+    const requesterIsWhite = room.whitePlayer === request.playerName;
+    const targetTurn = requesterIsWhite ? "w" : "b";
+
+    let undoCount = 0;
+    while (chess.history().length > 0 && undoCount < 2) {
+      if (undoCount > 0 && chess.turn() === targetTurn) break;
+      const undone = chess.undo();
+      if (!undone) break;
+      room.moves.pop();
+      undoCount++;
+    }
+
+    if (undoCount === 0) return { success: false };
+
+    room.fen = chess.fen();
+    room.pgn = chess.pgn();
+    room.turn = chess.turn() as "w" | "b";
+    room.lastMoveAt = new Date();
+    await room.save();
+
+    this.io.to(roomId).emit("game:undo", {
+      fen: room.fen,
+      turn: room.turn,
+      whiteTime: room.whiteTime,
+      blackTime: room.blackTime,
+      moves: room.moves,
+    });
+
+    return { success: true, room };
   }
 
   async resign(roomId: string, playerName: string): Promise<void> {

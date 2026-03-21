@@ -186,15 +186,92 @@
   font-family: monospace;
 }
 
+.gameActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.undoBtn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.undoBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.undoBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .resignBtn {
+  flex: 1;
   padding: 0.6rem 1rem;
   border-radius: 8px;
   background: #c0392b;
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
+  border: none;
 }
 
 .resignBtn:hover {
+  background: #e74c3c;
+}
+
+.undoBanner {
+  background: var(--bg-card);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--warning);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.undoActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.undoAccept {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: var(--success);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+}
+
+.undoAccept:hover {
+  opacity: 0.9;
+}
+
+.undoDecline {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #c0392b;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+}
+
+.undoDecline:hover {
   background: #e74c3c;
 }

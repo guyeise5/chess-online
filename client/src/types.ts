@@ -40,3 +40,11 @@ export interface TimerData {
   whiteTime: number;
   blackTime: number;
 }
+
+export interface UndoData {
+  fen: string;
+  turn: "w" | "b";
+  whiteTime: number;
+  blackTime: number;
+  moves: string[];
+}
