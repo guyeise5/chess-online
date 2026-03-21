@@ -30,6 +30,15 @@
 .logo {
   font-size: 1.3rem;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.logoIcon {
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
 }
 
 .ratingBadge {

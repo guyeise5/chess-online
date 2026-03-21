@@ -76,7 +76,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.logo}>&#9822; Chess</h1>
+        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess</h1>
         <Link to="/puzzles" className={styles.puzzlesLink}>
           <span className={styles.puzzlesIcon}>&#129513;</span>
           Puzzles

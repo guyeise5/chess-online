@@ -401,7 +401,7 @@ export default function GameRoom({ playerName }: Props) {
         <button className={styles.backBtn} onClick={handleLeave}>
           &larr; Lobby
         </button>
-        <h1 className={styles.logo}>&#9822; Chess</h1>
+        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess</h1>
         <span className={styles.roomId}>Room: {roomId}</span>
       </header>
 

@@ -434,7 +434,7 @@ export default function PuzzleTrainer() {
         <button className={styles.backBtn} onClick={() => navigate("/")}>
           &larr; Lobby
         </button>
-        <h1 className={styles.logo}>&#9822; Puzzle Trainer</h1>
+        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Puzzle Trainer</h1>
         <span className={styles.ratingBadge}>#{puzzle.puzzleId}</span>
       </header>
 

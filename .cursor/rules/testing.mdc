@@ -5,29 +5,29 @@ alwaysApply: true
 
 # Testing Policy
 
-Every code change or new feature must include tests. Run the full test suite before considering the task complete.
+Every code change or new feature **must** include corresponding tests in the same response. Never consider a feature complete without tests.
 
-## Write tests
+## What to test for new features
 
-- Add tests for every new feature, bug fix, refactor, or behavior change
-- Server tests go in `server/src/__tests__/` using Jest + mongodb-memory-server
-- Client tests go in `client/src/__tests__/` using Vitest + jsdom
-- Follow existing patterns: use `setupDB`/`teardownDB`/`clearDB` for server, mock socket and localStorage for client
-- Test both success and failure paths
+- **Server-side logic** (GameManager methods, socket handlers, DB models): add tests in `server/src/__tests__/` using Jest + mongodb-memory-server
+- **Client-side logic** (game helpers, rating calculations, move validation, URL routing): add tests in `client/src/__tests__/` using Vitest + jsdom
+- Test the **happy path**, **edge cases**, and **error/failure paths**
+- For socket-based features: test the request, the response, and cancellation/timeout scenarios
+- For UI logic: test state transitions (e.g., status changes, flag toggling, conditional rendering logic)
+
+## Test structure
+
+- Follow existing patterns: use `setupDB`/`teardownDB`/`clearDB` for server, mock localStorage for client
 - Call `gm.stopAllTimers()` in `afterEach` for any server test that creates playing rooms
+- Group related tests in a `describe` block named after the feature
+- Keep test logic self-contained — duplicate small helpers rather than importing from source
 
 ## Run tests
 
 - **Server changes:** `cd server && npm test`
 - **Client changes:** `cd client && npm test`
 - **Both changed:** run both commands
-
-## When
-
-- After modifying any `.ts` or `.tsx` source file
-- After adding, removing, or updating dependencies
-- After refactoring or renaming
-- After fixing a bug
+- Always run tests **before** telling the user the task is complete
 
 ## On failure
 
