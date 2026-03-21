@@ -204,6 +204,19 @@ export class GameManager {
     }
   }
 
+  async closeRoom(roomId: string, playerName: string): Promise<boolean> {
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "waiting" || room.owner !== playerName) {
+      return false;
+    }
+
+    await Room.deleteOne({ roomId });
+    this.io.to(roomId).emit("room:closed");
+    this.io.in(roomId).socketsLeave(roomId);
+    await this.broadcastRooms();
+    return true;
+  }
+
   async resign(roomId: string, playerName: string): Promise<void> {
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return;

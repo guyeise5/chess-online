@@ -269,6 +269,19 @@ export default function GameRoom({ playerName }: Props) {
     [selectedSquare, getLegalMovesForSquare, tryMove]
   );
 
+  const handleLeave = useCallback(() => {
+    if (status === "waiting" && room?.owner === playerName) {
+      socket.emit("room:leave", { roomId, playerName }, () => {});
+    }
+    navigate("/");
+  }, [status, room, roomId, playerName, navigate]);
+
+  useEffect(() => {
+    const onClosed = () => navigate("/", { replace: true });
+    socket.on("room:closed", onClosed);
+    return () => { socket.off("room:closed", onClosed); };
+  }, [navigate]);
+
   const handleResign = () => {
     if (window.confirm("Are you sure you want to resign?")) {
       socket.emit("game:resign", { roomId, playerName });
@@ -309,7 +322,7 @@ export default function GameRoom({ playerName }: Props) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate("/")}>
+        <button className={styles.backBtn} onClick={handleLeave}>
           &larr; Lobby
         </button>
         <h1 className={styles.logo}>&#9822; Chess Online</h1>

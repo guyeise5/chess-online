@@ -1,0 +1,27 @@
+---
+description: Always run tests after making code changes
+alwaysApply: true
+---
+
+# Testing Policy
+
+After every code change, run the relevant test suite before considering the task complete.
+
+## Commands
+
+- **Server changes:** `cd server && npm test`
+- **Client changes:** `cd client && npm test`
+- **Both changed:** run both commands
+
+## When to run
+
+- After modifying any `.ts` or `.tsx` source file
+- After adding, removing, or updating dependencies
+- After refactoring or renaming
+- After fixing a bug
+
+## On failure
+
+- Fix the failing tests before moving on
+- If a test is outdated due to intentional changes, update the test to match the new behavior
+- Never skip or delete a failing test without explicit user approval

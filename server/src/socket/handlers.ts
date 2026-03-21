@@ -77,6 +77,23 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     );
 
     socket.on(
+      "room:leave",
+      async (
+        data: { roomId: string; playerName: string },
+        callback: (res: any) => void
+      ) => {
+        try {
+          const closed = await gm.closeRoom(data.roomId, data.playerName);
+          socket.leave(data.roomId);
+          callback({ success: closed });
+        } catch (err) {
+          console.error("Error leaving room:", err);
+          callback({ success: false, error: "Failed to leave room" });
+        }
+      }
+    );
+
+    socket.on(
       "game:move",
       async (
         data: {
