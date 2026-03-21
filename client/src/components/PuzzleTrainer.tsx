@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
+import PromotionDialog from "./PromotionDialog";
 import styles from "./PuzzleTrainer.module.css";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
@@ -63,6 +64,20 @@ function computeRatingChange(
   return Math.round(k * (actual - expected));
 }
 
+function findKingSquare(game: Chess): string | null {
+  const turn = game.turn();
+  const board = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (piece && piece.type === "k" && piece.color === turn) {
+        return piece.square;
+      }
+    }
+  }
+  return null;
+}
+
 export default function PuzzleTrainer() {
   const navigate = useNavigate();
   const { puzzleId: urlPuzzleId } = useParams<{ puzzleId?: string }>();
@@ -79,6 +94,7 @@ export default function PuzzleTrainer() {
   const [hasFailed, setHasFailed] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
   const [hintLevel, setHintLevel] = useState(0);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const orientation = useMemo(() => {
@@ -95,6 +111,7 @@ export default function PuzzleTrainer() {
     setHasFailed(false);
     setWrongFlash(false);
     setHintLevel(0);
+    setPendingPromotion(null);
     setMoveIndex(0);
 
     try {
@@ -142,9 +159,25 @@ export default function PuzzleTrainer() {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [playedMoves]);
 
-  const tryMove = useCallback(
+  const isPromotionMove = useCallback(
     (from: string, to: string): boolean => {
+      const piece = game.get(from as Square);
+      if (!piece || piece.type !== "p") return false;
+      const turn = game.turn();
+      return (turn === "w" && to[1] === "8") || (turn === "b" && to[1] === "1");
+    },
+    [game]
+  );
+
+  const tryMove = useCallback(
+    (from: string, to: string, chosenPromotion?: string): boolean => {
       if (status !== "solving" || !puzzle) return false;
+
+      if (!chosenPromotion && isPromotionMove(from, to)) {
+        setPendingPromotion({ from, to });
+        setSelectedSquare(null);
+        return false;
+      }
 
       const expectedUci = puzzle.moves[moveIndex];
       if (!expectedUci) return false;
@@ -153,16 +186,9 @@ export default function PuzzleTrainer() {
       const expectedTo = expectedUci.slice(2, 4);
       const expectedPromo = expectedUci.length > 4 ? expectedUci[4] : undefined;
 
-      const turn = game.turn();
-      const piece = game.get(from as Square);
-      const isPawn = piece && piece.type === "p";
-      const promotion =
-        isPawn &&
-        ((turn === "w" && to[1] === "8") || (turn === "b" && to[1] === "1"))
-          ? expectedPromo || "q"
-          : undefined;
+      const promotion = chosenPromotion || undefined;
 
-      if (from !== expectedFrom || to !== expectedTo) {
+      if (from !== expectedFrom || to !== expectedTo || (expectedPromo && promotion !== expectedPromo)) {
         if (!hasFailed) {
           const count = incrementPuzzleCount();
           setPuzzleCount(count);
@@ -185,6 +211,7 @@ export default function PuzzleTrainer() {
       setGame(gameCopy);
       setFen(gameCopy.fen());
       setSelectedSquare(null);
+      setPendingPromotion(null);
       setLastMove({ from, to });
       setHintLevel(0);
       setPlayedMoves((prev) => [...prev, move.san]);
@@ -225,7 +252,7 @@ export default function PuzzleTrainer() {
       setMoveIndex(nextIndex);
       return true;
     },
-    [status, puzzle, moveIndex, game, playerRating, hasFailed]
+    [status, puzzle, moveIndex, game, playerRating, hasFailed, isPromotionMove]
   );
 
   const showSolution = useCallback(() => {
@@ -286,6 +313,9 @@ export default function PuzzleTrainer() {
   const HIGHLIGHT_HINT: React.CSSProperties = {
     backgroundColor: "rgba(96, 165, 250, 0.5)",
   };
+  const HIGHLIGHT_CHECK: React.CSSProperties = {
+    background: "radial-gradient(ellipse at center, rgba(255,0,0,0.8) 0%, rgba(231,76,60,0.5) 40%, rgba(169,32,32,0.15) 70%, transparent 100%)",
+  };
 
   const hintSquare = useMemo(() => {
     if (hintLevel === 0 || !puzzle || status !== "solving") return null;
@@ -307,6 +337,11 @@ export default function PuzzleTrainer() {
     if (lastMove) {
       result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
       result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
+    }
+
+    if (game.inCheck()) {
+      const kingSq = findKingSquare(game);
+      if (kingSq) result[kingSq] = HIGHLIGHT_CHECK;
     }
 
     if (hintSquare) {
@@ -405,7 +440,16 @@ export default function PuzzleTrainer() {
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
-          <div className={styles.board}>
+          <div className={styles.board} style={{ position: "relative" }}>
+            {pendingPromotion && (
+              <PromotionDialog
+                color={orientation}
+                square={pendingPromotion.to}
+                orientation={orientation}
+                onSelect={(piece) => tryMove(pendingPromotion.from, pendingPromotion.to, piece)}
+                onCancel={() => setPendingPromotion(null)}
+              />
+            )}
             <Chessboard
               options={{
                 position: fen,

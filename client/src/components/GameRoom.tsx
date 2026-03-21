@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
 import { RoomData, MoveData, GameOverData, TimerData } from "../types";
+import PromotionDialog from "./PromotionDialog";
 import styles from "./GameRoom.module.css";
 
 interface Props {
@@ -25,6 +26,23 @@ const HIGHLIGHT_DOT: React.CSSProperties = {
 const HIGHLIGHT_CAPTURE: React.CSSProperties = {
   background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)",
 };
+const HIGHLIGHT_CHECK: React.CSSProperties = {
+  background: "radial-gradient(ellipse at center, rgba(255,0,0,0.8) 0%, rgba(231,76,60,0.5) 40%, rgba(169,32,32,0.15) 70%, transparent 100%)",
+};
+
+function findKingSquare(game: Chess): string | null {
+  const turn = game.turn();
+  const board = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (piece && piece.type === "k" && piece.color === turn) {
+        return piece.square;
+      }
+    }
+  }
+  return null;
+}
 
 export default function GameRoom({ playerName }: Props) {
   const { roomId } = useParams<{ roomId: string }>();
@@ -41,6 +59,7 @@ export default function GameRoom({ playerName }: Props) {
   const [moves, setMoves] = useState<string[]>([]);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const rejoin = useCallback(() => {
@@ -148,17 +167,23 @@ export default function GameRoom({ playerName }: Props) {
   );
 
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
-    if (!selectedSquare) return {};
+    const result: Record<string, React.CSSProperties> = {};
 
-    const targets = getLegalMovesForSquare(selectedSquare);
-    const styles: Record<string, React.CSSProperties> = {
-      [selectedSquare]: HIGHLIGHT_SOURCE,
-    };
-    for (const sq of targets) {
-      const pieceOnTarget = game.get(sq as Square);
-      styles[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+    if (game.inCheck()) {
+      const kingSq = findKingSquare(game);
+      if (kingSq) result[kingSq] = HIGHLIGHT_CHECK;
     }
-    return styles;
+
+    if (selectedSquare) {
+      result[selectedSquare] = HIGHLIGHT_SOURCE;
+      const targets = getLegalMovesForSquare(selectedSquare);
+      for (const sq of targets) {
+        const pieceOnTarget = game.get(sq as Square);
+        result[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+      }
+    }
+
+    return result;
   }, [selectedSquare, game, getLegalMovesForSquare]);
 
   const isMyTurn = useCallback(() => {
@@ -167,17 +192,19 @@ export default function GameRoom({ playerName }: Props) {
     return (turn === "w" && isWhite) || (turn === "b" && isBlack);
   }, [status, isPlayer, game, isWhite, isBlack]);
 
-  const tryMove = useCallback(
+  const isPromotionMove = useCallback(
     (from: string, to: string): boolean => {
-      if (!roomId) return false;
-      const turn = game.turn();
       const piece = game.get(from as Square);
-      const isPawn = piece && piece.type === "p";
-      const promotion =
-        isPawn &&
-        ((turn === "w" && to[1] === "8") || (turn === "b" && to[1] === "1"))
-          ? "q"
-          : undefined;
+      if (!piece || piece.type !== "p") return false;
+      const turn = game.turn();
+      return (turn === "w" && to[1] === "8") || (turn === "b" && to[1] === "1");
+    },
+    [game]
+  );
+
+  const executeMove = useCallback(
+    (from: string, to: string, promotion?: string): boolean => {
+      if (!roomId) return false;
 
       socket.emit(
         "game:move",
@@ -196,6 +223,7 @@ export default function GameRoom({ playerName }: Props) {
           setGame(gameCopy);
           setFen(gameCopy.fen());
           setSelectedSquare(null);
+          setPendingPromotion(null);
           return true;
         }
       } catch {
@@ -204,6 +232,19 @@ export default function GameRoom({ playerName }: Props) {
       return false;
     },
     [game, fen, playerName, roomId]
+  );
+
+  const tryMove = useCallback(
+    (from: string, to: string): boolean => {
+      if (!roomId) return false;
+      if (isPromotionMove(from, to)) {
+        setPendingPromotion({ from, to });
+        setSelectedSquare(null);
+        return false;
+      }
+      return executeMove(from, to);
+    },
+    [roomId, isPromotionMove, executeMove]
   );
 
   const onDrop = useCallback(
@@ -338,7 +379,16 @@ export default function GameRoom({ playerName }: Props) {
             </span>
           </div>
 
-          <div className={styles.board}>
+          <div className={styles.board} style={{ position: "relative" }}>
+            {pendingPromotion && (
+              <PromotionDialog
+                color={isWhite ? "white" : "black"}
+                square={pendingPromotion.to}
+                orientation={orientation}
+                onSelect={(piece) => executeMove(pendingPromotion.from, pendingPromotion.to, piece)}
+                onCancel={() => setPendingPromotion(null)}
+              />
+            )}
             <Chessboard
               options={{
                 position: fen,

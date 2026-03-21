@@ -77,10 +77,11 @@ export default function Lobby({ playerName, onChangeName }: Props) {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.logo}>&#9822; Chess Online</h1>
+        <Link to="/puzzles" className={styles.puzzlesLink}>
+          <span className={styles.puzzlesIcon}>&#129513;</span>
+          Puzzles
+        </Link>
         <div className={styles.user}>
-          <Link to="/puzzles" className={styles.joinBtn} style={{ textDecoration: "none", fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}>
-            Puzzles
-          </Link>
           <span className={styles.playerName}>{playerName}</span>
           <button className={styles.changeNameBtn} onClick={onChangeName}>
             Change
