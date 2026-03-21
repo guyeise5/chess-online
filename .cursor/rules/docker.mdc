@@ -1,0 +1,13 @@
+---
+description: Docker and deployment conventions
+globs: Dockerfile,docker-compose.yml,.dockerignore
+alwaysApply: false
+---
+
+# Docker Conventions
+
+- Multi-stage Dockerfile: `client-build` → `server-build` → production (node:20-alpine)
+- Client build output goes to `public/` and is served as static files by Express
+- `docker-compose.yml` runs app + MongoDB 7; app depends_on mongo
+- Environment variables: `MONGO_URI`, `PORT`, `CLIENT_ORIGIN`
+- The `.dockerignore` excludes `node_modules`, `dist`, `.git`, `.env`

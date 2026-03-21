@@ -1,0 +1,30 @@
+---
+description: Project overview and architecture for chess-online
+alwaysApply: true
+---
+
+# Chess Online - Project Overview
+
+Real-time multiplayer chess app with a Node.js/TypeScript server and React client.
+
+## Architecture
+
+- **`server/`** — Express + Socket.IO + Mongoose + chess.js
+  - `src/models/Room.ts` — Mongoose schema for game rooms (state, clocks, players)
+  - `src/game/GameManager.ts` — Core game logic: room lifecycle, move validation via chess.js, timers
+  - `src/socket/handlers.ts` — Socket.IO event handlers wiring client events to GameManager
+  - `src/index.ts` — Express server entry point, serves built client as static files
+- **`client/`** — React + Vite + react-chessboard v5 + Socket.IO client
+  - `src/App.tsx` — Root routing: name prompt → lobby → game room, handles reconnection
+  - `src/components/Lobby.tsx` — Room list and creation form
+  - `src/components/GameRoom.tsx` — Chessboard, clocks, move list, resign
+  - `src/socket.ts` — Singleton Socket.IO client instance
+- **`Dockerfile`** — Multi-stage build (client build → server build → production image)
+- **`docker-compose.yml`** — App + MongoDB
+
+## Key Patterns
+
+- Game state is the source of truth in MongoDB; chess.js instances are kept in-memory for fast validation
+- Timers are server-side `setInterval` keyed by roomId, not tied to sockets
+- Client persists `roomId` + `playerName` in localStorage for reconnection
+- react-chessboard v5 uses `options` prop (not top-level props)

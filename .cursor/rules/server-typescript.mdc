@@ -1,0 +1,39 @@
+---
+description: Server-side TypeScript conventions
+globs: server/src/**/*.ts
+alwaysApply: false
+---
+
+# Server TypeScript Conventions
+
+## Stack
+
+- TypeScript with strict mode, targeting ES2020/CommonJS
+- Express for HTTP, Socket.IO for WebSocket events
+- Mongoose for MongoDB, chess.js for move validation
+
+## Patterns
+
+- All game logic lives in `GameManager` — socket handlers are thin wrappers that delegate to it
+- Socket event callbacks use the `(data, callback) => void` pattern for request/response
+- Mongoose documents (`IRoom`) are the canonical type; use `serializeRoom()` before sending to clients
+- Avoid naming Mongoose document fields that conflict with `Document` methods (e.g. use `timeIncrement` not `increment`)
+
+## Testing
+
+- Tests use Jest + ts-jest + mongodb-memory-server + real Socket.IO client/server pairs
+- Shared helpers in `__tests__/setup.ts`: `setupDB`, `teardownDB`, `clearDB`
+- Run with `npm test` (jest --forceExit --detectOpenHandles)
+
+### Test structure
+
+- `Room.test.ts` — Mongoose model: TTL index, schema validation, required fields, defaults, unique constraints
+- `GameManager.test.ts` — Unit tests with mock sockets: room CRUD, color assignment, move validation, turn alternation, checkmate/draw detection, resign, reconnection (rejoin returns current state, timer restart, both players rejoin independently), timer/clock behavior, serialization
+- `socket.test.ts` — Integration tests with real Socket.IO client/server: full create→join→move→resign flow, reconnection (disconnect/rejoin/receive moves, timer events resume after rejoin, rejoin after game ends), move broadcast, Scholar's mate end-to-end
+
+### Key rules
+
+- Always call `gm.stopAllTimers()` in `afterEach` to prevent dangling intervals
+- In socket tests, call `io.disconnectSockets(true)` in `afterEach` + small delay before `clearDB`
+- To test a custom FEN position, update the DB then delete the in-memory chess instance: `(gm as any).games.delete(roomId)`
+- Use `mockSocket()` for GameManager unit tests, real `socket.io-client` for integration tests

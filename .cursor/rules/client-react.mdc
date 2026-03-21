@@ -1,0 +1,44 @@
+---
+description: Client-side React conventions
+globs: client/src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Client React Conventions
+
+## Stack
+
+- React 19 + TypeScript + Vite (ESM, bundler module resolution)
+- react-chessboard v5 — all config goes through `options` prop, NOT top-level props
+- Socket.IO client singleton in `src/socket.ts`
+- CSS Modules (`*.module.css`) for component styles
+
+## react-chessboard v5 API
+
+```tsx
+<Chessboard options={{ position, onPieceDrop, boardOrientation, squareStyles, ... }} />
+```
+
+Key options: `position`, `onPieceDrop`, `onPieceDrag`, `onPieceClick`, `onSquareClick`, `squareStyles`, `boardOrientation`, `darkSquareStyle`, `lightSquareStyle`, `darkSquareNotationStyle`, `lightSquareNotationStyle`, `alphaNotationStyle`, `numericNotationStyle`
+
+## Patterns
+
+- Board sizing is CSS-driven: constrain the `.board` container, the component fills it
+- Legal move highlighting: compute via `game.moves({ square, verbose: true })`, render via `squareStyles`
+- Reconnection: `roomId` persisted in localStorage, auto-rejoin on mount and on `socket.io.reconnect`
+
+## Testing
+
+- Tests use Vitest (configured in `vite.config.ts` with `jsdom` environment)
+- Run with `npm test` (vitest run)
+
+### Test structure
+
+- `legalMoves.test.ts` — Legal move highlighting logic: pawn/knight/queen moves, capture vs dot classification, pinned pieces, en passant, castling, null selection
+- `gameLogic.test.ts` — Client game helpers: turn detection, isMyTurn logic, promotion detection, board orientation, player bar layout, time formatting, move list pairing
+- `reconnection.test.ts` — localStorage reconnection patterns: store/clear/read room ID and player name, rejoin detection logic, stale room cleanup on failed rejoin
+
+### Key rules
+
+- Don't use `localStorage` directly in tests (jsdom doesn't fully support it); use a simple Map-based store that mirrors the same get/set/remove patterns
+- Test pure logic extracted from components, not component rendering (no React Testing Library needed for current tests)
