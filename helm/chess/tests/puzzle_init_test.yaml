@@ -1,0 +1,103 @@
+suite: puzzle init job
+templates:
+  - templates/puzzle-init-job.yaml
+tests:
+  - it: should not render when disabled
+    set:
+      puzzleInit.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render when enabled (default)
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should be a Job
+    asserts:
+      - isKind:
+          of: Job
+
+  - it: should have correct name
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess-puzzle-init
+
+  - it: should have helm hook annotations
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: "post-install,post-upgrade"
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+
+  - it: should have puzzle-init component label
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: puzzle-init
+
+  - it: should have restartPolicy Never
+    asserts:
+      - equal:
+          path: spec.template.spec.restartPolicy
+          value: Never
+
+  - it: should use default backoff limit
+    asserts:
+      - equal:
+          path: spec.backoffLimit
+          value: 3
+
+  - it: should use custom backoff limit
+    set:
+      puzzleInit.backoffLimit: 5
+    asserts:
+      - equal:
+          path: spec.backoffLimit
+          value: 5
+
+  - it: should use default puzzle-init image
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "chess-puzzle-init:latest"
+
+  - it: should use custom image
+    set:
+      puzzleInit.image.repository: my-registry/puzzle
+      puzzleInit.image.tag: v1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-registry/puzzle:v1.0"
+
+  - it: should set MONGO_URI env
+    release:
+      name: test
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MONGO_URI
+            value: "mongodb://test-chess-mongodb:27017/chess-online"
+
+  - it: should have resource limits
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 1Gi
+
+  - it: should use imagePullSecrets when set
+    set:
+      imagePullSecrets:
+        - name: my-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: my-secret

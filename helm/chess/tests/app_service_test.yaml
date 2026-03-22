@@ -1,0 +1,58 @@
+suite: app service
+templates:
+  - templates/app-service.yaml
+tests:
+  - it: should be a Service
+    asserts:
+      - isKind:
+          of: Service
+
+  - it: should have correct name
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess-app
+
+  - it: should default to ClusterIP
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should use custom service type
+    set:
+      service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: should map service port to container port
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 80
+      - equal:
+          path: spec.ports[0].targetPort
+          value: 3001
+
+  - it: should use custom service port
+    set:
+      service.port: 8080
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+
+  - it: should select app component pods
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: app
+      - equal:
+          path: spec.selector["app.kubernetes.io/instance"]
+          value: test

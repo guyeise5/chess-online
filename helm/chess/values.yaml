@@ -1,0 +1,67 @@
+app:
+  replicaCount: 1
+  image:
+    repository: chess-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 3001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    AUTHOR_URL: ""
+
+mongodb:
+  image:
+    repository: mongo
+    tag: "8"
+    pullPolicy: IfNotPresent
+  port: 27017
+  storage:
+    size: 10Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+puzzleInit:
+  enabled: true
+  image:
+    repository: chess-puzzle-init
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  backoffLimit: 3
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chess.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""

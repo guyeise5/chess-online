@@ -1,0 +1,127 @@
+suite: mongodb
+templates:
+  - templates/mongodb-statefulset.yaml
+  - templates/mongodb-service.yaml
+tests:
+  - it: statefulset should be correct kind
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+
+  - it: statefulset should have correct name
+    template: templates/mongodb-statefulset.yaml
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess-mongodb
+
+  - it: statefulset should use default mongo image
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "mongo:8"
+
+  - it: statefulset should use custom image tag
+    template: templates/mongodb-statefulset.yaml
+    set:
+      mongodb.image.tag: "7"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "mongo:7"
+
+  - it: statefulset should expose port 27017
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 27017
+
+  - it: statefulset should mount data volume
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /data/db
+
+  - it: statefulset should request 10Gi storage by default
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 10Gi
+
+  - it: statefulset should use custom storage size
+    template: templates/mongodb-statefulset.yaml
+    set:
+      mongodb.storage.size: 50Gi
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 50Gi
+
+  - it: statefulset should set storageClassName when specified
+    template: templates/mongodb-statefulset.yaml
+    set:
+      mongodb.storage.storageClassName: fast-ssd
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: fast-ssd
+
+  - it: statefulset should have resource limits
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 1Gi
+
+  - it: statefulset should have 1 replica
+    template: templates/mongodb-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: service should be correct kind
+    template: templates/mongodb-service.yaml
+    asserts:
+      - isKind:
+          of: Service
+
+  - it: service should have correct name
+    template: templates/mongodb-service.yaml
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess-mongodb
+
+  - it: service should expose port 27017
+    template: templates/mongodb-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 27017
+
+  - it: service should select mongodb component
+    template: templates/mongodb-service.yaml
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: mongodb
+
+  - it: service should use imagePullSecrets when set
+    template: templates/mongodb-statefulset.yaml
+    set:
+      imagePullSecrets:
+        - name: registry-cred
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: registry-cred

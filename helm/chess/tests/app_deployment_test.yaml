@@ -1,0 +1,145 @@
+suite: app deployment
+templates:
+  - templates/app-deployment.yaml
+tests:
+  - it: should be a Deployment
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should have correct name
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess-app
+
+  - it: should have app component label
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: app
+
+  - it: should default to 1 replica
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should respect custom replica count
+    set:
+      app.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: should use default image
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "chess-app:latest"
+
+  - it: should use custom image
+    set:
+      app.image.repository: my-registry/chess
+      app.image.tag: v2.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-registry/chess:v2.0.0"
+
+  - it: should set correct container port
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 3001
+
+  - it: should set NODE_ENV to production
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_ENV
+            value: "production"
+
+  - it: should set PORT as quoted string
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PORT
+            value: "3001"
+
+  - it: should set MONGO_URI
+    release:
+      name: test
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MONGO_URI
+            value: "mongodb://test-chess-mongodb:27017/chess-online"
+
+  - it: should set AUTHOR_URL from values
+    set:
+      app.env.AUTHOR_URL: "https://example.com"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTHOR_URL
+            value: "https://example.com"
+
+  - it: should have default AUTHOR_URL as empty string
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AUTHOR_URL
+            value: ""
+
+  - it: should have readiness probe
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: 3001
+
+  - it: should have liveness probe
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 3001
+
+  - it: should set resource limits and requests
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 512Mi
+
+  - it: should use imagePullSecrets when set
+    set:
+      imagePullSecrets:
+        - name: my-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: my-secret
+
+  - it: should respect fullnameOverride
+    set:
+      fullnameOverride: custom-chess
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-chess-app

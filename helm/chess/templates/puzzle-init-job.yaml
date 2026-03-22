@@ -1,0 +1,35 @@
+{{- if .Values.puzzleInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "chess.fullname" . }}-puzzle-init
+  labels:
+    {{- include "chess.labels" . | nindent 4 }}
+    app.kubernetes.io/component: puzzle-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: {{ .Values.puzzleInit.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: puzzle-init
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Never
+      containers:
+        - name: puzzle-init
+          image: "{{ .Values.puzzleInit.image.repository }}:{{ .Values.puzzleInit.image.tag }}"
+          imagePullPolicy: {{ .Values.puzzleInit.image.pullPolicy }}
+          env:
+            - name: MONGO_URI
+              value: {{ include "chess.mongoUri" . | quote }}
+          resources:
+            {{- toYaml .Values.puzzleInit.resources | nindent 12 }}
+{{- end }}

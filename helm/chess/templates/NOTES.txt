@@ -1,0 +1,20 @@
+Chess has been deployed!
+
+{{- if .Values.ingress.enabled }}
+Access the application at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+Get the application URL by running:
+  kubectl port-forward svc/{{ include "chess.fullname" . }}-app {{ .Values.app.port }}:{{ .Values.service.port }}
+
+Then open http://localhost:{{ .Values.app.port }} in your browser.
+{{- end }}
+
+{{- if .Values.puzzleInit.enabled }}
+
+The puzzle import job will run automatically after install/upgrade.
+Check its status with:
+  kubectl get jobs -l app.kubernetes.io/component=puzzle-init
+{{- end }}

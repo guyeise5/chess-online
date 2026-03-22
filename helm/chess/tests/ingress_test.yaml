@@ -1,0 +1,130 @@
+suite: ingress
+templates:
+  - templates/ingress.yaml
+tests:
+  - it: should not render when disabled (default)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render when enabled
+    set:
+      ingress.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should be an Ingress
+    set:
+      ingress.enabled: true
+    asserts:
+      - isKind:
+          of: Ingress
+
+  - it: should have correct name
+    set:
+      ingress.enabled: true
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-chess
+
+  - it: should set ingressClassName when specified
+    set:
+      ingress.enabled: true
+      ingress.className: nginx
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should not set ingressClassName when empty
+    set:
+      ingress.enabled: true
+      ingress.className: ""
+    asserts:
+      - isNull:
+          path: spec.ingressClassName
+
+  - it: should set host from values
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: chess.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: "chess.example.com"
+
+  - it: should set path and pathType
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: chess.local
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+
+  - it: should point backend to app service on correct port
+    set:
+      ingress.enabled: true
+      service.port: 8080
+      ingress.hosts:
+        - host: chess.local
+          paths:
+            - path: /
+              pathType: Prefix
+    release:
+      name: test
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: test-chess-app
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
+
+  - it: should configure TLS when specified
+    set:
+      ingress.enabled: true
+      ingress.tls:
+        - secretName: chess-tls
+          hosts:
+            - chess.example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: chess-tls
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: "chess.example.com"
+
+  - it: should not have TLS when empty
+    set:
+      ingress.enabled: true
+      ingress.tls: []
+    asserts:
+      - isNull:
+          path: spec.tls
+
+  - it: should set custom annotations
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/ssl-redirect"]
+          value: "true"

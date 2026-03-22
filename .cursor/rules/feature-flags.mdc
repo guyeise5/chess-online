@@ -1,0 +1,54 @@
+---
+description: Every new feature must have a feature flag controlled by an environment variable
+alwaysApply: true
+---
+
+# Feature Flags
+
+Every new feature MUST be gated behind a feature flag controlled by a runtime environment variable.
+
+## How it works
+
+1. Add a `FEATURE_<NAME>` env var (e.g. `FEATURE_PUZZLES`, `FEATURE_UNDO`). Value `"true"` enables it, anything else disables it.
+2. Add the variable to `docker-compose.yml` under the `app` service `environment` section.
+3. Add it to `docker-entrypoint.sh` so it's injected into `window.__ENV__` for the client.
+4. On the **server**, read `process.env.FEATURE_<NAME>` to gate server-side logic.
+5. On the **client**, read `(window as any).__ENV__?.FEATURE_<NAME>` to gate UI elements.
+
+## Example
+
+**docker-compose.yml:**
+```yaml
+environment:
+  - FEATURE_UNDO=${FEATURE_UNDO:-true}
+```
+
+**docker-entrypoint.sh:**
+```sh
+window.__ENV__={AUTHOR_URL:"${AUTHOR_URL:-}",FEATURE_UNDO:"${FEATURE_UNDO:-true}"};
+```
+
+**Server:**
+```typescript
+if (process.env.FEATURE_UNDO === "true") {
+  // register undo handlers
+}
+```
+
+**Client:**
+```typescript
+const flags = (window as any).__ENV__ || {};
+if (flags.FEATURE_UNDO === "true") {
+  // render undo button
+}
+```
+
+## Rules
+
+- If the environment variable is **not defined**, the feature MUST be **enabled** by default. Use `:-true` in shell defaults and fallback to `"true"` in code:
+  - Shell: `${FEATURE_X:-true}`
+  - Server: `process.env.FEATURE_X !== "false"` (not `=== "true"`)
+  - Client: `(window as any).__ENV__?.FEATURE_X !== "false"`
+- To **disable** a feature, explicitly set `FEATURE_X=false`.
+- Never hardcode feature availability — always read from the env var.
+- Document each flag in the README environment variables table.
