@@ -5,53 +5,78 @@ on:
     branches: main
 
 jobs:
-  build-and-push:
-    name: Build & Push Images
+  set-tag:
+    name: Set image tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Compute 7-char SHA
+        id: tag
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+  push-app:
+    name: Push chess-app
+    needs: set-tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: docker/setup-qemu-action@v3
-
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set short SHA tag
-        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-
-      - name: Build & push chess-app
+      - name: Build & push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:${{ needs.set-tag.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:latest
 
-      - name: Build & push chess-puzzle-init
+  push-puzzle-init:
+    name: Push chess-puzzle-init
+    needs: set-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build & push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.puzzle-init
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:${{ needs.set-tag.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:latest
 
-      - name: Build & push chess-opening-init
+  push-opening-init:
+    name: Push chess-opening-init
+    needs: set-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build & push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.opening-init
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ needs.set-tag.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:latest
