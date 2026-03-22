@@ -83,6 +83,13 @@
   border: 1px solid var(--border);
 }
 
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .playerBarName {
   font-weight: 600;
   font-size: 0.95rem;

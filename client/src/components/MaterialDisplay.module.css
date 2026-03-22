@@ -1,0 +1,21 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+}
+
+.pieceIcon {
+  width: 1em;
+  height: 1em;
+  fill: var(--text-muted);
+  stroke: none;
+  vertical-align: middle;
+  margin-right: -2px;
+}
+
+.points {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-left: 3px;
+}

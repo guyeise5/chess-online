@@ -6,6 +6,8 @@ import { socket } from "../socket";
 import { RoomData, MoveData, GameOverData, TimerData, UndoData } from "../types";
 import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
+import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
+import MaterialDisplay from "./MaterialDisplay";
 import styles from "./GameRoom.module.css";
 
 interface Props {
@@ -253,6 +255,10 @@ export default function GameRoom({ playerName }: Props) {
   const isPlayerRef = useRef(isPlayer);
   isPlayerRef.current = isPlayer;
   const premoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
+  const showMaterial =
+    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
     const pm = { from, to, promotion };
@@ -524,6 +530,10 @@ export default function GameRoom({ playerName }: Props) {
   const bottomPlayer = orientation === "white" ? room.whitePlayer : room.blackPlayer;
   const topTime = orientation === "white" ? blackTime : whiteTime;
   const bottomTime = orientation === "white" ? whiteTime : blackTime;
+  const topMaterial: SideMaterial =
+    orientation === "white" ? materialDiff.black : materialDiff.white;
+  const bottomMaterial: SideMaterial =
+    orientation === "white" ? materialDiff.white : materialDiff.black;
   const currentTurn = game.turn();
   const topIsActive = status === "playing" && (
     (orientation === "white" && currentTurn === "b") ||
@@ -556,7 +566,10 @@ export default function GameRoom({ playerName }: Props) {
       <main className={styles.main}>
         <div className={styles.boardArea}>
           <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{topPlayer || "Waiting..."}</span>
+            <div className={styles.playerInfo}>
+              <span className={styles.playerBarName}>{topPlayer || "Waiting..."}</span>
+              {showMaterial && <MaterialDisplay material={topMaterial} />}
+            </div>
             <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}`}>
               {formatTime(topTime)}
             </span>
@@ -621,7 +634,10 @@ export default function GameRoom({ playerName }: Props) {
           </div>
 
           <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{bottomPlayer || "Waiting..."}</span>
+            <div className={styles.playerInfo}>
+              <span className={styles.playerBarName}>{bottomPlayer || "Waiting..."}</span>
+              {showMaterial && <MaterialDisplay material={bottomMaterial} />}
+            </div>
             <span className={`${styles.clock} ${bottomIsActive ? styles.clockActive : ""}`}>
               {formatTime(bottomTime)}
             </span>

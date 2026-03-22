@@ -27,6 +27,7 @@ services:
       - PORT=3001
       - AUTHOR_URL=${AUTHOR_URL:-}
       - FEATURE_GAME_STORAGE=${FEATURE_GAME_STORAGE:-true}
+      - FEATURE_MATERIAL_DIFF=${FEATURE_MATERIAL_DIFF:-true}
     depends_on:
       - mongo
 

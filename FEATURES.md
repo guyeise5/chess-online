@@ -11,6 +11,7 @@
 - Server-side move validation with chess.js
 - Clocks with increment support (server-side timers)
 - Premoves: drag or click to queue a move while waiting for opponent; auto-executed when it becomes your turn; Lichess-style blue highlight
+- Material difference display in player bars (piece icons + point advantage, Lichess-style)
 - Undo request system (requires opponent approval)
 - Resign option
 - Reconnection support (roomId + playerName persisted in localStorage)
@@ -23,6 +24,7 @@
 - Stockfish 18 running client-side via WebAssembly (`/stockfish/stockfish-18-lite-single.js`)
 - 8 difficulty levels (~800 to ~3000 Elo)
 - No time limit
+- Material difference display in player bars (shared utility with online play)
 - Instant undo (no opponent approval needed)
 - Game state persists across page refreshes via localStorage
 
@@ -48,6 +50,7 @@
 - Score graph plotting evaluations across the game with scrub/jump navigation
 - Move quality labels (best / good / inaccuracy / mistake / blunder)
 - Analysis board: legal-move dots and capture rings when selecting or dragging a piece (same styling as live play)
+- Material difference display in player bars (updates as you navigate moves)
 - Full move navigation (forward, backward, jump to position)
 - Game data stored server-side in MongoDB `games` collection with 14-day TTL index
 - REST API: `POST /api/games/:gameId` (save), `GET /api/games/:gameId` (load)
@@ -57,6 +60,7 @@
 
 - **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
 - Global footer (copyright / optional `AUTHOR_URL` link) on all pages via `App.tsx`
+- Material difference utility (`client/src/utils/materialDiff.ts`) shared across game modes
 - Board coordinates and legal move indicators
 - Last move highlight
 - Check/checkmate king highlight (red glow)
@@ -71,3 +75,4 @@
 | Flag | Default | Description |
 |------|---------|-------------|
 | `FEATURE_GAME_STORAGE` | `true` | Server-side game storage for analysis (MongoDB `games` collection, 14-day TTL). Set to `false` to disable. |
+| `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |

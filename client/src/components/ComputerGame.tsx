@@ -5,6 +5,8 @@ import { Chess, Square } from "chess.js";
 import useStockfish, { getLevelConfig } from "../hooks/useStockfish";
 import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
+import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
+import MaterialDisplay from "./MaterialDisplay";
 import styles from "./ComputerGame.module.css";
 
 interface Props {
@@ -466,6 +468,16 @@ export default function ComputerGame({ playerName }: Props) {
     ? playerName
     : `Stockfish ${levelConfig.label}`;
 
+  const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
+  const topMaterial: SideMaterial = isPlayerWhite
+    ? materialDiff.black
+    : materialDiff.white;
+  const bottomMaterial: SideMaterial = isPlayerWhite
+    ? materialDiff.white
+    : materialDiff.black;
+  const showMaterial =
+    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+
   const movePairs: { num: number; white: string; black?: string }[] = [];
   for (let i = 0; i < moves.length; i += 2) {
     movePairs.push({
@@ -494,6 +506,7 @@ export default function ComputerGame({ playerName }: Props) {
         <div className={styles.boardArea}>
           <div className={styles.playerBar}>
             <span className={styles.playerBarName}>{topPlayerName}</span>
+            {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
 
           <div className={styles.board} style={{ position: "relative" }}>
@@ -564,6 +577,7 @@ export default function ComputerGame({ playerName }: Props) {
 
           <div className={styles.playerBar}>
             <span className={styles.playerBarName}>{bottomPlayerName}</span>
+            {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
         </div>
 

@@ -14,6 +14,8 @@ import {
 import useMultiPV from "../hooks/useMultiPV";
 import EvalBar, { formatEvalLabel } from "./EvalBar";
 import ScoreGraph from "./ScoreGraph";
+import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
+import MaterialDisplay from "./MaterialDisplay";
 import styles from "./AnalysisBoard.module.css";
 
 const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
@@ -268,6 +270,13 @@ export default function AnalysisBoard() {
       return new Chess();
     }
   }, [currentFen]);
+
+  const materialDiff = useMemo(
+    () => computeMaterialDiff(displayedGame),
+    [displayedGame]
+  );
+  const showMaterial =
+    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
 
   const getLegalMovesForSquare = useCallback(
     (square: string): string[] => {
@@ -678,6 +687,10 @@ export default function AnalysisBoard() {
 
   const topPlayer = orientation === "white" ? playerBlack : playerWhite;
   const bottomPlayer = orientation === "white" ? playerWhite : playerBlack;
+  const topMaterial: SideMaterial =
+    orientation === "white" ? materialDiff.black : materialDiff.white;
+  const bottomMaterial: SideMaterial =
+    orientation === "white" ? materialDiff.white : materialDiff.black;
 
   /* ---- build move list with inline variations ---- */
 
@@ -781,6 +794,7 @@ export default function AnalysisBoard() {
         <div className={styles.boardSection}>
           <div className={styles.playerBar}>
             <span className={styles.playerBarName}>{topPlayer}</span>
+            {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
 
           <div className={styles.boardRow}>
@@ -848,6 +862,7 @@ export default function AnalysisBoard() {
 
           <div className={styles.playerBar}>
             <span className={styles.playerBarName}>{bottomPlayer}</span>
+            {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
 
           <div className={styles.graphArea}>
