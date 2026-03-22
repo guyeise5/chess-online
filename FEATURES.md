@@ -39,6 +39,7 @@
 - Retry flow with "Show Solution" option
 - Puzzle rating and tags revealed after solving
 - Puzzle ID in URL for sharing/bookmarking
+- Material difference display in player bars (shared utility with online and computer play)
 
 ## Game Analysis
 

@@ -66,6 +66,21 @@
   width: 100%;
 }
 
+.playerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.playerBarName {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 .board {
   line-height: 0;
   aspect-ratio: 1;

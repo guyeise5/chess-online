@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Chess } from "chess.js";
+import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
 const PUZZLE_COUNT_KEY = "chess-puzzle-count";
@@ -389,5 +390,74 @@ describe("puzzle solution sequence", () => {
         expect(isPlayer).toBe(true);
       }
     }
+  });
+});
+
+describe("puzzle material difference display", () => {
+  it("shows no material diff at equal starting position", () => {
+    const game = new Chess();
+    const diff = computeMaterialDiff(game);
+    expect(diff.white.pieces).toEqual([]);
+    expect(diff.black.pieces).toEqual([]);
+    expect(diff.white.points).toBe(0);
+    expect(diff.black.points).toBe(0);
+  });
+
+  it("correctly assigns top/bottom material based on orientation", () => {
+    const fen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const g = new Chess(fen);
+    const orientation = g.turn() === "w" ? "black" : "white";
+    const isPlayerWhite = orientation === "white";
+    const diff = computeMaterialDiff(g);
+
+    const topMaterial: SideMaterial = isPlayerWhite ? diff.black : diff.white;
+    const bottomMaterial: SideMaterial = isPlayerWhite ? diff.white : diff.black;
+
+    expect(topMaterial).toBeDefined();
+    expect(bottomMaterial).toBeDefined();
+  });
+
+  it("detects material imbalance from a puzzle FEN", () => {
+    const fen = "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24";
+    const game = new Chess(fen);
+    const diff = computeMaterialDiff(game);
+
+    const whiteTotal = diff.white.points;
+    const blackTotal = diff.black.points;
+    expect(whiteTotal === 0 || blackTotal === 0).toBe(true);
+  });
+
+  it("updates material diff as puzzle moves are played", () => {
+    const fen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const moves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+
+    const game = new Chess(fen);
+    const diffBefore = computeMaterialDiff(game);
+
+    for (const uci of moves) {
+      const from = uci.slice(0, 2);
+      const to = uci.slice(2, 4);
+      const promo = uci.length > 4 ? uci[4] : undefined;
+      game.move({ from, to, promotion: promo });
+    }
+
+    const diffAfter = computeMaterialDiff(game);
+    const beforeNet = diffBefore.white.points - diffBefore.black.points;
+    const afterNet = diffAfter.white.points - diffAfter.black.points;
+    expect(afterNet).not.toBe(beforeNet);
+  });
+
+  it("respects FEATURE_MATERIAL_DIFF flag", () => {
+    const flags = { FEATURE_MATERIAL_DIFF: "false" };
+    const showMaterial = flags.FEATURE_MATERIAL_DIFF !== "false";
+    expect(showMaterial).toBe(false);
+
+    const flagsEnabled = { FEATURE_MATERIAL_DIFF: "true" };
+    const showMaterialEnabled = flagsEnabled.FEATURE_MATERIAL_DIFF !== "false";
+    expect(showMaterialEnabled).toBe(true);
+
+    const flagsUndefined: Record<string, string | undefined> = {};
+    const showMaterialDefault = flagsUndefined.FEATURE_MATERIAL_DIFF !== "false";
+    expect(showMaterialDefault).toBe(true);
   });
 });

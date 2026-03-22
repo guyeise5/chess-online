@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import PromotionDialog from "./PromotionDialog";
+import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
+import MaterialDisplay from "./MaterialDisplay";
 import styles from "./PuzzleTrainer.module.css";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
@@ -415,6 +417,12 @@ export default function PuzzleTrainer() {
     [selectedSquare, getLegalMovesForSquare, tryMove]
   );
 
+  const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
+  const isPlayerWhite = orientation === "white";
+  const topMaterial: SideMaterial = isPlayerWhite ? materialDiff.black : materialDiff.white;
+  const bottomMaterial: SideMaterial = isPlayerWhite ? materialDiff.white : materialDiff.black;
+  const showMaterial = (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+
   if (status === "loading" || !puzzle) {
     return <div className={styles.loading}>Loading puzzle...</div>;
   }
@@ -440,6 +448,10 @@ export default function PuzzleTrainer() {
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
+          <div className={styles.playerBar}>
+            <span className={styles.playerBarName}>{isPlayerWhite ? "Black" : "White"}</span>
+            {showMaterial && <MaterialDisplay material={topMaterial} />}
+          </div>
           <div className={styles.board} style={{ position: "relative" }}>
             {pendingPromotion && (
               <PromotionDialog
@@ -493,6 +505,10 @@ export default function PuzzleTrainer() {
                 },
               }}
             />
+          </div>
+          <div className={styles.playerBar}>
+            <span className={styles.playerBarName}>{isPlayerWhite ? "White" : "Black"}</span>
+            {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
         </div>
 
