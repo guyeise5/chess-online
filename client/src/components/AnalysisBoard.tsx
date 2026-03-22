@@ -648,6 +648,37 @@ export default function AnalysisBoard() {
   const pvScore = pvLines.length > 0 ? pvLines[0].score : undefined;
   const currentScore = gameEval?.score ?? pvScore ?? 0;
 
+  /* ---- board annotation glyph ---- */
+
+  const boardAnnotation = useMemo(() => {
+    if (!lastMoveSquares || !gameEval?.classification) return null;
+    const symbol = CLASSIFICATION_SYMBOLS[gameEval.classification];
+    if (!symbol) return null;
+    return {
+      square: lastMoveSquares.to,
+      symbol,
+      color: CLASSIFICATION_COLORS[gameEval.classification],
+    };
+  }, [lastMoveSquares, gameEval]);
+
+  const renderSquare = useCallback(
+    ({ square, children }: { piece: { pieceType: string } | null; square: string; children?: React.ReactNode }) => {
+      if (!boardAnnotation || square !== boardAnnotation.square) return null as unknown as React.JSX.Element;
+      return (
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+          {children}
+          <div
+            className={styles.boardGlyph}
+            style={{ backgroundColor: boardAnnotation.color }}
+          >
+            {boardAnnotation.symbol}
+          </div>
+        </div>
+      );
+    },
+    [boardAnnotation]
+  );
+
   /* ---- variations grouped by branch point ---- */
 
   const varsByBranch = useMemo(() => {
@@ -815,6 +846,7 @@ export default function AnalysisBoard() {
                   onPieceDrag: onPieceDrag,
                   onPieceClick: onPieceClick,
                   onSquareClick: onSquareClick,
+                  squareRenderer: renderSquare,
                   arrows: hoverArrow
                     ? [
                         {
@@ -1009,7 +1041,12 @@ function MainMoveCell({
     >
       {san}
       {symbol && (
-        <span style={{ color, fontWeight: 700, marginLeft: 1 }}>{symbol}</span>
+        <span
+          className={styles.annotationGlyph}
+          style={{ backgroundColor: color }}
+        >
+          {symbol}
+        </span>
       )}
     </span>
   );
