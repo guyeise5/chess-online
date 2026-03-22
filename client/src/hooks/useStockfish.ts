@@ -27,11 +27,13 @@ export default function useStockfish(level: number) {
   const workerRef = useRef<Worker | null>(null);
   const [ready, setReady] = useState(false);
   const pendingResolve = useRef<((move: string) => void) | null>(null);
+  const ignoreNextBestmove = useRef(false);
   const initAttempted = useRef(false);
 
   useEffect(() => {
     initAttempted.current = false;
     setReady(false);
+    ignoreNextBestmove.current = false;
 
     let worker: Worker | null = null;
     try {
@@ -56,6 +58,10 @@ export default function useStockfish(level: number) {
       } else if (line === "readyok") {
         setReady(true);
       } else if (line.startsWith("bestmove")) {
+        if (ignoreNextBestmove.current) {
+          ignoreNextBestmove.current = false;
+          return;
+        }
         const move = line.split(" ")[1];
         if (move && pendingResolve.current) {
           pendingResolve.current(move);
@@ -98,6 +104,9 @@ export default function useStockfish(level: number) {
   const stop = useCallback(() => {
     if (workerRef.current) {
       try { workerRef.current.postMessage("stop"); } catch { /* ignore */ }
+    }
+    if (pendingResolve.current) {
+      ignoreNextBestmove.current = true;
     }
     pendingResolve.current = null;
   }, []);

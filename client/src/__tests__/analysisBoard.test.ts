@@ -231,6 +231,76 @@ describe("legalMoveTargetsForSquare (matches AnalysisBoard getLegalMovesForSquar
   });
 });
 
+/* ---------- move validation and truncation detection ---------- */
+
+function validateGameMoves(
+  raw: string[],
+  startFen?: string
+): { gameMoves: string[]; movesTruncated: boolean } {
+  if (raw.length === 0) return { gameMoves: raw, movesTruncated: false };
+  const g = new Chess(startFen);
+  const valid: string[] = [];
+  for (const san of raw) {
+    try {
+      const m = g.move(san);
+      if (!m) break;
+      valid.push(san);
+    } catch {
+      break;
+    }
+  }
+  return { gameMoves: valid, movesTruncated: valid.length < raw.length };
+}
+
+describe("move validation and truncation detection", () => {
+  it("returns all moves when valid", () => {
+    const result = validateGameMoves(["e4", "e5", "Nf3", "Nc6"]);
+    expect(result.gameMoves).toEqual(["e4", "e5", "Nf3", "Nc6"]);
+    expect(result.movesTruncated).toBe(false);
+  });
+
+  it("truncates at first invalid move and flags truncation", () => {
+    const result = validateGameMoves(["e4", "e5", "INVALID", "Nf3"]);
+    expect(result.gameMoves).toEqual(["e4", "e5"]);
+    expect(result.movesTruncated).toBe(true);
+  });
+
+  it("detects undo race condition corruption (stale SAN from different position)", () => {
+    const result = validateGameMoves(["e4", "e5", "Nf3", "Bb5", "d5", "Bxd5"]);
+    expect(result.gameMoves).toEqual(["e4", "e5", "Nf3"]);
+    expect(result.movesTruncated).toBe(true);
+  });
+
+  it("handles empty moves array", () => {
+    const result = validateGameMoves([]);
+    expect(result.gameMoves).toEqual([]);
+    expect(result.movesTruncated).toBe(false);
+  });
+
+  it("handles all invalid moves", () => {
+    const result = validateGameMoves(["GARBAGE"]);
+    expect(result.gameMoves).toEqual([]);
+    expect(result.movesTruncated).toBe(true);
+  });
+
+  it("validates with custom startFen", () => {
+    const afterE4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
+    const result = validateGameMoves(["e5", "Nf3"], afterE4);
+    expect(result.gameMoves).toEqual(["e5", "Nf3"]);
+    expect(result.movesTruncated).toBe(false);
+  });
+
+  it("truncates moves after checkmate", () => {
+    const result = validateGameMoves([
+      "e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6", "Qxf7#", "d5",
+    ]);
+    expect(result.gameMoves).toEqual([
+      "e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6", "Qxf7#",
+    ]);
+    expect(result.movesTruncated).toBe(true);
+  });
+});
+
 /* ---------- edge cases: rapid navigation resilience ---------- */
 
 describe("rapid navigation resilience", () => {

@@ -192,9 +192,9 @@ export default function AnalysisBoard() {
     return () => { cancelled = true; };
   }, [gameId, gameData]);
 
-  const gameMoves = useMemo(() => {
+  const { gameMoves, movesTruncated } = useMemo(() => {
     const raw = gameData?.moves ?? [];
-    if (raw.length === 0) return raw;
+    if (raw.length === 0) return { gameMoves: raw, movesTruncated: false };
     const g = new Chess(gameData?.startFen);
     const valid: string[] = [];
     for (const san of raw) {
@@ -206,7 +206,7 @@ export default function AnalysisBoard() {
         break;
       }
     }
-    return valid;
+    return { gameMoves: valid, movesTruncated: valid.length < raw.length };
   }, [gameData]);
   const startFen = gameData?.startFen;
   const orientation = gameData?.orientation ?? "white";
@@ -966,6 +966,13 @@ export default function AnalysisBoard() {
               </div>
             )}
           </div>
+
+          {movesTruncated && (
+            <div className={styles.truncationWarning}>
+              Some moves could not be loaded — the game data appears corrupted.
+              Only the first {gameMoves.length} valid move{gameMoves.length !== 1 ? "s are" : " is"} shown.
+            </div>
+          )}
 
           <div className={styles.movesPanel}>
             <h3 className={styles.movesTitle}>Moves</h3>

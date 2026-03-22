@@ -57,6 +57,7 @@ interface SavedGame {
   gameOverReason: string | null;
   moves: string[];
   lastMove: { from: string; to: string } | null;
+  analysisId?: string;
 }
 
 function loadGame(): SavedGame | null {
@@ -108,6 +109,7 @@ export default function ComputerGame({ playerName }: Props) {
   } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(resuming ? saved!.lastMove : null);
   const [computerThinking, setComputerThinking] = useState(false);
+  const [analysisId, setAnalysisId] = useState<string | null>(resuming ? saved!.analysisId ?? null : null);
 
   // Persist game state to localStorage on every meaningful change
   useEffect(() => {
@@ -115,8 +117,9 @@ export default function ComputerGame({ playerName }: Props) {
       level, color,
       fen, status, result, gameOverReason,
       moves, lastMove,
+      analysisId: analysisId ?? undefined,
     });
-  }, [level, color, fen, status, result, gameOverReason, moves, lastMove]);
+  }, [level, color, fen, status, result, gameOverReason, moves, lastMove, analysisId]);
 
   const movesEndRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef(game);
@@ -183,6 +186,7 @@ export default function ComputerGame({ playerName }: Props) {
         const move = g.move({ from, to, promotion });
         if (!move) return null;
         const newGame = new Chess(g.fen());
+        gameRef.current = newGame;
         setGame(newGame);
         setFen(g.fen());
         setMoves((prev) => [...prev, move.san]);
@@ -234,6 +238,19 @@ export default function ComputerGame({ playerName }: Props) {
     },
     [getMove, applyMove]
   );
+
+  // Auto-save game to server when it finishes
+  useEffect(() => {
+    if (status !== "finished" || analysisId) return;
+    const id = generateGameId();
+    setAnalysisId(id);
+    saveAnalysisGame(id, {
+      moves,
+      playerWhite: isPlayerWhite ? playerName : `Stockfish ${levelConfig.label}`,
+      playerBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : playerName,
+      orientation: color,
+    });
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -446,7 +463,11 @@ export default function ComputerGame({ playerName }: Props) {
     setComputerThinking(false);
 
     const g = new Chess();
-    for (const san of moves) g.move(san);
+    try {
+      for (const san of moves) g.move(san);
+    } catch {
+      return;
+    }
 
     let undone = 0;
     do {
@@ -454,6 +475,8 @@ export default function ComputerGame({ playerName }: Props) {
       g.undo();
       undone++;
     } while (undone < 2 && g.turn() !== playerColor);
+
+    if (undone === 0) return;
 
     const newFen = g.fen();
     setGame(new Chess(newFen));
@@ -465,6 +488,13 @@ export default function ComputerGame({ playerName }: Props) {
       setLastMove({ from: last.from, to: last.to });
     } else {
       setLastMove(null);
+    }
+
+    if (g.turn() !== playerColor) {
+      computerTimerRef.current = setTimeout(() => {
+        computerTimerRef.current = null;
+        makeComputerMove(newFen);
+      }, 300);
     }
   };
 
@@ -613,17 +643,21 @@ export default function ComputerGame({ playerName }: Props) {
               <button
                 className={styles.newGameBtn}
                 onClick={() => {
-                  const id = generateGameId();
-                  saveAnalysisGame(id, {
-                    moves,
-                    playerWhite: isPlayerWhite
-                      ? playerName
-                      : `Stockfish ${levelConfig.label}`,
-                    playerBlack: isPlayerWhite
-                      ? `Stockfish ${levelConfig.label}`
-                      : playerName,
-                    orientation: color,
-                  });
+                  let id = analysisId;
+                  if (!id) {
+                    id = generateGameId();
+                    setAnalysisId(id);
+                    saveAnalysisGame(id, {
+                      moves,
+                      playerWhite: isPlayerWhite
+                        ? playerName
+                        : `Stockfish ${levelConfig.label}`,
+                      playerBlack: isPlayerWhite
+                        ? `Stockfish ${levelConfig.label}`
+                        : playerName,
+                      orientation: color,
+                    });
+                  }
                   navigate(`/analysis/${id}`);
                 }}
               >

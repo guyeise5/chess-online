@@ -123,12 +123,27 @@ async function main() {
           res.status(400).json({ error: "moves array is required" });
           return;
         }
+
+        const { validateMoves } = await import("./utils/validateMoves");
+        const { validMoves, truncated } = validateMoves(moves, startFen);
+
+        if (validMoves.length === 0) {
+          res.status(400).json({ error: "No valid moves in the sequence" });
+          return;
+        }
+
+        if (truncated) {
+          console.warn(
+            `Game ${gameId}: truncated ${moves.length} moves to ${validMoves.length} valid moves`
+          );
+        }
+
         await Game.findOneAndUpdate(
           { gameId },
-          { gameId, moves, startFen, playerWhite, playerBlack, orientation },
+          { gameId, moves: validMoves, startFen, playerWhite, playerBlack, orientation },
           { upsert: true, new: true }
         );
-        res.json({ ok: true });
+        res.json({ ok: true, totalMoves: moves.length, savedMoves: validMoves.length });
       } catch (err) {
         console.error("Game save error:", err);
         res.status(500).json({ error: "Failed to save game" });

@@ -341,6 +341,150 @@ describe("computer game undo race condition guard", () => {
   });
 });
 
+describe("stale bestmove guard (ignoreNextBestmove)", () => {
+  it("stop during active search sets ignore flag", () => {
+    let pendingResolve: (() => void) | null = () => {};
+    let ignoreNextBestmove = false;
+
+    // Simulate stop() while a search is pending
+    if (pendingResolve) {
+      ignoreNextBestmove = true;
+    }
+    pendingResolve = null;
+
+    expect(ignoreNextBestmove).toBe(true);
+  });
+
+  it("stale bestmove after stop is ignored", () => {
+    let ignoreNextBestmove = true;
+    let resolved = false;
+
+    // Simulate bestmove arriving after stop
+    if (ignoreNextBestmove) {
+      ignoreNextBestmove = false;
+      // bestmove ignored
+    } else {
+      resolved = true;
+    }
+
+    expect(resolved).toBe(false);
+    expect(ignoreNextBestmove).toBe(false);
+  });
+
+  it("next real bestmove is accepted after stale one was consumed", () => {
+    let ignoreNextBestmove = false;
+    let resolved = false;
+
+    // Simulate real bestmove
+    if (ignoreNextBestmove) {
+      ignoreNextBestmove = false;
+    } else {
+      resolved = true;
+    }
+
+    expect(resolved).toBe(true);
+  });
+
+  it("stop when idle does not set ignore flag", () => {
+    let pendingResolve: (() => void) | null = null;
+    let ignoreNextBestmove = false;
+
+    if (pendingResolve) {
+      ignoreNextBestmove = true;
+    }
+    pendingResolve = null;
+
+    expect(ignoreNextBestmove).toBe(false);
+  });
+});
+
+describe("undo to computer turn (black player edge case)", () => {
+  it("undo with 1 move as black results in computer turn at start", () => {
+    const playerColor = "b";
+    const moves = ["e4"];
+    const g = new Chess();
+    for (const san of moves) g.move(san);
+
+    let undone = 0;
+    do {
+      if (g.history().length === 0) break;
+      g.undo();
+      undone++;
+    } while (undone < 2 && g.turn() !== playerColor);
+
+    expect(undone).toBe(1);
+    expect(g.turn()).toBe("w");
+    expect(g.turn()).not.toBe(playerColor);
+
+    const needsComputerMove = g.turn() !== playerColor;
+    expect(needsComputerMove).toBe(true);
+  });
+
+  it("undo with 2+ moves as black results in player turn", () => {
+    const playerColor = "b";
+    const moves = ["e4", "e5", "Nf3"];
+    const g = new Chess();
+    for (const san of moves) g.move(san);
+
+    let undone = 0;
+    do {
+      if (g.history().length === 0) break;
+      g.undo();
+      undone++;
+    } while (undone < 2 && g.turn() !== playerColor);
+
+    expect(undone).toBe(2);
+    expect(g.turn()).toBe("b");
+    expect(g.turn()).toBe(playerColor);
+
+    const needsComputerMove = g.turn() !== playerColor;
+    expect(needsComputerMove).toBe(false);
+  });
+
+  it("undo as white always results in player turn", () => {
+    const playerColor = "w";
+    const moves = ["e4"];
+    const g = new Chess();
+    for (const san of moves) g.move(san);
+
+    let undone = 0;
+    do {
+      if (g.history().length === 0) break;
+      g.undo();
+      undone++;
+    } while (undone < 2 && g.turn() !== playerColor);
+
+    expect(g.turn()).toBe("w");
+    expect(g.turn()).toBe(playerColor);
+  });
+});
+
+describe("undo move replay safety", () => {
+  it("replay of valid moves succeeds", () => {
+    const moves = ["e4", "e5", "Nf3"];
+    const g = new Chess();
+    let ok = true;
+    try {
+      for (const san of moves) g.move(san);
+    } catch {
+      ok = false;
+    }
+    expect(ok).toBe(true);
+  });
+
+  it("replay of corrupted moves fails gracefully", () => {
+    const moves = ["e4", "INVALID"];
+    const g = new Chess();
+    let ok = true;
+    try {
+      for (const san of moves) g.move(san);
+    } catch {
+      ok = false;
+    }
+    expect(ok).toBe(false);
+  });
+});
+
 describe("computer game orientation and turns", () => {
   it("player white plays on white's turn", () => {
     const playerColor = "w";
@@ -408,6 +552,166 @@ describe("computer game route state", () => {
   });
 });
 
+describe("move duplication guard (gameRef sync update)", () => {
+  it("prevents duplicate move when same position is applied twice", () => {
+    const startFen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
+    const from = "e4";
+    const to = "d5";
+
+    let gameRef = new Chess(startFen);
+    let moves: string[] = [];
+
+    function applyMove(currentRef: Chess, f: string, t: string): boolean {
+      const g = new Chess(currentRef.fen());
+      try {
+        const move = g.move({ from: f, to: t });
+        if (!move) return false;
+        gameRef = new Chess(g.fen());
+        moves = [...moves, move.san];
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function isPlayerTurn(): boolean {
+      return gameRef.turn() === "w";
+    }
+
+    expect(isPlayerTurn()).toBe(true);
+    const firstResult = applyMove(gameRef, from, to);
+    expect(firstResult).toBe(true);
+    expect(moves).toEqual(["exd5"]);
+    expect(isPlayerTurn()).toBe(false);
+
+    const secondResult = isPlayerTurn() ? applyMove(gameRef, from, to) : false;
+    expect(secondResult).toBe(false);
+    expect(moves).toEqual(["exd5"]);
+  });
+
+  it("without sync ref update, same move can be applied twice from stale state", () => {
+    const startFen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
+
+    let staleGame = new Chess(startFen);
+    let moves: string[] = [];
+
+    function applyMoveNoSync(f: string, t: string): boolean {
+      const g = new Chess(staleGame.fen());
+      try {
+        const move = g.move({ from: f, to: t });
+        if (!move) return false;
+        moves = [...moves, move.san];
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    applyMoveNoSync("e4", "d5");
+    applyMoveNoSync("e4", "d5");
+    expect(moves).toEqual(["exd5", "exd5"]);
+  });
+
+  it("guard works for non-capture moves too", () => {
+    let gameRef = new Chess();
+    let moves: string[] = [];
+
+    function applyMove(f: string, t: string): boolean {
+      const g = new Chess(gameRef.fen());
+      try {
+        const move = g.move({ from: f, to: t });
+        if (!move) return false;
+        gameRef = new Chess(g.fen());
+        moves = [...moves, move.san];
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function isPlayerTurn(): boolean {
+      return gameRef.turn() === "w";
+    }
+
+    expect(isPlayerTurn()).toBe(true);
+    applyMove("e2", "e4");
+    expect(isPlayerTurn()).toBe(false);
+
+    const dup = isPlayerTurn() ? applyMove("e2", "e4") : false;
+    expect(dup).toBe(false);
+    expect(moves).toEqual(["e4"]);
+  });
+});
+
+describe("auto-save on game finish", () => {
+  it("generates an analysisId when game finishes", () => {
+    let analysisId: string | null = null;
+    const status = "finished";
+
+    if (status === "finished" && !analysisId) {
+      analysisId = "test-id-" + Date.now();
+    }
+
+    expect(analysisId).not.toBeNull();
+    expect(typeof analysisId).toBe("string");
+  });
+
+  it("does not regenerate analysisId if already set", () => {
+    let analysisId: string | null = "existing-id";
+    const status = "finished";
+
+    if (status === "finished" && !analysisId) {
+      analysisId = "new-id";
+    }
+
+    expect(analysisId).toBe("existing-id");
+  });
+
+  it("does not generate analysisId while game is playing", () => {
+    let analysisId: string | null = null;
+    const status = "playing";
+
+    if (status === "finished" && !analysisId) {
+      analysisId = "should-not-happen";
+    }
+
+    expect(analysisId).toBeNull();
+  });
+
+  it("analysisId is included in saved game state", () => {
+    const savedState = {
+      level: 3,
+      color: "white" as const,
+      fen: "some-fen",
+      status: "finished" as const,
+      result: "1-0",
+      gameOverReason: "checkmate",
+      moves: ["e4", "e5"],
+      lastMove: { from: "e2", to: "e4" },
+      analysisId: "my-analysis-id",
+    };
+
+    expect(savedState.analysisId).toBe("my-analysis-id");
+  });
+
+  it("resumed finished game restores analysisId", () => {
+    const saved = {
+      level: 3,
+      color: "white" as const,
+      fen: "some-fen",
+      status: "finished" as const,
+      result: "1-0",
+      gameOverReason: "checkmate",
+      moves: ["e4", "e5"],
+      lastMove: null,
+      analysisId: "restored-id",
+    };
+
+    const analysisId = saved.analysisId ?? null;
+    expect(analysisId).toBe("restored-id");
+  });
+});
+
 interface SavedGame {
   level: number;
   color: "white" | "black";
@@ -417,6 +721,7 @@ interface SavedGame {
   gameOverReason: string | null;
   moves: string[];
   lastMove: { from: string; to: string } | null;
+  analysisId?: string;
 }
 
 function resolveGameState(

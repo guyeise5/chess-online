@@ -27,6 +27,7 @@
 - Material difference display in player bars (shared utility with online play)
 - Instant undo (no opponent approval needed)
 - Game state persists across page refreshes via localStorage
+- Game auto-saved to server for analysis when the game finishes
 
 ## Puzzle Trainer
 
@@ -54,7 +55,9 @@
 - Material difference display in player bars (updates as you navigate moves)
 - Full move navigation (forward, backward, jump to position)
 - Game data stored server-side in MongoDB `games` collection with 14-day TTL index
-- REST API: `POST /api/games/:gameId` (save), `GET /api/games/:gameId` (load)
+- REST API: `POST /api/games/:gameId` (save with server-side move validation), `GET /api/games/:gameId` (load)
+- Server-side move validation on save: only the valid prefix of moves is stored, preventing corrupted data
+- Truncation warning banner when loaded game data contains invalid moves
 - Score flipping for black-to-move positions (always displayed from White's perspective)
 
 ## UI/UX
