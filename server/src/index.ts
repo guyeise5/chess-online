@@ -43,8 +43,22 @@ async function main() {
 
   const Puzzle = (await import("./models/Puzzle")).default;
 
-  app.get("/api/health", (_req, res) => {
+  app.get("/healthz", (_req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.get("/readyz", async (_req, res) => {
+    try {
+      const state = mongoose.connection.readyState;
+      if (state !== 1) {
+        res.status(503).json({ status: "not ready", mongo: "disconnected" });
+        return;
+      }
+      await mongoose.connection.db!.admin().ping();
+      res.json({ status: "ready", mongo: "connected" });
+    } catch (err) {
+      res.status(503).json({ status: "not ready", error: String(err) });
+    }
   });
 
   app.get("/api/puzzles/random", async (req, res) => {

@@ -100,20 +100,20 @@ tests:
             name: AUTHOR_URL
             value: ""
 
-  - it: should have readiness probe
+  - it: should have readiness probe on /readyz
     asserts:
       - equal:
           path: spec.template.spec.containers[0].readinessProbe.httpGet.path
-          value: /
+          value: /readyz
       - equal:
           path: spec.template.spec.containers[0].readinessProbe.httpGet.port
           value: 3001
 
-  - it: should have liveness probe
+  - it: should have liveness probe on /healthz
     asserts:
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.httpGet.path
-          value: /
+          value: /healthz
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.httpGet.port
           value: 3001

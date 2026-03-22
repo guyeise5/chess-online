@@ -38,13 +38,13 @@ spec:
               value: {{ .Values.app.env.AUTHOR_URL | quote }}
           readinessProbe:
             httpGet:
-              path: /
+              path: /readyz
               port: {{ .Values.app.port }}
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: {{ .Values.app.port }}
             initialDelaySeconds: 10
             periodSeconds: 30
