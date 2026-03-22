@@ -170,7 +170,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          kubectl port-forward svc/chess-chess-app 8080:80 &
+          kubectl port-forward svc/chess-app 8080:80 &
           sleep 3
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)
           echo "HTTP status: $STATUS"
