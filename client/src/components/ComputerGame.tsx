@@ -123,6 +123,8 @@ export default function ComputerGame({ playerName }: Props) {
   gameRef.current = game;
   const statusRef = useRef(status);
   statusRef.current = status;
+  const moveGenRef = useRef(0);
+  const computerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isPlayerWhite = color === "white";
   const orientation = color;
@@ -198,8 +200,10 @@ export default function ComputerGame({ playerName }: Props) {
   useEffect(() => {
     if (!ready || status !== "playing") return;
     if (gameRef.current.turn() !== playerColor) {
+      const gen = moveGenRef.current;
       setComputerThinking(true);
       getMove(gameRef.current.fen()).then((uci) => {
+        if (gen !== moveGenRef.current) return;
         if (statusRef.current !== "playing") return;
         const from = uci.slice(0, 2);
         const to = uci.slice(2, 4);
@@ -215,8 +219,10 @@ export default function ComputerGame({ playerName }: Props) {
   const makeComputerMove = useCallback(
     (currentFen: string) => {
       if (statusRef.current !== "playing") return;
+      const gen = moveGenRef.current;
       setComputerThinking(true);
       getMove(currentFen).then((uci) => {
+        if (gen !== moveGenRef.current) return;
         if (statusRef.current !== "playing") return;
         const from = uci.slice(0, 2);
         const to = uci.slice(2, 4);
@@ -293,7 +299,10 @@ export default function ComputerGame({ playerName }: Props) {
       setSelectedSquare(null);
 
       if (result && statusRef.current === "playing") {
-        setTimeout(() => makeComputerMove(g.fen()), 300);
+        computerTimerRef.current = setTimeout(() => {
+          computerTimerRef.current = null;
+          makeComputerMove(g.fen());
+        }, 300);
       }
 
       return !!result;
@@ -428,10 +437,14 @@ export default function ComputerGame({ playerName }: Props) {
 
   const handleUndo = () => {
     if (moves.length === 0 || status !== "playing") return;
+    moveGenRef.current++;
+    if (computerTimerRef.current) {
+      clearTimeout(computerTimerRef.current);
+      computerTimerRef.current = null;
+    }
     stop();
     setComputerThinking(false);
 
-    // Replay all moves on a fresh game so undo() has history to work with
     const g = new Chess();
     for (const san of moves) g.move(san);
 

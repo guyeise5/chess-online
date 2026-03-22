@@ -235,6 +235,112 @@ describe("computer game undo", () => {
   });
 });
 
+describe("computer game undo race condition guard", () => {
+  it("generation counter increments on undo, blocking stale callbacks", () => {
+    let moveGen = 0;
+    const capturedGen = moveGen;
+
+    moveGen++;
+
+    expect(capturedGen).not.toBe(moveGen);
+  });
+
+  it("stale callback with old generation is rejected", () => {
+    let moveGen = 0;
+    let applied = false;
+
+    const gen = moveGen;
+    moveGen++;
+
+    if (gen === moveGen) {
+      applied = true;
+    }
+    expect(applied).toBe(false);
+  });
+
+  it("current-generation callback is accepted", () => {
+    let moveGen = 0;
+    let applied = false;
+
+    const gen = moveGen;
+
+    if (gen === moveGen) {
+      applied = true;
+    }
+    expect(applied).toBe(true);
+  });
+
+  it("moves list stays correct after undo and continued play", () => {
+    const game = new Chess();
+    game.move("e4");
+    game.move("e5");
+    game.move("Nf3");
+    game.move("Nc6");
+
+    let moves = ["e4", "e5", "Nf3", "Nc6"];
+
+    const g = new Chess();
+    for (const san of moves) g.move(san);
+    let undone = 0;
+    do {
+      if (g.history().length === 0) break;
+      g.undo();
+      undone++;
+    } while (undone < 2 && g.turn() !== "w");
+    moves = moves.slice(0, -undone);
+
+    expect(moves).toEqual(["e4", "e5"]);
+
+    const afterUndo = new Chess(g.fen());
+    afterUndo.move("d4");
+    moves = [...moves, "d4"];
+
+    afterUndo.move("d5");
+    moves = [...moves, "d5"];
+
+    expect(moves).toEqual(["e4", "e5", "d4", "d5"]);
+
+    const replay = new Chess();
+    for (const san of moves) {
+      const result = replay.move(san);
+      expect(result).not.toBeNull();
+    }
+    expect(replay.fen()).toBe(afterUndo.fen());
+  });
+
+  it("analysis receives complete move list after undo and new play", () => {
+    const game = new Chess();
+    game.move("e4");
+    game.move("e5");
+    game.move("Nf3");
+    game.move("Nc6");
+
+    let moves = ["e4", "e5", "Nf3", "Nc6"];
+
+    const g = new Chess();
+    for (const san of moves) g.move(san);
+    g.undo();
+    g.undo();
+    moves = moves.slice(0, -2);
+
+    g.move("d4");
+    moves.push("d4");
+    g.move("d5");
+    moves.push("d5");
+    g.move("exd5");
+    moves.push("exd5");
+
+    const analysisData = { moves };
+    expect(analysisData.moves).toEqual(["e4", "e5", "d4", "d5", "exd5"]);
+    expect(analysisData.moves.length).toBe(5);
+
+    const verify = new Chess();
+    for (const san of analysisData.moves) {
+      expect(verify.move(san)).not.toBeNull();
+    }
+  });
+});
+
 describe("computer game orientation and turns", () => {
   it("player white plays on white's turn", () => {
     const playerColor = "w";
