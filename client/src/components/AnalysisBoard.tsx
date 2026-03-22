@@ -665,7 +665,7 @@ export default function AnalysisBoard() {
     ({ square, children }: { piece: { pieceType: string } | null; square: string; children?: React.ReactNode }) => {
       if (!boardAnnotation || square !== boardAnnotation.square) return null as unknown as React.JSX.Element;
       return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative", ...highlightStyles[square] }}>
           {children}
           <div
             className={styles.boardGlyph}
@@ -676,7 +676,7 @@ export default function AnalysisBoard() {
         </div>
       );
     },
-    [boardAnnotation]
+    [boardAnnotation, highlightStyles]
   );
 
   /* ---- variations grouped by branch point ---- */

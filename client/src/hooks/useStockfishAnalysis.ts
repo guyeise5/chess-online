@@ -60,28 +60,30 @@ function parseBestmove(line: string): string {
   return parts[1] ?? "";
 }
 
-function classifyCentipawnLoss(loss: number): MoveClassification {
-  const l = Math.max(0, loss);
-  if (l <= 10) return "best";
-  if (l <= 25) return "good";
-  if (l <= 50) return "inaccuracy";
-  if (l <= 100) return "mistake";
-  return "blunder";
+/**
+ * Convert centipawn evaluation to winning chances using the Lichess
+ * logistic model (coefficient from lichess-org/lila PR #11148).
+ * Returns a value from -1 (black winning) to +1 (white winning).
+ */
+export function winningChances(cp: number): number {
+  return 2 / (1 + Math.exp(-0.00368208 * cp)) - 1;
+}
+
+/**
+ * Classify a move based on the winning-chances delta (Lichess approach).
+ * Thresholds aligned with Lichess (PR #5337) and chess.com expected-points model.
+ */
+function classifyWinningChancesDelta(delta: number): MoveClassification {
+  if (delta > 0.2) return "blunder";
+  if (delta > 0.1) return "mistake";
+  if (delta > 0.05) return "inaccuracy";
+  if (delta <= 0.02) return "best";
+  return "good";
 }
 
 function sideToMoveFromFen(fen: string): boolean {
   const parts = fen.trim().split(/\s+/);
   return (parts[1] ?? "w") === "w";
-}
-
-function centipawnLossForMove(
-  evalBeforeWhite: number,
-  evalAfterWhite: number,
-  whiteToMoveBefore: boolean
-): number {
-  return whiteToMoveBefore
-    ? evalBeforeWhite - evalAfterWhite
-    : evalAfterWhite - evalBeforeWhite;
 }
 
 function terminalScore(fen: string): number | null {
@@ -196,7 +198,7 @@ export function useStockfishAnalysis(
       }
       const whiteToMove = sideToMoveFromFen(fen);
       return new Promise((resolve) => {
-        let lastAtDepth: { depth: number; whiteCp: number } | null = null;
+        let bestEval: { depth: number; whiteCp: number } | null = null;
         let settled = false;
         const finish = (result: { score: number; bestMove: string }) => {
           if (settled) return;
@@ -211,15 +213,15 @@ export function useStockfishAnalysis(
           for (const line of lines) {
             if (line.startsWith("info ")) {
               const parsed = parseInfoEval(line, whiteToMove);
-              if (parsed && parsed.depth >= ANALYSIS_DEPTH) {
-                lastAtDepth = parsed;
+              if (parsed && (!bestEval || parsed.depth >= bestEval.depth)) {
+                bestEval = parsed;
               }
               continue;
             }
             if (line.startsWith("bestmove")) {
               const bestMove = parseBestmove(line);
               finish({
-                score: lastAtDepth?.whiteCp ?? 0,
+                score: bestEval?.whiteCp ?? 0,
                 bestMove,
               });
               return;
@@ -315,18 +317,13 @@ export function useStockfishAnalysis(
         const entry: EvalEntry = { score, bestMove };
         if (i > 0) {
           const prev = built[i - 1]!;
-          try {
-            const g = new Chess(baseFen);
-            for (let k = 0; k < i - 1; k++) {
-              const r = g.move(sanMoves[k]!);
-              if (!r) break;
-            }
-            const whiteBefore = g.turn() === "w";
-            const loss = centipawnLossForMove(prev.score, score, whiteBefore);
-            entry.classification = classifyCentipawnLoss(loss);
-          } catch {
-            // skip classification if replay fails
-          }
+          const whiteToMoveBefore = sideToMoveFromFen(fens[i - 1]!);
+          const wcBefore = winningChances(prev.score);
+          const wcAfter = winningChances(score);
+          const delta = whiteToMoveBefore
+            ? wcBefore - wcAfter
+            : wcAfter - wcBefore;
+          entry.classification = classifyWinningChancesDelta(Math.max(0, delta));
         }
         built.push(entry);
         setEvals([...built]);
