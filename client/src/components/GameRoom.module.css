@@ -284,3 +284,19 @@
 .undoDecline:hover {
   background: #e74c3c;
 }
+
+.analyzeBtn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+}
+
+.analyzeBtn:hover {
+  background: var(--accent-hover);
+}

@@ -1,0 +1,27 @@
+---
+description: Always use URL to represent application state — no hidden route state
+alwaysApply: true
+---
+
+# URL-Driven State
+
+All meaningful application state MUST be reflected in the URL so that pages survive refresh, can be bookmarked, and can be shared.
+
+## Rules
+
+- Use URL path parameters (e.g., `/analysis/:gameId`, `/game/:roomId`) or query parameters to represent state.
+- NEVER rely solely on React Router's `location.state` or in-memory state to drive a page. If the user refreshes the browser, the page must still work.
+- When state is too large for the URL (e.g., a full move list), persist it to `localStorage` keyed by the URL identifier, then read it back on load.
+- Every routable view must be accessible by its URL alone — no prior navigation required.
+
+## Pattern
+
+```typescript
+// Save data before navigating
+saveData(id, payload);
+navigate(`/feature/${id}`);
+
+// In the target component, load from URL param
+const { id } = useParams();
+const data = loadData(id);
+```

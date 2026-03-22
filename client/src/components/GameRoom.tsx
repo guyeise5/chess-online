@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
 import { RoomData, MoveData, GameOverData, TimerData, UndoData } from "../types";
+import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import styles from "./GameRoom.module.css";
 
@@ -495,6 +496,21 @@ export default function GameRoom({ playerName }: Props) {
               {gameOverReason && (
                 <span className={styles.reason}>by {gameOverReason}</span>
               )}
+              <button
+                className={styles.analyzeBtn}
+                onClick={() => {
+                  const id = roomId ?? generateGameId();
+                  saveAnalysisGame(id, {
+                    moves,
+                    playerWhite: room?.whitePlayer ?? "White",
+                    playerBlack: room?.blackPlayer ?? "Black",
+                    orientation,
+                  });
+                  navigate(`/analysis/${id}`);
+                }}
+              >
+                Analyze
+              </button>
             </div>
           )}
 

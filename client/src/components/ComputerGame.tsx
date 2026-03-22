@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import useStockfish, { getLevelConfig } from "../hooks/useStockfish";
+import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import styles from "./ComputerGame.module.css";
 
@@ -583,6 +584,25 @@ export default function ComputerGame({ playerName }: Props) {
               {gameOverReason && (
                 <span className={styles.reason}>by {gameOverReason}</span>
               )}
+              <button
+                className={styles.newGameBtn}
+                onClick={() => {
+                  const id = generateGameId();
+                  saveAnalysisGame(id, {
+                    moves,
+                    playerWhite: isPlayerWhite
+                      ? playerName
+                      : `Stockfish ${levelConfig.label}`,
+                    playerBlack: isPlayerWhite
+                      ? `Stockfish ${levelConfig.label}`
+                      : playerName,
+                    orientation: color,
+                  });
+                  navigate(`/analysis/${id}`);
+                }}
+              >
+                Analyze
+              </button>
               <button className={styles.newGameBtn} onClick={handleNewGame}>
                 New Game
               </button>

@@ -6,6 +6,7 @@ import ComputerSetup from "./components/ComputerSetup";
 import ComputerGame from "./components/ComputerGame";
 import GameRoom from "./components/GameRoom";
 import PuzzleTrainer from "./components/PuzzleTrainer";
+import AnalysisBoard from "./components/AnalysisBoard";
 import NamePrompt from "./components/NamePrompt";
 
 const PLAYER_NAME_KEY = "chess-player-name";
@@ -60,6 +61,7 @@ export default function App() {
         path="/game/:roomId"
         element={<GameRoom playerName={playerName} />}
       />
+      <Route path="/analysis/:gameId" element={<AnalysisBoard />} />
       <Route path="/puzzles" element={<PuzzleTrainer />} />
       <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />
       <Route path="*" element={<Navigate to="/" replace />} />

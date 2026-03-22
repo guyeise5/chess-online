@@ -1,0 +1,36 @@
+---
+description: Prefer built-in react-chessboard features over custom SVG overlays
+alwaysApply: true
+---
+
+# Use Built-in react-chessboard Features
+
+Always prefer the built-in options provided by `react-chessboard` instead of rolling custom SVG or DOM overlays on top of the board.
+
+## Arrows
+
+Use the `arrows` option (`Arrow[]`) to draw arrows on the board:
+
+```typescript
+<Chessboard
+  options={{
+    arrows: [{ startSquare: "e2", endSquare: "e4", color: "rgba(0, 120, 0, 0.8)" }],
+  }}
+/>
+```
+
+The `Arrow` type is `{ startSquare: string; endSquare: string; color: string }`.
+
+**Do NOT** create custom SVG elements, `<svg>` overlays, or absolute-positioned layers to draw arrows on the chessboard.
+
+## Square Highlights
+
+Use `squareStyles` to highlight squares:
+
+```typescript
+squareStyles: { e4: { backgroundColor: "rgba(255, 255, 0, 0.4)" } }
+```
+
+## General Rule
+
+Before implementing any visual overlay on the chessboard, check the `ChessboardOptions` type for a built-in option. Only use custom rendering if no built-in option exists.

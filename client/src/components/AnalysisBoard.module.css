@@ -1,0 +1,384 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.backBtn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.logoIcon {
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+}
+
+.spacer {
+  width: 80px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
+
+.empty button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1.5rem;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.boardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(560px, calc(100vh - 260px));
+  width: 100%;
+}
+
+.boardRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.evalColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.evalScore {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.evalPlaceholder {
+  width: 26px;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  opacity: 0.5;
+}
+
+.board {
+  line-height: 0;
+  aspect-ratio: 1;
+  flex: 1;
+}
+
+.playerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.playerBarName {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.graphArea {
+  width: 100%;
+}
+
+.navButtons {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.navButtons button {
+  width: 44px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navButtons button:hover {
+  background: var(--bg-card);
+  border-color: var(--text-muted);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 260px;
+  min-width: 200px;
+}
+
+.progressBar {
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.progressLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.engineLines {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.engineLinesTitle {
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.engineSpinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--text-muted);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.engineLinesList {
+  display: flex;
+  flex-direction: column;
+}
+
+.engineLine {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.engineLine:last-child {
+  border-bottom: none;
+}
+
+.engineLineScore {
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 0.8rem;
+  min-width: 42px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.engineLineWhite {
+  color: #e8e6e1;
+}
+
+.engineLineBlack {
+  color: #b0a090;
+}
+
+.engineLineMoves {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.pvMove {
+  cursor: pointer;
+  padding: 0 1px;
+  border-radius: 2px;
+  transition: background 0.1s;
+}
+
+.pvMove:hover {
+  background: rgba(118, 150, 86, 0.3);
+  color: var(--text-primary);
+}
+
+.previewBanner {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.3rem 0;
+}
+
+.previewBack {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.engineLinesEmpty {
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.movesPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  max-height: 480px;
+}
+
+.movesTitle {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.movesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.movePair {
+  display: grid;
+  grid-template-columns: 2rem 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.movePair:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.moveNum {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.8;
+}
+
+.moveCell {
+  font-family: monospace;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.moveCell:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.moveCellActive {
+  background: rgba(118, 150, 86, 0.35);
+}

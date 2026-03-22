@@ -1,0 +1,44 @@
+.container {
+  height: 100%;
+  width: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: #403d39;
+}
+
+.whiteSide {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #e8e6e1;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.containerFlipped .whiteSide {
+  bottom: auto;
+  top: 0;
+}
+
+.label {
+  position: absolute;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  padding: 2px 0;
+  z-index: 1;
+}
+
+.labelTop {
+  top: 2px;
+  color: #e8e6e1;
+}
+
+.labelBottom {
+  bottom: 2px;
+  color: #403d39;
+}
