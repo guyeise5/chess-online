@@ -106,6 +106,7 @@ cd client && npm test
 | `PORT` | `3001` | Server port |
 
 | `AUTHOR_URL` | — | Optional URL for the author watermark link (injected at runtime) |
+| `FEATURE_GAME_STORAGE` | `true` | Enable server-side game storage for analysis (MongoDB `games` collection with 14-day TTL) |
 
 ## Project Structure
 

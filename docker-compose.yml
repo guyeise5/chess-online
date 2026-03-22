@@ -26,6 +26,7 @@ services:
       - MONGO_URI=mongodb://mongo:27017/chess-online
       - PORT=3001
       - AUTHOR_URL=${AUTHOR_URL:-}
+      - FEATURE_GAME_STORAGE=${FEATURE_GAME_STORAGE:-true}
     depends_on:
       - mongo
 

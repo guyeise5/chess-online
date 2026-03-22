@@ -1,5 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import {
@@ -43,16 +48,23 @@ export interface AnalysisGameData {
   orientation?: "white" | "black";
 }
 
-const ANALYSIS_STORAGE_PREFIX = "chess-analysis-";
+const API_BASE = import.meta.env.PROD ? "" : "http://localhost:3001";
 
 export function saveAnalysisGame(gameId: string, data: AnalysisGameData) {
-  localStorage.setItem(ANALYSIS_STORAGE_PREFIX + gameId, JSON.stringify(data));
+  fetch(`${API_BASE}/api/games/${gameId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).catch(() => {});
 }
 
-function loadAnalysisGame(gameId: string): AnalysisGameData | null {
+async function loadAnalysisGame(
+  gameId: string
+): Promise<AnalysisGameData | null> {
   try {
-    const raw = localStorage.getItem(ANALYSIS_STORAGE_PREFIX + gameId);
-    return raw ? JSON.parse(raw) : null;
+    const res = await fetch(`${API_BASE}/api/games/${gameId}`);
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }
@@ -76,17 +88,98 @@ function findKingSquare(game: Chess): string | null {
   return null;
 }
 
+export interface Variation {
+  from: number;
+  moves: string[];
+}
+
+export type Nav =
+  | { on: "main"; index: number }
+  | { on: "var"; vi: number; mi: number };
+
+export function fenAfterMoves(startFen: string | undefined, moves: string[]): string {
+  try {
+    const g = new Chess(startFen);
+    for (const san of moves) g.move(san);
+    return g.fen();
+  } catch {
+    return startFen ?? new Chess().fen();
+  }
+}
+
+export function navFen(
+  startFen: string | undefined,
+  gameMoves: string[],
+  variations: Variation[],
+  nav: Nav
+): string {
+  if (nav.on === "main") {
+    const idx = Math.min(nav.index, gameMoves.length);
+    return fenAfterMoves(startFen, gameMoves.slice(0, idx));
+  }
+  const v = variations[nav.vi];
+  if (!v) return fenAfterMoves(startFen, []);
+  const mi = Math.min(nav.mi, v.moves.length - 1);
+  return fenAfterMoves(startFen, [
+    ...gameMoves.slice(0, v.from),
+    ...v.moves.slice(0, mi + 1),
+  ]);
+}
+
+export function navLastMove(
+  startFen: string | undefined,
+  gameMoves: string[],
+  variations: Variation[],
+  nav: Nav
+): { from: string; to: string } | null {
+  let prevMoves: string[];
+  let san: string;
+  if (nav.on === "main") {
+    if (nav.index === 0) return null;
+    prevMoves = gameMoves.slice(0, nav.index - 1);
+    san = gameMoves[nav.index - 1];
+  } else {
+    const v = variations[nav.vi];
+    if (!v) return null;
+    if (nav.mi === 0) {
+      prevMoves = gameMoves.slice(0, v.from);
+    } else {
+      prevMoves = [...gameMoves.slice(0, v.from), ...v.moves.slice(0, nav.mi)];
+    }
+    san = v.moves[nav.mi];
+  }
+  try {
+    const g = new Chess(startFen);
+    for (const m of prevMoves) g.move(m);
+    const move = g.move(san);
+    return move ? { from: move.from, to: move.to } : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AnalysisBoard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
+  const [searchParams] = useSearchParams();
   const routeState = location.state as AnalysisGameData | undefined;
 
-  const gameData = useMemo(() => {
-    if (routeState?.moves?.length) return routeState;
-    if (gameId) return loadAnalysisGame(gameId);
-    return null;
-  }, [routeState, gameId]);
+  const [gameData, setGameData] = useState<AnalysisGameData | null>(
+    routeState?.moves?.length ? routeState : null
+  );
+  const [loading, setLoading] = useState(!gameData && !!gameId);
+
+  useEffect(() => {
+    if (gameData || !gameId) return;
+    let cancelled = false;
+    loadAnalysisGame(gameId).then((data) => {
+      if (cancelled) return;
+      setGameData(data);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [gameId, gameData]);
 
   const gameMoves = useMemo(() => gameData?.moves ?? [], [gameData]);
   const startFen = gameData?.startFen;
@@ -99,68 +192,61 @@ export default function AnalysisBoard() {
     startFen
   );
 
-  const [currentIndex, setCurrentIndex] = useState(gameMoves.length);
+  const [variations, setVariations] = useState<Variation[]>([]);
+
+  const initialPly = useMemo(() => {
+    const p = parseInt(searchParams.get("ply") ?? "", 10);
+    return Number.isFinite(p) && p >= 0 ? p : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [nav, setNav] = useState<Nav>(() => {
+    if (initialPly !== null && initialPly <= gameMoves.length) {
+      return { on: "main", index: initialPly };
+    }
+    return { on: "main", index: gameMoves.length };
+  });
+
+  const navRef = useRef(nav);
+  navRef.current = nav;
+  const variationsRef = useRef(variations);
+  variationsRef.current = variations;
+
   const [hoverArrow, setHoverArrow] = useState<{
     from: string;
     to: string;
   } | null>(null);
-  const [pvPreview, setPvPreview] = useState<string[] | null>(null);
 
-  const currentFen = useMemo(() => {
+  const mainPositions = useMemo(() => {
     const g = new Chess(startFen);
-    for (let i = 0; i < currentIndex && i < gameMoves.length; i++) {
-      g.move(gameMoves[i]);
-    }
-    return g.fen();
-  }, [startFen, gameMoves, currentIndex]);
-
-  const positions = useMemo(() => {
-    const game = new Chess(startFen);
-    const fens = [game.fen()];
+    const fens = [g.fen()];
     for (const san of gameMoves) {
-      game.move(san);
-      fens.push(game.fen());
+      g.move(san);
+      fens.push(g.fen());
     }
     return fens;
   }, [gameMoves, startFen]);
 
-  const previewFen = useMemo(() => {
-    if (!pvPreview) return null;
+  const currentFen = useMemo(
+    () => navFen(startFen, gameMoves, variations, nav),
+    [startFen, gameMoves, variations, nav]
+  );
+  const displayedGame = useMemo(() => {
     try {
-      const g = new Chess(currentFen);
-      for (const san of pvPreview) g.move(san);
-      return g.fen();
+      return new Chess(currentFen);
     } catch {
-      return null;
+      return new Chess();
     }
-  }, [pvPreview, currentFen]);
-
-  const displayedFen = previewFen ?? positions[currentIndex] ?? positions[0];
-  const displayedGame = useMemo(() => new Chess(displayedFen), [displayedFen]);
+  }, [currentFen]);
 
   const { lines: pvLines, computing: pvComputing } = useMultiPV(
-    gameMoves.length > 0 ? displayedFen : null
+    gameMoves.length > 0 || (nav.on === "var") ? currentFen : null
   );
 
-  const lastMoveSquares = useMemo(() => {
-    if (pvPreview && pvPreview.length > 0) {
-      try {
-        const g = new Chess(currentFen);
-        let last: { from: string; to: string } | null = null;
-        for (const san of pvPreview) {
-          const m = g.move(san);
-          if (m) last = { from: m.from, to: m.to };
-        }
-        return last;
-      } catch {
-        return null;
-      }
-    }
-    if (currentIndex === 0) return null;
-    const g = new Chess(positions[currentIndex - 1]);
-    const move = g.move(gameMoves[currentIndex - 1]);
-    return move ? { from: move.from, to: move.to } : null;
-  }, [positions, gameMoves, currentIndex, pvPreview, currentFen]);
+  const lastMoveSquares = useMemo(
+    () => navLastMove(startFen, gameMoves, variations, nav),
+    [startFen, gameMoves, variations, nav]
+  );
 
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
     const result: Record<string, React.CSSProperties> = {};
@@ -179,62 +265,260 @@ export default function AnalysisBoard() {
     startAnalysis();
   }, [startAnalysis]);
 
-  const goTo = useCallback(
+  useEffect(() => {
+    const ply = nav.on === "main" ? nav.index : variations[nav.vi]?.from ?? 0;
+    const url = new URL(window.location.href);
+    url.searchParams.set("ply", String(ply));
+    window.history.replaceState(null, "", url.toString());
+  }, [nav, variations]);
+
+  /* ---- play moves ---- */
+
+  const playMove = useCallback(
+    (san: string) => {
+      const n = navRef.current;
+      const vars = variationsRef.current;
+      if (n.on === "main") {
+        if (n.index < gameMoves.length && san === gameMoves[n.index]) {
+          setNav({ on: "main", index: n.index + 1 });
+          return;
+        }
+        const existing = vars.findIndex(
+          (v) => v.from === n.index && v.moves[0] === san
+        );
+        if (existing >= 0) {
+          setNav({ on: "var", vi: existing, mi: 0 });
+          return;
+        }
+        setVariations((prev) => {
+          const newVi = prev.length;
+          setNav({ on: "var", vi: newVi, mi: 0 });
+          return [...prev, { from: n.index, moves: [san] }];
+        });
+      } else {
+        const v = vars[n.vi];
+        if (!v) return;
+        const nextMi = n.mi + 1;
+        if (nextMi < v.moves.length && san === v.moves[nextMi]) {
+          setNav({ on: "var", vi: n.vi, mi: nextMi });
+          return;
+        }
+        setVariations((prev) =>
+          prev.map((vv, i) =>
+            i === n.vi
+              ? { ...vv, moves: [...vv.moves.slice(0, nextMi), san] }
+              : vv
+          )
+        );
+        setNav({ on: "var", vi: n.vi, mi: nextMi });
+      }
+    },
+    [gameMoves]
+  );
+
+  const playMoves = useCallback(
+    (sans: string[]) => {
+      if (sans.length === 0) return;
+      const n = navRef.current;
+      const vars = variationsRef.current;
+
+      if (n.on === "main") {
+        let matchCount = 0;
+        while (
+          matchCount < sans.length &&
+          n.index + matchCount < gameMoves.length
+        ) {
+          if (sans[matchCount] === gameMoves[n.index + matchCount])
+            matchCount++;
+          else break;
+        }
+        if (matchCount === sans.length) {
+          setNav({ on: "main", index: n.index + sans.length });
+          return;
+        }
+        const branchAt = n.index + matchCount;
+        const varMoves = sans.slice(matchCount);
+        const existing = vars.findIndex(
+          (v) => v.from === branchAt && v.moves[0] === varMoves[0]
+        );
+        if (existing >= 0) {
+          setVariations((prev) => {
+            const updated = prev.map((vv, i) =>
+              i === existing && varMoves.length > vv.moves.length
+                ? { ...vv, moves: varMoves }
+                : vv
+            );
+            setNav({
+              on: "var",
+              vi: existing,
+              mi: Math.min(varMoves.length, updated[existing].moves.length) - 1,
+            });
+            return updated;
+          });
+        } else {
+          setVariations((prev) => {
+            const newVi = prev.length;
+            setNav({ on: "var", vi: newVi, mi: varMoves.length - 1 });
+            return [...prev, { from: branchAt, moves: varMoves }];
+          });
+        }
+      } else {
+        if (!vars[n.vi]) return;
+        const nextMi = n.mi + 1;
+        setVariations((prev) =>
+          prev.map((vv, i) =>
+            i === n.vi
+              ? { ...vv, moves: [...vv.moves.slice(0, nextMi), ...sans] }
+              : vv
+          )
+        );
+        setNav({ on: "var", vi: n.vi, mi: nextMi + sans.length - 1 });
+      }
+    },
+    [gameMoves]
+  );
+
+  const handleDrop = useCallback(
+    ({
+      piece,
+      sourceSquare,
+      targetSquare,
+    }: {
+      piece: { pieceType: string };
+      sourceSquare: string;
+      targetSquare: string | null;
+    }) => {
+      if (!targetSquare) return false;
+      try {
+        const game = new Chess(currentFen);
+        const isPawn = piece.pieceType.toLowerCase().endsWith("p");
+        const isPromoRank = targetSquare[1] === "8" || targetSquare[1] === "1";
+        const move = game.move({
+          from: sourceSquare,
+          to: targetSquare,
+          promotion: isPawn && isPromoRank ? "q" : undefined,
+        });
+        if (!move) return false;
+        playMove(move.san);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [currentFen, playMove]
+  );
+
+  /* ---- navigation ---- */
+
+  const goToMain = useCallback(
     (index: number) => {
-      setPvPreview(null);
-      setCurrentIndex(Math.max(0, Math.min(gameMoves.length, index)));
+      setNav({
+        on: "main",
+        index: Math.max(0, Math.min(gameMoves.length, index)),
+      });
     },
     [gameMoves.length]
   );
 
+  const goToVar = useCallback((vi: number, mi: number) => {
+    setNav({ on: "var", vi, mi });
+  }, []);
+
+  const goBack = useCallback(() => {
+    const n = navRef.current;
+    const vars = variationsRef.current;
+    if (n.on === "main") {
+      if (n.index > 0) setNav({ on: "main", index: n.index - 1 });
+    } else {
+      if (n.mi > 0) setNav({ on: "var", vi: n.vi, mi: n.mi - 1 });
+      else {
+        const v = vars[n.vi];
+        setNav({ on: "main", index: v ? v.from : 0 });
+      }
+    }
+  }, []);
+
+  const goForward = useCallback(() => {
+    const n = navRef.current;
+    const vars = variationsRef.current;
+    if (n.on === "main") {
+      if (n.index < gameMoves.length)
+        setNav({ on: "main", index: n.index + 1 });
+    } else {
+      const v = vars[n.vi];
+      if (v && n.mi < v.moves.length - 1)
+        setNav({ on: "var", vi: n.vi, mi: n.mi + 1 });
+    }
+  }, [gameMoves.length]);
+
+  const goToStart = useCallback(() => {
+    setNav({ on: "main", index: 0 });
+  }, []);
+
+  const goToEnd = useCallback(() => {
+    const n = navRef.current;
+    const vars = variationsRef.current;
+    if (n.on === "main") {
+      setNav({ on: "main", index: gameMoves.length });
+    } else {
+      const v = vars[n.vi];
+      if (v) setNav({ on: "var", vi: n.vi, mi: v.moves.length - 1 });
+    }
+  }, [gameMoves.length]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setPvPreview(null);
-        return;
-      }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setPvPreview(null);
-        setCurrentIndex((i) => Math.max(0, i - 1));
+        goBack();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        setPvPreview(null);
-        setCurrentIndex((i) => Math.min(gameMoves.length, i + 1));
+        goForward();
       } else if (e.key === "Home") {
         e.preventDefault();
-        setPvPreview(null);
-        setCurrentIndex(0);
+        goToStart();
       } else if (e.key === "End") {
         e.preventDefault();
-        setPvPreview(null);
-        setCurrentIndex(gameMoves.length);
+        goToEnd();
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [gameMoves.length]);
+  }, [goBack, goForward, goToStart, goToEnd]);
 
-  const currentEval = evals[currentIndex];
-  const hasEval = currentEval !== undefined;
-  const currentScore = currentEval?.score ?? 0;
+  /* ---- eval ---- */
 
-  const movePairs: {
-    num: number;
-    whiteIdx: number;
-    white: string;
-    blackIdx?: number;
-    black?: string;
-  }[] = [];
-  for (let i = 0; i < gameMoves.length; i += 2) {
-    movePairs.push({
-      num: Math.floor(i / 2) + 1,
-      whiteIdx: i + 1,
-      white: gameMoves[i],
-      blackIdx: i + 1 < gameMoves.length ? i + 2 : undefined,
-      black: gameMoves[i + 1],
+  const gameEval =
+    nav.on === "main" ? evals[nav.index] : undefined;
+  const pvScore = pvLines.length > 0 ? pvLines[0].score : undefined;
+  const currentScore = gameEval?.score ?? pvScore ?? 0;
+
+  /* ---- variations grouped by branch point ---- */
+
+  const varsByBranch = useMemo(() => {
+    const map = new Map<number, { vi: number; v: Variation }[]>();
+    variations.forEach((v, vi) => {
+      const list = map.get(v.from) ?? [];
+      list.push({ vi, v });
+      map.set(v.from, list);
     });
+    return map;
+  }, [variations]);
+
+  /* ---- active check helpers ---- */
+
+  const isMainActive = (posIndex: number) =>
+    nav.on === "main" && nav.index === posIndex;
+
+  const isVarMoveActive = (vi: number, mi: number) =>
+    nav.on === "var" && nav.vi === vi && nav.mi === mi;
+
+  if (loading) {
+    return (
+      <div className={styles.empty}>
+        <p>Loading game...</p>
+      </div>
+    );
   }
 
   if (!gameData || gameMoves.length === 0) {
@@ -248,6 +532,91 @@ export default function AnalysisBoard() {
 
   const topPlayer = orientation === "white" ? playerBlack : playerWhite;
   const bottomPlayer = orientation === "white" ? playerWhite : playerBlack;
+
+  /* ---- build move list with inline variations ---- */
+
+  const moveListElements: React.ReactNode[] = [];
+  for (let i = 0; i < gameMoves.length; i += 2) {
+    const moveNum = Math.floor(i / 2) + 1;
+    const whiteIdx = i + 1;
+    const blackIdx = i + 2;
+    const whiteSan = gameMoves[i];
+    const blackSan = gameMoves[i + 1];
+    const whiteEntry = evals[whiteIdx];
+    const blackEntry = blackSan ? evals[blackIdx] : undefined;
+
+    moveListElements.push(
+      <div key={`m${i}`} className={styles.movePair}>
+        <span className={styles.moveNum}>{moveNum}.</span>
+        <MainMoveCell
+          san={whiteSan}
+          classification={whiteEntry?.classification}
+          active={isMainActive(whiteIdx)}
+          onClick={() => goToMain(whiteIdx)}
+        />
+        {blackSan ? (
+          <MainMoveCell
+            san={blackSan}
+            classification={blackEntry?.classification}
+            active={isMainActive(blackIdx)}
+            onClick={() => goToMain(blackIdx)}
+          />
+        ) : (
+          <span />
+        )}
+      </div>
+    );
+
+    const afterWhiteVars = varsByBranch.get(whiteIdx);
+    if (afterWhiteVars) {
+      for (const { vi, v } of afterWhiteVars) {
+        moveListElements.push(
+          <VariationLine
+            key={`v${vi}`}
+            variation={v}
+            vi={vi}
+            nav={nav}
+            isVarMoveActive={isVarMoveActive}
+            goToVar={goToVar}
+          />
+        );
+      }
+    }
+
+    if (blackSan) {
+      const afterBlackVars = varsByBranch.get(blackIdx);
+      if (afterBlackVars) {
+        for (const { vi, v } of afterBlackVars) {
+          moveListElements.push(
+            <VariationLine
+              key={`v${vi}`}
+              variation={v}
+              vi={vi}
+              nav={nav}
+              isVarMoveActive={isVarMoveActive}
+              goToVar={goToVar}
+            />
+          );
+        }
+      }
+    }
+  }
+
+  const endVars = varsByBranch.get(gameMoves.length);
+  if (endVars) {
+    for (const { vi, v } of endVars) {
+      moveListElements.push(
+        <VariationLine
+          key={`v${vi}`}
+          variation={v}
+          vi={vi}
+          nav={nav}
+          isVarMoveActive={isVarMoveActive}
+          goToVar={goToVar}
+        />
+      );
+    }
+  }
 
   return (
     <div className={styles.container}>
@@ -270,24 +639,19 @@ export default function AnalysisBoard() {
 
           <div className={styles.boardRow}>
             <div className={styles.evalColumn}>
-              {hasEval ? (
-                <>
-                  <EvalBar score={currentScore} orientation={orientation} />
-                  <span className={styles.evalScore}>
-                    {currentScore >= 0 ? "+" : "\u2212"}
-                    {formatEvalLabel(currentScore)}
-                  </span>
-                </>
-              ) : (
-                <div className={styles.evalPlaceholder} />
-              )}
+              <EvalBar score={currentScore} orientation={orientation} />
+              <span className={styles.evalScore}>
+                {currentScore >= 0 ? "+" : "\u2212"}
+                {formatEvalLabel(currentScore)}
+              </span>
             </div>
             <div className={styles.board}>
               <Chessboard
                 options={{
-                  position: displayedFen,
+                  position: currentFen,
                   boardOrientation: orientation,
                   squareStyles: highlightStyles,
+                  onPieceDrop: handleDrop,
                   arrows: hoverArrow
                     ? [
                         {
@@ -330,21 +694,8 @@ export default function AnalysisBoard() {
                   },
                 }}
               />
-              
             </div>
           </div>
-
-          {pvPreview && (
-            <div className={styles.previewBanner}>
-              Showing engine line &middot;{" "}
-              <button
-                className={styles.previewBack}
-                onClick={() => setPvPreview(null)}
-              >
-                Back to game
-              </button>
-            </div>
-          )}
 
           <div className={styles.playerBar}>
             <span className={styles.playerBarName}>{bottomPlayer}</span>
@@ -353,16 +704,36 @@ export default function AnalysisBoard() {
           <div className={styles.graphArea}>
             <ScoreGraph
               evals={evals}
-              currentIndex={currentIndex}
-              onSelectIndex={goTo}
+              currentIndex={
+                nav.on === "main"
+                  ? nav.index
+                  : Math.min(variations[nav.vi]?.from ?? 0, gameMoves.length)
+              }
+              onSelectIndex={goToMain}
             />
           </div>
 
+          <div
+            className={styles.fenBar}
+            onClick={() => navigator.clipboard?.writeText(currentFen)}
+            title="Click to copy FEN"
+          >
+            {currentFen}
+          </div>
+
           <div className={styles.navButtons}>
-            <button onClick={() => goTo(0)} title="First">&laquo;</button>
-            <button onClick={() => goTo(currentIndex - 1)} title="Previous">&lsaquo;</button>
-            <button onClick={() => goTo(currentIndex + 1)} title="Next">&rsaquo;</button>
-            <button onClick={() => goTo(gameMoves.length)} title="Last">&raquo;</button>
+            <button onClick={goToStart} title="First">
+              &laquo;
+            </button>
+            <button onClick={goBack} title="Previous">
+              &lsaquo;
+            </button>
+            <button onClick={goForward} title="Next">
+              &rsaquo;
+            </button>
+            <button onClick={goToEnd} title="Last">
+              &raquo;
+            </button>
           </div>
         </div>
 
@@ -384,6 +755,11 @@ export default function AnalysisBoard() {
           <div className={styles.engineLines}>
             <h3 className={styles.engineLinesTitle}>
               Engine Lines
+              {pvLines.length > 0 && (
+                <span className={styles.engineDepth}>
+                  d{pvLines[0].depth}
+                </span>
+              )}
               {pvComputing && <span className={styles.engineSpinner} />}
             </h3>
             {pvLines.length > 0 ? (
@@ -411,12 +787,7 @@ export default function AnalysisBoard() {
                               ? () => setHoverArrow(pv.firstMove)
                               : undefined
                           }
-                          onClick={() =>
-                            setPvPreview((prev) => [
-                              ...(prev ?? []),
-                              ...pv.san.slice(0, mi + 1),
-                            ])
-                          }
+                          onClick={() => playMoves(pv.san.slice(0, mi + 1))}
                         >
                           {move}
                         </span>
@@ -434,31 +805,7 @@ export default function AnalysisBoard() {
 
           <div className={styles.movesPanel}>
             <h3 className={styles.movesTitle}>Moves</h3>
-            <div className={styles.movesList}>
-              {movePairs.map((mp) => (
-                <div key={mp.num} className={styles.movePair}>
-                  <span className={styles.moveNum}>{mp.num}.</span>
-                  <MoveCell
-                    san={mp.white}
-                    posIndex={mp.whiteIdx}
-                    currentIndex={currentIndex}
-                    evals={evals}
-                    onClick={() => goTo(mp.whiteIdx)}
-                  />
-                  {mp.black ? (
-                    <MoveCell
-                      san={mp.black}
-                      posIndex={mp.blackIdx!}
-                      currentIndex={currentIndex}
-                      evals={evals}
-                      onClick={() => goTo(mp.blackIdx!)}
-                    />
-                  ) : (
-                    <span />
-                  )}
-                </div>
-              ))}
-            </div>
+            <div className={styles.movesList}>{moveListElements}</div>
           </div>
         </div>
       </main>
@@ -466,28 +813,27 @@ export default function AnalysisBoard() {
   );
 }
 
-function MoveCell({
+/* ---- sub-components ---- */
+
+function MainMoveCell({
   san,
-  posIndex,
-  currentIndex,
-  evals,
+  classification,
+  active,
   onClick,
 }: {
   san: string;
-  posIndex: number;
-  currentIndex: number;
-  evals: { classification?: MoveClassification }[];
+  classification?: MoveClassification;
+  active: boolean;
   onClick: () => void;
 }) {
-  const entry = evals[posIndex];
-  const classification = entry?.classification;
   const symbol = classification ? CLASSIFICATION_SYMBOLS[classification] : "";
-  const color = classification ? CLASSIFICATION_COLORS[classification] : undefined;
-  const isActive = posIndex === currentIndex;
+  const color = classification
+    ? CLASSIFICATION_COLORS[classification]
+    : undefined;
 
   return (
     <span
-      className={`${styles.moveCell} ${isActive ? styles.moveCellActive : ""}`}
+      className={`${styles.moveCell} ${active ? styles.moveCellActive : ""}`}
       onClick={onClick}
     >
       {san}
@@ -495,5 +841,53 @@ function MoveCell({
         <span style={{ color, fontWeight: 700, marginLeft: 1 }}>{symbol}</span>
       )}
     </span>
+  );
+}
+
+function VariationLine({
+  variation,
+  vi,
+  nav,
+  isVarMoveActive,
+  goToVar,
+}: {
+  variation: Variation;
+  vi: number;
+  nav: Nav;
+  isVarMoveActive: (vi: number, mi: number) => boolean;
+  goToVar: (vi: number, mi: number) => void;
+}) {
+  const startPly = variation.from;
+  const moveNumBase = Math.floor(startPly / 2) + 1;
+  const isBlackFirst = startPly % 2 === 1;
+
+  return (
+    <div className={styles.variationRow}>
+      <span className={styles.variationMoves}>
+        {variation.moves.map((san, mi) => {
+          const ply = startPly + mi;
+          const isBlack = ply % 2 === 1;
+          const moveNum = Math.floor(ply / 2) + 1;
+          const showNum = mi === 0 || !isBlack;
+          const active = isVarMoveActive(vi, mi);
+
+          return (
+            <span key={mi}>
+              {showNum && (
+                <span className={styles.varMoveNum}>
+                  {moveNum}.{mi === 0 && isBlackFirst ? ".." : ""}
+                </span>
+              )}
+              <span
+                className={`${styles.varMove} ${active ? styles.varMoveActive : ""}`}
+                onClick={() => goToVar(vi, mi)}
+              >
+                {san}
+              </span>{" "}
+            </span>
+          );
+        })}
+      </span>
+    </div>
   );
 }

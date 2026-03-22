@@ -112,6 +112,51 @@ async function main() {
     }
   });
 
+  if (process.env.FEATURE_GAME_STORAGE !== "false") {
+    const Game = (await import("./models/Game")).default;
+
+    app.post("/api/games/:gameId", async (req, res) => {
+      try {
+        const { gameId } = req.params;
+        const { moves, startFen, playerWhite, playerBlack, orientation } = req.body;
+        if (!Array.isArray(moves) || moves.length === 0) {
+          res.status(400).json({ error: "moves array is required" });
+          return;
+        }
+        await Game.findOneAndUpdate(
+          { gameId },
+          { gameId, moves, startFen, playerWhite, playerBlack, orientation },
+          { upsert: true, new: true }
+        );
+        res.json({ ok: true });
+      } catch (err) {
+        console.error("Game save error:", err);
+        res.status(500).json({ error: "Failed to save game" });
+      }
+    });
+
+    app.get("/api/games/:gameId", async (req, res) => {
+      try {
+        const game = await Game.findOne({ gameId: req.params.gameId }).lean();
+        if (!game) {
+          res.status(404).json({ error: "Game not found" });
+          return;
+        }
+        res.json({
+          gameId: game.gameId,
+          moves: game.moves,
+          startFen: game.startFen,
+          playerWhite: game.playerWhite,
+          playerBlack: game.playerBlack,
+          orientation: game.orientation,
+        });
+      } catch (err) {
+        console.error("Game fetch error:", err);
+        res.status(500).json({ error: "Failed to fetch game" });
+      }
+    });
+  }
+
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });

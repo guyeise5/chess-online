@@ -141,6 +141,26 @@
   width: 100%;
 }
 
+.fenBar {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  text-align: center;
+  cursor: pointer;
+  user-select: all;
+  word-break: break-all;
+  transition: border-color 0.15s;
+}
+
+.fenBar:hover {
+  border-color: var(--text-muted);
+  color: var(--text-secondary);
+}
+
 .navButtons {
   display: flex;
   justify-content: center;
@@ -224,6 +244,13 @@
   gap: 0.5rem;
 }
 
+.engineDepth {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
 .engineSpinner {
   display: inline-block;
   width: 10px;
@@ -298,24 +325,6 @@
   color: var(--text-primary);
 }
 
-.previewBanner {
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  padding: 0.3rem 0;
-}
-
-.previewBack {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-decoration: underline;
-  padding: 0;
-}
-
 .engineLinesEmpty {
   padding: 0.75rem 1rem;
   font-size: 0.82rem;
@@ -381,4 +390,44 @@
 
 .moveCellActive {
   background: rgba(118, 150, 86, 0.35);
+}
+
+.variationRow {
+  grid-column: 1 / -1;
+  padding: 0.15rem 0.5rem 0.15rem 1.5rem;
+  border-left: 2px solid var(--accent);
+  margin: 0.1rem 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 4px 4px 0;
+}
+
+.variationMoves {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.varMoveNum {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-right: 1px;
+  opacity: 0.7;
+}
+
+.varMove {
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.varMove:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.varMoveActive {
+  background: rgba(118, 150, 86, 0.3);
+  color: var(--text-primary);
 }
