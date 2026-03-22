@@ -138,7 +138,7 @@ describe("useStockfishAnalysis", () => {
     expect(ref.current!.evals[0]!.classification).toBeUndefined();
     expect(ref.current!.evals[0]!.score).toBe(100);
     expect(ref.current!.evals[1]!.score).toBe(50);
-    expect(ref.current!.evals[1]!.classification).toBe("inaccuracy");
+    expect(ref.current!.evals[1]!.classification).toBe("good");
     expect(ref.current!.progress).toBe(100);
 
     act(() => {

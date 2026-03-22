@@ -35,8 +35,8 @@ const HIGHLIGHT_CAPTURE: React.CSSProperties = {
   background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)",
 };
 
-const CLASSIFICATION_SYMBOLS: Record<MoveClassification, string> = {
-  best: "!",
+const CLASSIFICATION_TEXT: Record<MoveClassification, string> = {
+  best: "",
   good: "",
   inaccuracy: "?!",
   mistake: "?",
@@ -50,6 +50,42 @@ const CLASSIFICATION_COLORS: Record<MoveClassification, string> = {
   mistake: "#e68f3c",
   blunder: "#ca3431",
 };
+
+function AnnotationIcon({
+  classification,
+  size,
+}: {
+  classification: MoveClassification;
+  size: number;
+}) {
+  if (classification === "best") {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="white">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+      </svg>
+    );
+  }
+  if (classification === "good") {
+    return (
+      <svg viewBox="0 0 16 16" width={size} height={size} fill="white">
+        <path d="M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a10 10 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856s-.036.586-.113.856c-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.2 3.2 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.8 4.8 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z" />
+      </svg>
+    );
+  }
+  return null;
+}
+
+function AnnotationContent({
+  classification,
+  iconSize,
+}: {
+  classification: MoveClassification;
+  iconSize: number;
+}) {
+  const text = CLASSIFICATION_TEXT[classification];
+  if (text) return <>{text}</>;
+  return <AnnotationIcon classification={classification} size={iconSize} />;
+}
 
 export interface AnalysisGameData {
   moves: string[];
@@ -652,11 +688,9 @@ export default function AnalysisBoard() {
 
   const boardAnnotation = useMemo(() => {
     if (!lastMoveSquares || !gameEval?.classification) return null;
-    const symbol = CLASSIFICATION_SYMBOLS[gameEval.classification];
-    if (!symbol) return null;
     return {
       square: lastMoveSquares.to,
-      symbol,
+      classification: gameEval.classification,
       color: CLASSIFICATION_COLORS[gameEval.classification],
     };
   }, [lastMoveSquares, gameEval]);
@@ -671,7 +705,7 @@ export default function AnalysisBoard() {
             className={styles.boardGlyph}
             style={{ backgroundColor: boardAnnotation.color }}
           >
-            {boardAnnotation.symbol}
+            <AnnotationContent classification={boardAnnotation.classification} iconSize={12} />
           </div>
         </div>
       );
@@ -1029,7 +1063,6 @@ function MainMoveCell({
   active: boolean;
   onClick: () => void;
 }) {
-  const symbol = classification ? CLASSIFICATION_SYMBOLS[classification] : "";
   const color = classification
     ? CLASSIFICATION_COLORS[classification]
     : undefined;
@@ -1040,12 +1073,12 @@ function MainMoveCell({
       onClick={onClick}
     >
       {san}
-      {symbol && (
+      {classification && color && (
         <span
           className={styles.annotationGlyph}
           style={{ backgroundColor: color }}
         >
-          {symbol}
+          <AnnotationContent classification={classification} iconSize={9} />
         </span>
       )}
     </span>

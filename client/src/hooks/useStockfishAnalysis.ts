@@ -70,14 +70,20 @@ export function winningChances(cp: number): number {
 }
 
 /**
- * Classify a move based on the winning-chances delta (Lichess approach).
- * Thresholds aligned with Lichess (PR #5337) and chess.com expected-points model.
+ * Classify a move based on the winning-chances delta.
+ *
+ * Thresholds follow chess.com's Expected Points model (ClassificationV2):
+ *   best+excellent  ≤ 0.02 EP  →  ≤ 0.04 WC delta  →  "best"
+ *   good            0.02-0.05  →  0.04-0.10         →  "good"
+ *   inaccuracy      0.05-0.10  →  0.10-0.20         →  "inaccuracy"
+ *   mistake         0.10-0.20  →  0.20-0.40         →  "mistake"
+ *   blunder         > 0.20     →  > 0.40            →  "blunder"
  */
 function classifyWinningChancesDelta(delta: number): MoveClassification {
-  if (delta > 0.2) return "blunder";
-  if (delta > 0.1) return "mistake";
-  if (delta > 0.05) return "inaccuracy";
-  if (delta <= 0.02) return "best";
+  if (delta > 0.4) return "blunder";
+  if (delta > 0.2) return "mistake";
+  if (delta > 0.1) return "inaccuracy";
+  if (delta <= 0.04) return "best";
   return "good";
 }
 
