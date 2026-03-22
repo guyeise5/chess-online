@@ -99,11 +99,13 @@ function buildFensForGame(startFen: string, sanMoves: string[]): string[] {
   const game = new Chess(startFen);
   const fens: string[] = [game.fen()];
   for (const san of sanMoves) {
-    const r = game.move(san);
-    if (!r) {
-      throw new Error(`Illegal SAN in analysis: ${san}`);
+    try {
+      const r = game.move(san);
+      if (!r) break;
+      fens.push(game.fen());
+    } catch {
+      break;
     }
-    fens.push(game.fen());
   }
   return fens;
 }
@@ -313,13 +315,18 @@ export function useStockfishAnalysis(
         const entry: EvalEntry = { score, bestMove };
         if (i > 0) {
           const prev = built[i - 1]!;
-          const g = new Chess(baseFen);
-          for (let k = 0; k < i - 1; k++) {
-            g.move(sanMoves[k]!);
+          try {
+            const g = new Chess(baseFen);
+            for (let k = 0; k < i - 1; k++) {
+              const r = g.move(sanMoves[k]!);
+              if (!r) break;
+            }
+            const whiteBefore = g.turn() === "w";
+            const loss = centipawnLossForMove(prev.score, score, whiteBefore);
+            entry.classification = classifyCentipawnLoss(loss);
+          } catch {
+            // skip classification if replay fails
           }
-          const whiteBefore = g.turn() === "w";
-          const loss = centipawnLossForMove(prev.score, score, whiteBefore);
-          entry.classification = classifyCentipawnLoss(loss);
         }
         built.push(entry);
         setEvals([...built]);

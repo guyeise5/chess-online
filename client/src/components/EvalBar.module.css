@@ -33,12 +33,6 @@
   z-index: 1;
 }
 
-.labelTop {
-  top: 2px;
-  color: #e8e6e1;
-}
-
 .labelBottom {
   bottom: 2px;
-  color: #403d39;
 }

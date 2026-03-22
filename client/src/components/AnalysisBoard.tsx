@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
-import { Chess } from "chess.js";
+import { Chess, Square } from "chess.js";
 import {
   useStockfishAnalysis,
   type MoveClassification,
@@ -22,6 +22,15 @@ const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
 const HIGHLIGHT_CHECK: React.CSSProperties = {
   background:
     "radial-gradient(ellipse at center, rgba(255,0,0,0.8) 0%, rgba(231,76,60,0.5) 40%, rgba(169,32,32,0.15) 70%, transparent 100%)",
+};
+const HIGHLIGHT_SOURCE: React.CSSProperties = {
+  backgroundColor: "rgba(255, 255, 0, 0.4)",
+};
+const HIGHLIGHT_DOT: React.CSSProperties = {
+  background: "radial-gradient(circle, rgba(0,0,0,0.25) 25%, transparent 25%)",
+};
+const HIGHLIGHT_CAPTURE: React.CSSProperties = {
+  background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)",
 };
 
 const CLASSIFICATION_SYMBOLS: Record<MoveClassification, string> = {
@@ -181,7 +190,22 @@ export default function AnalysisBoard() {
     return () => { cancelled = true; };
   }, [gameId, gameData]);
 
-  const gameMoves = useMemo(() => gameData?.moves ?? [], [gameData]);
+  const gameMoves = useMemo(() => {
+    const raw = gameData?.moves ?? [];
+    if (raw.length === 0) return raw;
+    const g = new Chess(gameData?.startFen);
+    const valid: string[] = [];
+    for (const san of raw) {
+      try {
+        const m = g.move(san);
+        if (!m) break;
+        valid.push(san);
+      } catch {
+        break;
+      }
+    }
+    return valid;
+  }, [gameData]);
   const startFen = gameData?.startFen;
   const orientation = gameData?.orientation ?? "white";
   const playerWhite = gameData?.playerWhite ?? "White";
@@ -216,13 +240,19 @@ export default function AnalysisBoard() {
     from: string;
     to: string;
   } | null>(null);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
   const mainPositions = useMemo(() => {
     const g = new Chess(startFen);
     const fens = [g.fen()];
     for (const san of gameMoves) {
-      g.move(san);
-      fens.push(g.fen());
+      try {
+        const m = g.move(san);
+        if (!m) break;
+        fens.push(g.fen());
+      } catch {
+        break;
+      }
     }
     return fens;
   }, [gameMoves, startFen]);
@@ -238,6 +268,19 @@ export default function AnalysisBoard() {
       return new Chess();
     }
   }, [currentFen]);
+
+  const getLegalMovesForSquare = useCallback(
+    (square: string): string[] => {
+      try {
+        return displayedGame
+          .moves({ square: square as Square, verbose: true })
+          .map((m) => m.to);
+      } catch {
+        return [];
+      }
+    },
+    [displayedGame]
+  );
 
   const { lines: pvLines, computing: pvComputing } = useMultiPV(
     gameMoves.length > 0 || (nav.on === "var") ? currentFen : null
@@ -258,8 +301,16 @@ export default function AnalysisBoard() {
       const kingSq = findKingSquare(displayedGame);
       if (kingSq) result[kingSq] = HIGHLIGHT_CHECK;
     }
+    if (selectedSquare) {
+      result[selectedSquare] = HIGHLIGHT_SOURCE;
+      const targets = getLegalMovesForSquare(selectedSquare);
+      for (const sq of targets) {
+        const pieceOnTarget = displayedGame.get(sq as Square);
+        result[sq] = pieceOnTarget ? HIGHLIGHT_CAPTURE : HIGHLIGHT_DOT;
+      }
+    }
     return result;
-  }, [lastMoveSquares, displayedGame]);
+  }, [lastMoveSquares, displayedGame, selectedSquare, getLegalMovesForSquare]);
 
   useEffect(() => {
     startAnalysis();
@@ -378,6 +429,96 @@ export default function AnalysisBoard() {
     [gameMoves]
   );
 
+  const onPieceDrag = useCallback(
+    ({
+      square,
+    }: {
+      isSparePiece: boolean;
+      piece: { pieceType: string };
+      square: string | null;
+    }) => {
+      if (!square) {
+        setSelectedSquare(null);
+        return;
+      }
+      const piece = displayedGame.get(square as Square);
+      if (!piece || piece.color !== displayedGame.turn()) {
+        setSelectedSquare(null);
+        return;
+      }
+      setSelectedSquare(square);
+    },
+    [displayedGame]
+  );
+
+  const onPieceClick = useCallback(
+    ({
+      square,
+    }: {
+      isSparePiece: boolean;
+      piece: { pieceType: string };
+      square: string | null;
+    }) => {
+      if (!square) {
+        setSelectedSquare(null);
+        return;
+      }
+
+      if (selectedSquare && selectedSquare !== square) {
+        const targets = getLegalMovesForSquare(selectedSquare);
+        if (targets.includes(square)) {
+          const game = new Chess(currentFen);
+          const isPawn = game.get(selectedSquare as Square)?.type === "p";
+          const isPromoRank = square[1] === "8" || square[1] === "1";
+          const move = game.move({
+            from: selectedSquare,
+            to: square,
+            promotion: isPawn && isPromoRank ? "q" : undefined,
+          });
+          if (move) {
+            playMove(move.san);
+            setSelectedSquare(null);
+            return;
+          }
+        }
+      }
+
+      const piece = displayedGame.get(square as Square);
+      if (!piece || piece.color !== displayedGame.turn()) {
+        setSelectedSquare(null);
+        return;
+      }
+      setSelectedSquare(square === selectedSquare ? null : square);
+    },
+    [displayedGame, selectedSquare, getLegalMovesForSquare, currentFen, playMove]
+  );
+
+  const onSquareClick = useCallback(
+    ({
+      square,
+    }: { piece: { pieceType: string } | null; square: string }) => {
+      if (!selectedSquare) return;
+      const targets = getLegalMovesForSquare(selectedSquare);
+      if (targets.includes(square)) {
+        const game = new Chess(currentFen);
+        const isPawn = game.get(selectedSquare as Square)?.type === "p";
+        const isPromoRank = square[1] === "8" || square[1] === "1";
+        const move = game.move({
+          from: selectedSquare,
+          to: square,
+          promotion: isPawn && isPromoRank ? "q" : undefined,
+        });
+        if (move) {
+          playMove(move.san);
+          setSelectedSquare(null);
+        }
+      } else {
+        setSelectedSquare(null);
+      }
+    },
+    [selectedSquare, getLegalMovesForSquare, currentFen, playMove]
+  );
+
   const handleDrop = useCallback(
     ({
       piece,
@@ -399,6 +540,7 @@ export default function AnalysisBoard() {
           promotion: isPawn && isPromoRank ? "q" : undefined,
         });
         if (!move) return false;
+        setSelectedSquare(null);
         playMove(move.san);
         return true;
       } catch {
@@ -485,6 +627,10 @@ export default function AnalysisBoard() {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [goBack, goForward, goToStart, goToEnd]);
+
+  useEffect(() => {
+    setSelectedSquare(null);
+  }, [nav]);
 
   /* ---- eval ---- */
 
@@ -652,6 +798,9 @@ export default function AnalysisBoard() {
                   boardOrientation: orientation,
                   squareStyles: highlightStyles,
                   onPieceDrop: handleDrop,
+                  onPieceDrag: onPieceDrag,
+                  onPieceClick: onPieceClick,
+                  onSquareClick: onSquareClick,
                   arrows: hoverArrow
                     ? [
                         {

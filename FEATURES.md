@@ -10,6 +10,7 @@
 - Real-time move updates via Socket.IO
 - Server-side move validation with chess.js
 - Clocks with increment support (server-side timers)
+- Premoves: drag or click to queue a move while waiting for opponent; auto-executed when it becomes your turn; Lichess-style blue highlight
 - Undo request system (requires opponent approval)
 - Resign option
 - Reconnection support (roomId + playerName persisted in localStorage)
@@ -43,9 +44,10 @@
 - **Key files:** `client/src/components/AnalysisBoard.tsx`, `client/src/components/EvalBar.tsx`, `client/src/components/ScoreGraph.tsx`, `client/src/hooks/useMultiPV.ts`, `client/src/hooks/useStockfishAnalysis.ts`, `server/src/models/Game.ts`
 - **Feature flag:** `FEATURE_GAME_STORAGE` (default: enabled)
 - Multi-PV engine analysis (5 principal variations, depth 18) via Stockfish WASM worker
-- Eval bar showing White advantage with logistic curve and mate distance labels
+- Eval bar showing advantage with signed score (+/−) on the winning side, logistic curve, and mate distance labels
 - Score graph plotting evaluations across the game with scrub/jump navigation
 - Move quality labels (best / good / inaccuracy / mistake / blunder)
+- Analysis board: legal-move dots and capture rings when selecting or dragging a piece (same styling as live play)
 - Full move navigation (forward, backward, jump to position)
 - Game data stored server-side in MongoDB `games` collection with 14-day TTL index
 - REST API: `POST /api/games/:gameId` (save), `GET /api/games/:gameId` (load)
@@ -53,7 +55,8 @@
 
 ## UI/UX
 
-- **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`
+- **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
+- Global footer (copyright / optional `AUTHOR_URL` link) on all pages via `App.tsx`
 - Board coordinates and legal move indicators
 - Last move highlight
 - Check/checkmate king highlight (red glow)

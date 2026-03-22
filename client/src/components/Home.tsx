@@ -42,15 +42,6 @@ export default function Home({ playerName, onChangeName }: Props) {
           </Link>
         </div>
       </main>
-      <footer className={styles.watermark}>
-        {(window as any).__ENV__?.AUTHOR_URL ? (
-          <a href={(window as any).__ENV__.AUTHOR_URL} target="_blank" rel="noopener noreferrer" className={styles.watermarkLink}>
-            &copy; Guy Eisenbach
-          </a>
-        ) : (
-          <span>&copy; Guy Eisenbach</span>
-        )}
-      </footer>
     </div>
   );
 }

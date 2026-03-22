@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Chess } from "chess.js";
+import { Chess, type Square } from "chess.js";
 import {
   fenAfterMoves,
   navFen,
@@ -191,6 +191,43 @@ describe("navLastMove", () => {
   it("returns null for invalid SAN in game moves", () => {
     const nav: Nav = { on: "main", index: 1 };
     expect(navLastMove(undefined, ["GARBAGE"], [], nav)).toBeNull();
+  });
+});
+
+/* ---------- legal move targets (analysis board squareStyles) ---------- */
+
+function legalMoveTargetsForSquare(game: Chess, square: string): string[] {
+  try {
+    return game
+      .moves({ square: square as Square, verbose: true })
+      .map((m) => m.to);
+  } catch {
+    return [];
+  }
+}
+
+describe("legalMoveTargetsForSquare (matches AnalysisBoard getLegalMovesForSquare)", () => {
+  it("returns pawn pushes from e2 at start", () => {
+    const g = new Chess();
+    const t = legalMoveTargetsForSquare(g, "e2").sort();
+    expect(t).toEqual(["e3", "e4"]);
+  });
+
+  it("returns empty for empty square", () => {
+    const g = new Chess();
+    expect(legalMoveTargetsForSquare(g, "e4")).toEqual([]);
+  });
+
+  it("returns knight hops from g1 at start", () => {
+    const g = new Chess();
+    const t = new Set(legalMoveTargetsForSquare(g, "g1"));
+    expect(t.has("f3")).toBe(true);
+    expect(t.has("h3")).toBe(true);
+  });
+
+  it("returns empty when square is wrong side to move", () => {
+    const g = new Chess();
+    expect(legalMoveTargetsForSquare(g, "e7")).toEqual([]);
   });
 });
 

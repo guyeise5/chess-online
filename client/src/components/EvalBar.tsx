@@ -28,24 +28,11 @@ export default function EvalBar({ score, orientation }: Props) {
   const label = formatEvalLabel(score);
   const whiteAdv = score >= 0;
 
-  const labelClass = [styles.label];
-  const labelStyle: CSSProperties = {};
-
-  if (whiteAdv) {
-    if (orientation === "white") {
-      labelClass.push(styles.labelBottom);
-    } else {
-      labelStyle.top = 2;
-      labelStyle.bottom = "auto";
-      labelStyle.color = "#403d39";
-    }
-  } else if (orientation === "white") {
-    labelClass.push(styles.labelTop);
-  } else {
-    labelStyle.bottom = 2;
-    labelStyle.top = "auto";
-    labelStyle.color = "#e8e6e1";
-  }
+  const bottomIsWhite = orientation === "white";
+  const labelClass = [styles.label, styles.labelBottom];
+  const labelStyle: CSSProperties = {
+    color: bottomIsWhite ? "#403d39" : "#e8e6e1",
+  };
 
   return (
     <div
@@ -57,7 +44,7 @@ export default function EvalBar({ score, orientation }: Props) {
         style={{ height: `${whitePercent}%` }}
       />
       <div className={labelClass.join(" ")} style={labelStyle}>
-        {label}
+        {label === "#" ? label : `${score >= 0 ? "+" : "\u2212"}${label}`}
       </div>
     </div>
   );

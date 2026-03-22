@@ -30,6 +30,9 @@ const HIGHLIGHT_CAPTURE: React.CSSProperties = {
 const HIGHLIGHT_CHECK: React.CSSProperties = {
   background: "radial-gradient(ellipse at center, rgba(255,0,0,0.8) 0%, rgba(231,76,60,0.5) 40%, rgba(169,32,32,0.15) 70%, transparent 100%)",
 };
+const HIGHLIGHT_PREMOVE: React.CSSProperties = {
+  backgroundColor: "rgba(20, 85, 180, 0.5)",
+};
 
 function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
@@ -63,6 +66,9 @@ export default function GameRoom({ playerName }: Props) {
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [undoRequester, setUndoRequester] = useState<string | null>(null);
   const [undoPending, setUndoPending] = useState(false);
+  const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
+  const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
+  const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const rejoin = useCallback(() => {
@@ -116,6 +122,54 @@ export default function GameRoom({ playerName }: Props) {
       setResult(data.result);
       setStatus(data.status);
       setMoves((prev) => [...prev, data.move.san]);
+
+      const pm = premoveRef.current;
+      if (
+        pm &&
+        data.status === "playing" &&
+        isPlayerRef.current &&
+        newGame.turn() === myColorRef.current
+      ) {
+        if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
+        premoveTimerRef.current = setTimeout(() => {
+          premoveTimerRef.current = null;
+          const currentPm = premoveRef.current;
+          if (!currentPm) return;
+
+          premoveRef.current = null;
+          setPremove(null);
+          setPremoveSelectedSquare(null);
+
+          try {
+            const g = new Chess(data.fen);
+            const move = g.move({
+              from: currentPm.from,
+              to: currentPm.to,
+              promotion: currentPm.promotion || "q",
+            });
+            if (move) {
+              socket.emit(
+                "game:move",
+                {
+                  roomId,
+                  playerName,
+                  from: currentPm.from,
+                  to: currentPm.to,
+                  promotion: currentPm.promotion,
+                },
+                (res: any) => {
+                  if (!res.success) console.warn("Premove rejected:", res.error);
+                }
+              );
+              setGame(g);
+              setFen(g.fen());
+              setSelectedSquare(null);
+            }
+          } catch {
+            // Premove illegal in new position — silently cancelled
+          }
+        }, 100);
+      }
     };
 
     const handleGameOver = (data: GameOverData) => {
@@ -147,6 +201,9 @@ export default function GameRoom({ playerName }: Props) {
       setMoves(data.moves);
       setUndoRequester(null);
       setUndoPending(false);
+      setPremove(null);
+      premoveRef.current = null;
+      setPremoveSelectedSquare(null);
     };
 
     const handleUndoDeclined = () => {
@@ -177,6 +234,7 @@ export default function GameRoom({ playerName }: Props) {
       socket.off("game:undo", handleUndo);
       socket.off("game:undo-declined", handleUndoDeclined);
       socket.off("game:undo-cancelled", handleUndoCancelled);
+      if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
     };
   }, []);
 
@@ -188,6 +246,27 @@ export default function GameRoom({ playerName }: Props) {
   const isBlack = room?.blackPlayer === playerName;
   const isPlayer = isWhite || isBlack;
   const orientation = isBlack ? "black" : "white";
+  const myColor = isWhite ? "w" : "b";
+
+  const myColorRef = useRef(myColor);
+  myColorRef.current = myColor;
+  const isPlayerRef = useRef(isPlayer);
+  isPlayerRef.current = isPlayer;
+  const premoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
+    const pm = { from, to, promotion };
+    setPremove(pm);
+    premoveRef.current = pm;
+    setPremoveSelectedSquare(null);
+    setSelectedSquare(null);
+  }, []);
+
+  const clearPremove = useCallback(() => {
+    setPremove(null);
+    premoveRef.current = null;
+    setPremoveSelectedSquare(null);
+  }, []);
 
   const getLegalMovesForSquare = useCallback(
     (square: string): string[] => {
@@ -210,6 +289,11 @@ export default function GameRoom({ playerName }: Props) {
       if (kingSq) result[kingSq] = HIGHLIGHT_CHECK;
     }
 
+    if (premove) {
+      result[premove.from] = HIGHLIGHT_PREMOVE;
+      result[premove.to] = HIGHLIGHT_PREMOVE;
+    }
+
     if (selectedSquare) {
       result[selectedSquare] = HIGHLIGHT_SOURCE;
       const targets = getLegalMovesForSquare(selectedSquare);
@@ -219,8 +303,12 @@ export default function GameRoom({ playerName }: Props) {
       }
     }
 
+    if (premoveSelectedSquare && !selectedSquare) {
+      result[premoveSelectedSquare] = HIGHLIGHT_SOURCE;
+    }
+
     return result;
-  }, [selectedSquare, game, getLegalMovesForSquare]);
+  }, [selectedSquare, premoveSelectedSquare, premove, game, getLegalMovesForSquare]);
 
   const isMyTurn = useCallback(() => {
     if (status !== "playing" || !isPlayer) return false;
@@ -270,6 +358,9 @@ export default function GameRoom({ playerName }: Props) {
     [game, fen, playerName, roomId]
   );
 
+  const executeMoveRef = useRef(executeMove);
+  executeMoveRef.current = executeMove;
+
   const tryMove = useCallback(
     (from: string, to: string): boolean => {
       if (!roomId) return false;
@@ -286,64 +377,120 @@ export default function GameRoom({ playerName }: Props) {
   const onDrop = useCallback(
     ({ sourceSquare, targetSquare }: { piece: { pieceType: string }; sourceSquare: string; targetSquare: string | null }): boolean => {
       setSelectedSquare(null);
+      setPremoveSelectedSquare(null);
       if (!targetSquare) return false;
-      if (!isMyTurn()) return false;
-      return tryMove(sourceSquare, targetSquare);
+
+      if (isMyTurn()) {
+        clearPremove();
+        return tryMove(sourceSquare, targetSquare);
+      }
+
+      if (status === "playing" && isPlayer) {
+        const piece = game.get(sourceSquare as Square);
+        if (piece && piece.color === myColor) {
+          const promoRank = myColor === "w" ? "8" : "1";
+          setPremoveData(sourceSquare, targetSquare, piece.type === "p" && targetSquare[1] === promoRank ? "q" : undefined);
+        }
+      }
+      return false;
     },
-    [isMyTurn, tryMove]
+    [isMyTurn, tryMove, status, isPlayer, game, myColor, setPremoveData, clearPremove]
   );
 
   const onPieceDrag = useCallback(
     ({ square }: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => {
-      if (!square || !isMyTurn()) {
+      if (!square) {
         setSelectedSquare(null);
+        setPremoveSelectedSquare(null);
         return;
       }
       const piece = game.get(square as Square);
-      if (!piece) { setSelectedSquare(null); return; }
-      const myColor = isWhite ? "w" : "b";
-      if (piece.color !== myColor) { setSelectedSquare(null); return; }
-      setSelectedSquare(square);
+      if (!piece || piece.color !== myColor) {
+        setSelectedSquare(null);
+        setPremoveSelectedSquare(null);
+        return;
+      }
+      if (isMyTurn()) {
+        setSelectedSquare(square);
+      } else if (status === "playing" && isPlayer) {
+        setPremoveSelectedSquare(square);
+      }
     },
-    [game, isMyTurn, isWhite]
+    [game, isMyTurn, myColor, status, isPlayer]
   );
 
   const onPieceClick = useCallback(
     ({ square }: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => {
-      if (!square || !isMyTurn()) {
+      if (!square) {
         setSelectedSquare(null);
+        setPremoveSelectedSquare(null);
         return;
       }
 
-      if (selectedSquare && selectedSquare !== square) {
-        const targets = getLegalMovesForSquare(selectedSquare);
-        if (targets.includes(square)) {
-          tryMove(selectedSquare, square);
+      if (isMyTurn()) {
+        clearPremove();
+        if (selectedSquare && selectedSquare !== square) {
+          const targets = getLegalMovesForSquare(selectedSquare);
+          if (targets.includes(square)) {
+            tryMove(selectedSquare, square);
+            return;
+          }
+        }
+        const piece = game.get(square as Square);
+        if (!piece) { setSelectedSquare(null); return; }
+        if (piece.color !== myColor) { setSelectedSquare(null); return; }
+        setSelectedSquare(square === selectedSquare ? null : square);
+      } else if (status === "playing" && isPlayer) {
+        if (premoveSelectedSquare && premoveSelectedSquare !== square) {
+          const tgtPiece = game.get(square as Square);
+          if (tgtPiece && tgtPiece.color === myColor) {
+            setPremoveSelectedSquare(square);
+            setPremove(null);
+            premoveRef.current = null;
+            return;
+          }
+          const srcPiece = game.get(premoveSelectedSquare as Square);
+          if (srcPiece) {
+            const promoRank = myColor === "w" ? "8" : "1";
+            setPremoveData(premoveSelectedSquare, square, srcPiece.type === "p" && square[1] === promoRank ? "q" : undefined);
+            return;
+          }
+        }
+        const piece = game.get(square as Square);
+        if (!piece || piece.color !== myColor) {
+          setPremoveSelectedSquare(null);
           return;
         }
+        setPremoveSelectedSquare(square === premoveSelectedSquare ? null : square);
+        setPremove(null);
+        premoveRef.current = null;
       }
-
-      const piece = game.get(square as Square);
-      if (!piece) { setSelectedSquare(null); return; }
-      const myColor = isWhite ? "w" : "b";
-      if (piece.color !== myColor) { setSelectedSquare(null); return; }
-      setSelectedSquare(square === selectedSquare ? null : square);
     },
-    [game, selectedSquare, isMyTurn, isWhite, getLegalMovesForSquare, tryMove]
+    [game, selectedSquare, premoveSelectedSquare, isMyTurn, myColor, status, isPlayer, getLegalMovesForSquare, tryMove, setPremoveData, clearPremove]
   );
 
   const onSquareClick = useCallback(
     ({ square }: { piece: { pieceType: string } | null; square: string }) => {
-      if (!selectedSquare) return;
-
-      const targets = getLegalMovesForSquare(selectedSquare);
-      if (targets.includes(square)) {
-        tryMove(selectedSquare, square);
+      if (isMyTurn()) {
+        if (!selectedSquare) return;
+        const targets = getLegalMovesForSquare(selectedSquare);
+        if (targets.includes(square)) {
+          tryMove(selectedSquare, square);
+        } else {
+          setSelectedSquare(null);
+        }
+      } else if (status === "playing" && isPlayer && premoveSelectedSquare) {
+        const srcPiece = game.get(premoveSelectedSquare as Square);
+        if (srcPiece) {
+          const promoRank = myColor === "w" ? "8" : "1";
+          setPremoveData(premoveSelectedSquare, square, srcPiece.type === "p" && square[1] === promoRank ? "q" : undefined);
+        }
       } else {
         setSelectedSquare(null);
+        setPremoveSelectedSquare(null);
       }
     },
-    [selectedSquare, getLegalMovesForSquare, tryMove]
+    [selectedSquare, premoveSelectedSquare, isMyTurn, myColor, status, isPlayer, game, getLegalMovesForSquare, tryMove, setPremoveData]
   );
 
   const handleLeave = useCallback(() => {
@@ -432,6 +579,10 @@ export default function GameRoom({ playerName }: Props) {
                 onPieceDrag: onPieceDrag,
                 onPieceClick: onPieceClick,
                 onSquareClick: onSquareClick,
+                canDragPiece: ({ piece }) => {
+                  if (!isPlayer || status !== "playing") return false;
+                  return piece.pieceType[0] === myColor;
+                },
                 squareStyles: highlightStyles,
                 boardOrientation: orientation,
                 animationDurationInMs: 200,

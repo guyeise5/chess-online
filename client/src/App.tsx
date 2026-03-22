@@ -8,6 +8,7 @@ import GameRoom from "./components/GameRoom";
 import PuzzleTrainer from "./components/PuzzleTrainer";
 import AnalysisBoard from "./components/AnalysisBoard";
 import NamePrompt from "./components/NamePrompt";
+import Footer from "./components/Footer";
 
 const PLAYER_NAME_KEY = "chess-player-name";
 
@@ -27,44 +28,52 @@ export default function App() {
   };
 
   if (!playerName) {
-    return <NamePrompt onSubmit={handleSetName} />;
+    return (
+      <>
+        <NamePrompt onSubmit={handleSetName} />
+        <Footer />
+      </>
+    );
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <Home playerName={playerName} onChangeName={handleChangeName} />
-        }
-      />
-      <Route
-        path="/rooms"
-        element={
-          <Lobby playerName={playerName} onChangeName={handleChangeName} />
-        }
-      />
-      <Route
-        path="/computer"
-        element={
-          <ComputerSetup
-            playerName={playerName}
-            onChangeName={handleChangeName}
-          />
-        }
-      />
-      <Route
-        path="/play/computer"
-        element={<ComputerGame playerName={playerName} />}
-      />
-      <Route
-        path="/game/:roomId"
-        element={<GameRoom playerName={playerName} />}
-      />
-      <Route path="/analysis/:gameId" element={<AnalysisBoard />} />
-      <Route path="/puzzles" element={<PuzzleTrainer />} />
-      <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Home playerName={playerName} onChangeName={handleChangeName} />
+          }
+        />
+        <Route
+          path="/rooms"
+          element={
+            <Lobby playerName={playerName} onChangeName={handleChangeName} />
+          }
+        />
+        <Route
+          path="/computer"
+          element={
+            <ComputerSetup
+              playerName={playerName}
+              onChangeName={handleChangeName}
+            />
+          }
+        />
+        <Route
+          path="/play/computer"
+          element={<ComputerGame playerName={playerName} />}
+        />
+        <Route
+          path="/game/:roomId"
+          element={<GameRoom playerName={playerName} />}
+        />
+        <Route path="/analysis/:gameId" element={<AnalysisBoard />} />
+        <Route path="/puzzles" element={<PuzzleTrainer />} />
+        <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer />
+    </>
   );
 }
