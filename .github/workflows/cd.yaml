@@ -1,0 +1,57 @@
+name: CD
+
+on:
+  push:
+    branches: main
+
+jobs:
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set short SHA tag
+        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Build & push chess-app
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:latest
+
+      - name: Build & push chess-puzzle-init
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.puzzle-init
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:latest
+
+      - name: Build & push chess-opening-init
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.opening-init
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ env.TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:latest
