@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev-v2]
+  pull_request:
+    branches: [main, dev-v2]
+
+jobs:
+  server-test:
+    name: Server Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: server
+
+      - name: Run tests
+        run: npm test
+        working-directory: server
+
+  client-test:
+    name: Client Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: client
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: client
+
+      - name: Run tests
+        run: npm test
+        working-directory: client
+
+  client-build:
+    name: Client Build
+    runs-on: ubuntu-latest
+    needs: [client-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: client
+
+      - name: Build
+        run: npm run build
+        working-directory: client
+
+  server-build:
+    name: Server Build
+    runs-on: ubuntu-latest
+    needs: [server-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Build
+        run: npm run build
+        working-directory: server
+
+  helm-test:
+    name: Helm Chart Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+      - name: Lint chart
+        run: helm lint helm/chess/
+
+      - name: Run unit tests
+        run: helm unittest helm/chess/
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [server-test, client-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-kind:
+    name: Deploy on Kind
+    runs-on: ubuntu-latest
+    needs: [server-test, client-test, helm-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: chess-ci
+
+      - name: Build app image
+        run: docker build -t chess-app:ci .
+
+      - name: Load images into kind
+        run: kind load docker-image chess-app:ci --name chess-ci
+
+      - uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm install chess helm/chess/ \
+            --set app.image.repository=chess-app \
+            --set app.image.tag=ci \
+            --set app.image.pullPolicy=Never \
+            --set mongodb.image.pullPolicy=Always \
+            --set puzzleInit.enabled=false \
+            --wait \
+            --timeout 3m
+
+      - name: Verify pods are running
+        run: |
+          kubectl get pods
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=app --timeout=120s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=mongodb --timeout=120s
+
+      - name: Smoke test
+        run: |
+          kubectl port-forward svc/chess-chess-app 8080:80 &
+          sleep 3
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Smoke test failed"
+            kubectl logs -l app.kubernetes.io/component=app --tail=50
+            exit 1
+          fi
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -o wide
+          kubectl describe pods
+          kubectl logs -l app.kubernetes.io/component=app --tail=100
+          kubectl logs -l app.kubernetes.io/component=mongodb --tail=50
+
+  ci:
+    name: CI
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [server-test, client-test, server-build, client-build, helm-test, docker-build, deploy-kind]
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more jobs failed or were cancelled"
+            exit 1
+          fi
