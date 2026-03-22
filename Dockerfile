@@ -30,7 +30,11 @@ ENV PORT=3001
 EXPOSE 3001
 
 COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh && \
+    chown -R 1001:0 /app && \
+    chmod -R g=u /app
+
+USER 1001
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]

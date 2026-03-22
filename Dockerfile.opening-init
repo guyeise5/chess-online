@@ -22,6 +22,10 @@ RUN npm install --omit=dev
 COPY --from=build /app/server/dist ./dist
 COPY --from=download /tmp/openings ./bundled/openings
 COPY opening-init.sh ./
-RUN chmod +x opening-init.sh
+RUN chmod +x opening-init.sh && \
+    chown -R 1001:0 /app && \
+    chmod -R g=u /app
+
+USER 1001
 
 CMD ["./opening-init.sh"]

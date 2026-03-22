@@ -18,6 +18,10 @@ RUN npm install --omit=dev
 COPY --from=build /app/server/dist ./dist
 COPY --from=download /tmp/lichess_db_puzzle.csv.zst /app/bundled/lichess_db_puzzle.csv.zst
 COPY puzzle-init.sh ./
-RUN chmod +x puzzle-init.sh
+RUN chmod +x puzzle-init.sh && \
+    chown -R 1001:0 /app && \
+    chmod -R g=u /app
+
+USER 1001
 
 CMD ["./puzzle-init.sh"]
