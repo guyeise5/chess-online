@@ -29,9 +29,7 @@ class MockStockfishWorker {
   private emit(data: string) {
     const ev = { data } as MessageEvent;
     this.onmessage?.(ev);
-    for (const l of [...this.listeners]) {
-      l(ev);
-    }
+    for (const l of [...this.listeners]) l(ev);
   }
 
   postMessage(msg: string) {
@@ -48,9 +46,11 @@ class MockStockfishWorker {
       return;
     }
     if (msg.startsWith("go depth")) {
-      const fen = this.lastPositionFen ?? "";
       queueMicrotask(() => {
-        const spec = this.goHandler?.(fen) ?? { cp: 0, best: "a2a3" };
+        const spec = this.goHandler?.(this.lastPositionFen ?? "") ?? {
+          cp: 0,
+          best: "a2a3",
+        };
         if ("mate" in spec) {
           this.emit(`info depth 18 score mate ${spec.mate}`);
         } else {
@@ -90,37 +90,101 @@ async function flushMicrotasks(times = 8) {
   }
 }
 
-describe("useStockfishAnalysis", () => {
+describe("book move classification", () => {
   const OriginalWorker = globalThis.Worker;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    (window as any).__ENV__ = { FEATURE_OPENING_BOOK: "false" };
     vi.stubGlobal(
       "Worker",
       class {
-        constructor(url: string | URL) {
-          void url;
+        constructor() {
           return new MockStockfishWorker() as unknown as Worker;
         }
       } as unknown as typeof Worker
     );
+
+    (window as any).__ENV__ = { FEATURE_OPENING_BOOK: "true" };
   });
 
   afterEach(() => {
     vi.stubGlobal("Worker", OriginalWorker);
     MockStockfishWorker.lastInstance = null;
+    fetchSpy?.mockRestore();
     delete (window as any).__ENV__;
   });
 
-  it("runs UCI init, analyzes positions in order, and classifies centipawn loss from white's perspective", async () => {
+  it("classifies moves as 'book' when API confirms positions are in the book", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ book: [true, true, true] }),
+    } as Response);
+
+    const { root, ref } = mountHook(["e4", "e5"]);
+    const worker = MockStockfishWorker.lastInstance!;
+    worker.goHandler = () => ({ cp: 30, best: "a2a3" });
+
+    await flushMicrotasks();
+    act(() => {
+      ref.current!.startAnalysis();
+    });
+    await flushMicrotasks();
+
+    await vi.waitFor(
+      () => {
+        expect(ref.current!.analyzing).toBe(false);
+        expect(ref.current!.evals).toHaveLength(3);
+      },
+      { timeout: 4000 }
+    );
+
+    expect(ref.current!.evals[0]!.classification).toBeUndefined();
+    expect(ref.current!.evals[1]!.classification).toBe("book");
+    expect(ref.current!.evals[2]!.classification).toBe("book");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("switches from book to normal classification when a position leaves the book", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ book: [true, true, false] }),
+    } as Response);
+
+    const { root, ref } = mountHook(["e4", "e5"]);
+    const worker = MockStockfishWorker.lastInstance!;
+    worker.goHandler = () => ({ cp: 30, best: "a2a3" });
+
+    await flushMicrotasks();
+    act(() => {
+      ref.current!.startAnalysis();
+    });
+    await flushMicrotasks();
+
+    await vi.waitFor(
+      () => {
+        expect(ref.current!.analyzing).toBe(false);
+        expect(ref.current!.evals).toHaveLength(3);
+      },
+      { timeout: 4000 }
+    );
+
+    expect(ref.current!.evals[1]!.classification).toBe("book");
+    expect(ref.current!.evals[2]!.classification).not.toBe("book");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("falls back to normal classification when the book API fails", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
+
     const { root, ref } = mountHook(["e4"]);
     const worker = MockStockfishWorker.lastInstance!;
-    worker.goHandler = (fen) => {
-      if (fen.includes(" w ")) {
-        return { cp: 100, best: "e2e4" };
-      }
-      return { cp: -50, best: "e7e5" };
-    };
+    worker.goHandler = () => ({ cp: 30, best: "a2a3" });
 
     await flushMicrotasks();
     act(() => {
@@ -136,22 +200,20 @@ describe("useStockfishAnalysis", () => {
       { timeout: 4000 }
     );
 
-    expect(ref.current!.evals).toHaveLength(2);
-    expect(ref.current!.evals[0]!.classification).toBeUndefined();
-    expect(ref.current!.evals[0]!.score).toBe(100);
-    expect(ref.current!.evals[1]!.score).toBe(50);
-    expect(ref.current!.evals[1]!.classification).toBe("good");
-    expect(ref.current!.progress).toBe(100);
+    expect(ref.current!.evals[1]!.classification).not.toBe("book");
 
     act(() => {
       root.unmount();
     });
   });
 
-  it("maps mate scores to large centipawn values (white to move: mate 3)", async () => {
-    const { root, ref } = mountHook([]);
+  it("does not check book when feature flag is disabled", async () => {
+    (window as any).__ENV__ = { FEATURE_OPENING_BOOK: "false" };
+    fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const { root, ref } = mountHook(["e4"]);
     const worker = MockStockfishWorker.lastInstance!;
-    worker.goHandler = () => ({ mate: 3, best: "e2e4" });
+    worker.goHandler = () => ({ cp: 30, best: "a2a3" });
 
     await flushMicrotasks();
     act(() => {
@@ -162,35 +224,13 @@ describe("useStockfishAnalysis", () => {
     await vi.waitFor(
       () => {
         expect(ref.current!.analyzing).toBe(false);
-        expect(ref.current!.evals).toHaveLength(1);
+        expect(ref.current!.evals).toHaveLength(2);
       },
       { timeout: 4000 }
     );
 
-    expect(ref.current!.evals[0]!.score).toBe(10000 - 3);
-
-    act(() => {
-      root.unmount();
-    });
-  });
-
-  it("clears evals and stops analyzing when SAN replay fails", async () => {
-    const { root, ref } = mountHook(["not-a-move"]);
-    const worker = MockStockfishWorker.lastInstance!;
-    worker.goHandler = () => ({ cp: 0, best: "a2a3" });
-
-    await flushMicrotasks();
-    act(() => {
-      ref.current!.startAnalysis();
-    });
-    await flushMicrotasks();
-
-    await vi.waitFor(() => {
-      expect(ref.current!.analyzing).toBe(false);
-    });
-
-    expect(ref.current!.evals).toHaveLength(0);
-    expect(ref.current!.progress).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(ref.current!.evals[1]!.classification).not.toBe("book");
 
     act(() => {
       root.unmount();

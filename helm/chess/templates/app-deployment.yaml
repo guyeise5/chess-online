@@ -36,6 +36,12 @@ spec:
               value: {{ include "chess.mongoUri" . | quote }}
             - name: AUTHOR_URL
               value: {{ .Values.app.env.AUTHOR_URL | quote }}
+            - name: FEATURE_GAME_STORAGE
+              value: {{ .Values.app.env.FEATURE_GAME_STORAGE | quote }}
+            - name: FEATURE_MATERIAL_DIFF
+              value: {{ .Values.app.env.FEATURE_MATERIAL_DIFF | quote }}
+            - name: FEATURE_OPENING_BOOK
+              value: {{ .Values.app.env.FEATURE_OPENING_BOOK | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

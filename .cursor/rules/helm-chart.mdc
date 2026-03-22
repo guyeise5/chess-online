@@ -1,0 +1,33 @@
+---
+description: Keep Helm chart in sync with Docker/infrastructure changes
+alwaysApply: true
+---
+
+# Helm Chart
+
+A Helm chart lives at `helm/chess/`. It must stay in sync with `docker-compose.yml` and `Dockerfile*` changes.
+
+## When to update
+
+- **New init service** (e.g. `Dockerfile.opening-init`): add a corresponding Job template in `templates/` and values block in `values.yaml`, following the `puzzleInit` / `puzzle-init-job.yaml` pattern.
+- **New environment variable or feature flag**: add it to the app Deployment `env` list and to `values.yaml` under `app.env`.
+- **New Docker image**: add its `image.repository`, `image.tag`, and `image.pullPolicy` to `values.yaml`.
+- **Port, probe, or resource changes**: mirror them in the relevant template and values.
+
+## Tests
+
+Every Helm chart change **must** include corresponding tests in `helm/chess/tests/`.
+
+- Tests use [helm-unittest](https://github.com/helm-unittest/helm-unittest) YAML format.
+- Follow the naming convention: `<resource>_test.yaml` (e.g. `opening_init_test.yaml`).
+- For new templates: test kind, name, labels, hook annotations, env vars, image, resources, imagePullSecrets, and the enabled/disabled toggle.
+- For env var additions to existing templates: add `contains` assertions for default and custom values.
+- Follow existing patterns in `puzzle_init_test.yaml` and `app_deployment_test.yaml`.
+- Run tests with `helm unittest helm/chess/`.
+
+## Patterns
+
+- Init jobs use Helm hooks (`post-install,post-upgrade`) with `before-hook-creation` delete policy.
+- Feature flags default to `"true"` in `values.yaml` and are injected as env vars.
+- All images use `pullPolicy: IfNotPresent` by default.
+- Templates reference helpers from `_helpers.tpl` (`chess.fullname`, `chess.labels`, `chess.mongoUri`).

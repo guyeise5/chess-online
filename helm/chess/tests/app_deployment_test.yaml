@@ -100,6 +100,60 @@ tests:
             name: AUTHOR_URL
             value: ""
 
+  - it: should have default FEATURE_GAME_STORAGE as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_STORAGE
+            value: "true"
+
+  - it: should allow disabling FEATURE_GAME_STORAGE
+    set:
+      app.env.FEATURE_GAME_STORAGE: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_STORAGE
+            value: "false"
+
+  - it: should have default FEATURE_MATERIAL_DIFF as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_MATERIAL_DIFF
+            value: "true"
+
+  - it: should allow disabling FEATURE_MATERIAL_DIFF
+    set:
+      app.env.FEATURE_MATERIAL_DIFF: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_MATERIAL_DIFF
+            value: "false"
+
+  - it: should have default FEATURE_OPENING_BOOK as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_OPENING_BOOK
+            value: "true"
+
+  - it: should allow disabling FEATURE_OPENING_BOOK
+    set:
+      app.env.FEATURE_OPENING_BOOK: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_OPENING_BOOK
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

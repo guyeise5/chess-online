@@ -50,7 +50,8 @@
 - Multi-PV engine analysis (5 principal variations, depth 18) via Stockfish WASM worker
 - Eval bar showing advantage with signed score (+/−) on the winning side, logistic curve, and mate distance labels
 - Score graph plotting evaluations across the game with scrub/jump navigation
-- Move quality annotations on every move (best ★ / good 👍 / inaccuracy `?!` / mistake `?` / blunder `??`) using winning-chances delta with chess.com Expected Points thresholds (best ≤0.04, good 0.04–0.10, inaccuracy 0.10–0.20, mistake 0.20–0.40, blunder >0.40)
+- Move quality annotations on every move (book 📖 / best ★ / good 👍 / inaccuracy `?!` / mistake `?` / blunder `??`) using winning-chances delta with chess.com Expected Points thresholds (best ≤0.04, good 0.04–0.10, inaccuracy 0.10–0.20, mistake 0.20–0.40, blunder >0.40)
+- Opening book detection: known opening positions (from Lichess chess-openings) are labeled "book" instead of receiving a WC-delta classification; once a move leaves the book, normal scoring resumes
 - Analysis board: legal-move dots and capture rings when selecting or dragging a piece (same styling as live play)
 - Material difference display in player bars (updates as you navigate moves)
 - Full move navigation (forward, backward, jump to position)
@@ -80,3 +81,4 @@
 |------|---------|-------------|
 | `FEATURE_GAME_STORAGE` | `true` | Server-side game storage for analysis (MongoDB `games` collection, 14-day TTL). Set to `false` to disable. |
 | `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |
+| `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |

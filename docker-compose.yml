@@ -17,6 +17,16 @@ services:
       - mongo
     restart: "no"
 
+  opening-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.opening-init
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/chess-online
+    depends_on:
+      - mongo
+    restart: "no"
+
   app:
     build: .
     restart: unless-stopped
@@ -28,6 +38,7 @@ services:
       - AUTHOR_URL=${AUTHOR_URL:-}
       - FEATURE_GAME_STORAGE=${FEATURE_GAME_STORAGE:-true}
       - FEATURE_MATERIAL_DIFF=${FEATURE_MATERIAL_DIFF:-true}
+      - FEATURE_OPENING_BOOK=${FEATURE_OPENING_BOOK:-true}
     depends_on:
       - mongo
 

@@ -112,6 +112,31 @@ async function main() {
     }
   });
 
+  if (process.env.FEATURE_OPENING_BOOK !== "false") {
+    const BookPosition = (await import("./models/BookPosition")).default;
+
+    app.post("/api/openings/check", async (req, res) => {
+      try {
+        const { fens } = req.body;
+        if (!Array.isArray(fens) || fens.length === 0) {
+          res.status(400).json({ error: "fens array is required" });
+          return;
+        }
+
+        const found = await BookPosition.find(
+          { fen: { $in: fens } },
+          { fen: 1, _id: 0 }
+        ).lean();
+        const bookSet = new Set(found.map((d) => d.fen));
+        const book = fens.map((f: string) => bookSet.has(f));
+        res.json({ book });
+      } catch (err) {
+        console.error("Opening book check error:", err);
+        res.status(500).json({ error: "Failed to check opening book" });
+      }
+    });
+  }
+
   if (process.env.FEATURE_GAME_STORAGE !== "false") {
     const Game = (await import("./models/Game")).default;
 

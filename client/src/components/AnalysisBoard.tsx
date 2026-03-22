@@ -36,6 +36,7 @@ const HIGHLIGHT_CAPTURE: React.CSSProperties = {
 };
 
 const CLASSIFICATION_TEXT: Record<MoveClassification, string> = {
+  book: "",
   best: "",
   good: "",
   inaccuracy: "?!",
@@ -44,6 +45,7 @@ const CLASSIFICATION_TEXT: Record<MoveClassification, string> = {
 };
 
 const CLASSIFICATION_COLORS: Record<MoveClassification, string> = {
+  book: "#a88b5a",
   best: "#96bc4b",
   good: "#96bc4b",
   inaccuracy: "#f7c631",
@@ -58,6 +60,13 @@ function AnnotationIcon({
   classification: MoveClassification;
   size: number;
 }) {
+  if (classification === "book") {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="white">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2V3zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7V3z" />
+      </svg>
+    );
+  }
   if (classification === "best") {
     return (
       <svg viewBox="0 0 24 24" width={size} height={size} fill="white">

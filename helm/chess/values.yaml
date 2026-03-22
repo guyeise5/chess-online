@@ -14,6 +14,9 @@ app:
       memory: 512Mi
   env:
     AUTHOR_URL: ""
+    FEATURE_GAME_STORAGE: "true"
+    FEATURE_MATERIAL_DIFF: "true"
+    FEATURE_OPENING_BOOK: "true"
 
 mongodb:
   image:
@@ -45,6 +48,21 @@ puzzleInit:
     limits:
       cpu: 500m
       memory: 1Gi
+  backoffLimit: 3
+
+openingInit:
+  enabled: true
+  image:
+    repository: chess-opening-init
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
   backoffLimit: 3
 
 service:

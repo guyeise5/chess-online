@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 
 export type MoveClassification =
+  | "book"
   | "best"
   | "good"
   | "inaccuracy"
@@ -85,6 +86,34 @@ function classifyWinningChancesDelta(delta: number): MoveClassification {
   if (delta > 0.1) return "inaccuracy";
   if (delta <= 0.04) return "best";
   return "good";
+}
+
+function positionKey(fen: string): string {
+  return fen.split(" ").slice(0, 4).join(" ");
+}
+
+const API_BASE = typeof window !== "undefined" && (window as any).__ENV__
+  ? ""
+  : "http://localhost:3001";
+
+async function fetchBookFlags(fens: string[]): Promise<boolean[]> {
+  const flags = (window as any).__ENV__ || {};
+  if (flags.FEATURE_OPENING_BOOK === "false") {
+    return fens.map(() => false);
+  }
+  try {
+    const keys = fens.map(positionKey);
+    const res = await fetch(`${API_BASE}/api/openings/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fens: keys }),
+    });
+    if (!res.ok) return fens.map(() => false);
+    const data = await res.json();
+    return data.book as boolean[];
+  } catch {
+    return fens.map(() => false);
+  }
 }
 
 function sideToMoveFromFen(fen: string): boolean {
@@ -295,6 +324,13 @@ export function useStockfishAnalysis(
       setProgress(0);
       setEvals([]);
 
+      const bookFlags = await fetchBookFlags(fens);
+      if (unmountedRef.current || gen !== runGenerationRef.current) {
+        setAnalyzing(false);
+        return;
+      }
+
+      let bookEnded = false;
       const built: EvalEntry[] = [];
       const total = fens.length;
 
@@ -322,14 +358,19 @@ export function useStockfishAnalysis(
 
         const entry: EvalEntry = { score, bestMove };
         if (i > 0) {
-          const prev = built[i - 1]!;
-          const whiteToMoveBefore = sideToMoveFromFen(fens[i - 1]!);
-          const wcBefore = winningChances(prev.score);
-          const wcAfter = winningChances(score);
-          const delta = whiteToMoveBefore
-            ? wcBefore - wcAfter
-            : wcAfter - wcBefore;
-          entry.classification = classifyWinningChancesDelta(Math.max(0, delta));
+          if (!bookEnded && bookFlags[i]) {
+            entry.classification = "book";
+          } else {
+            bookEnded = true;
+            const prev = built[i - 1]!;
+            const whiteToMoveBefore = sideToMoveFromFen(fens[i - 1]!);
+            const wcBefore = winningChances(prev.score);
+            const wcAfter = winningChances(score);
+            const delta = whiteToMoveBefore
+              ? wcBefore - wcAfter
+              : wcAfter - wcBefore;
+            entry.classification = classifyWinningChancesDelta(Math.max(0, delta));
+          }
         }
         built.push(entry);
         setEvals([...built]);
