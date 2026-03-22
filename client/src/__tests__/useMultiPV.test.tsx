@@ -790,6 +790,171 @@ describe("useMultiPV — full game simulation", () => {
     act(() => root.unmount());
   });
 
+  /* ---- navigate before engine finishes UCI init ---- */
+
+  it("handles navigation before engine is ready (polling branch)", async () => {
+    const fens = gamePositions(ITALIAN_GAME);
+    const { root, ref, render } = mountHook(fens[0]);
+    const worker = MockWorker.lastInstance!;
+    worker.goResponder = (fen) => makePvResponse(fen, 18);
+    worker.onStop = () => {
+      worker.emit("bestmove a2a3");
+    };
+
+    render(fens[2]);
+    await flush(2);
+
+    render(fens[4]);
+    await flush(2);
+
+    await settle();
+
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+    expect(ref.current!.computing).toBe(false);
+
+    const positionCmds = worker.postMessageLog.filter((m) =>
+      m.startsWith("position fen ")
+    );
+    const lastPos = positionCmds[positionCmds.length - 1];
+    expect(lastPos).toContain(fens[4].split(" ")[0]);
+
+    act(() => root.unmount());
+  });
+
+  /* ---- watchdog recovery when engine is stuck ---- */
+
+  it("recovers via watchdog when engine does not respond", async () => {
+    const fens = gamePositions(ITALIAN_GAME);
+    const { root, ref } = mountHook(fens[0]);
+    const worker = MockWorker.lastInstance!;
+
+    let callCount = 0;
+    worker.goResponder = (fen) => {
+      callCount++;
+      if (callCount <= 1) return [];
+      return makePvResponse(fen, 18);
+    };
+
+    await settle();
+    expect(ref.current!.computing).toBe(true);
+    expect(ref.current!.lines).toHaveLength(0);
+
+    vi.advanceTimersByTime(10_000);
+    await flush(20);
+    vi.advanceTimersByTime(200);
+    await flush(20);
+
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+    expect(ref.current!.computing).toBe(false);
+
+    act(() => root.unmount());
+  });
+
+  /* ---- rapid navigation through a checkmate position ---- */
+
+  it("recovers when rapidly navigating through a checkmate position", async () => {
+    const fens = gamePositions(SCHOLARS_MATE);
+    const preMate = fens[fens.length - 2];
+    const mateFen = fens[fens.length - 1];
+    const { root, ref, render } = mountHook(fens[0]);
+    const worker = MockWorker.lastInstance!;
+    worker.goResponder = (fen) => makePvResponse(fen, 18);
+    worker.onStop = () => {
+      worker.emit("bestmove a2a3");
+    };
+
+    await settle();
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+
+    render(mateFen);
+    vi.advanceTimersByTime(15);
+    await flush(2);
+    render(preMate);
+    await settle();
+
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+    expect(ref.current!.computing).toBe(false);
+
+    act(() => root.unmount());
+  });
+
+  /* ---- navigate while analyze's isready is pending ---- */
+
+  it("recovers when navigating while readyok from previous analyze is pending", async () => {
+    const fens = gamePositions(ITALIAN_GAME);
+    const { root, ref, render } = mountHook(fens[0]);
+    const worker = MockWorker.lastInstance!;
+    worker.goResponder = (fen) => makePvResponse(fen, 18);
+    worker.onStop = () => {
+      worker.emit("bestmove a2a3");
+    };
+
+    await settle();
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+
+    const origIsready = worker.postMessage.bind(worker);
+    let blockedReadyok = false;
+    let pendingReadyok: (() => void) | null = null;
+    const origPostMessage = worker.postMessage.bind(worker);
+    worker.postMessage = (msg: string) => {
+      worker.postMessageLog.push(msg);
+      if (msg === "isready" && blockedReadyok) {
+        pendingReadyok = () => worker.emit("readyok");
+        return;
+      }
+      if (msg === "uci") {
+        queueMicrotask(() => worker.emit("uciok"));
+        return;
+      }
+      if (msg.startsWith("setoption")) return;
+      if (msg === "isready") {
+        queueMicrotask(() => worker.emit("readyok"));
+        return;
+      }
+      if (msg.startsWith("position fen ")) {
+        (worker as any).positionFen = msg.slice("position fen ".length).trim();
+        return;
+      }
+      if (msg.startsWith("go depth")) {
+        const fen = (worker as any).positionFen ?? "";
+        queueMicrotask(() => {
+          const lines = worker.goResponder?.(fen) ?? [];
+          for (const l of lines) worker.emit(l);
+        });
+        return;
+      }
+      if (msg === "stop") {
+        if (worker.onStop) queueMicrotask(() => worker.onStop!());
+        return;
+      }
+    };
+
+    blockedReadyok = true;
+    render(fens[2]);
+    vi.advanceTimersByTime(60);
+    await flush(5);
+
+    expect(ref.current!.computing).toBe(true);
+
+    render(fens[6]);
+    vi.advanceTimersByTime(20);
+    await flush(2);
+    render(fens[8]);
+
+    if (pendingReadyok) pendingReadyok();
+    await flush(5);
+
+    blockedReadyok = false;
+    worker.postMessage = origPostMessage;
+
+    await settle();
+
+    expect(ref.current!.lines.length).toBeGreaterThan(0);
+    expect(ref.current!.computing).toBe(false);
+
+    act(() => root.unmount());
+  });
+
   /* ---- same fen twice doesn't duplicate analysis ---- */
 
   it("re-rendering with the same fen does not restart analysis", async () => {
