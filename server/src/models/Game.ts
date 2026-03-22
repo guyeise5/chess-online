@@ -7,6 +7,7 @@ export interface IGame extends Document {
   playerWhite?: string;
   playerBlack?: string;
   orientation?: "white" | "black";
+  result?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +20,7 @@ const GameSchema = new Schema<IGame>(
     playerWhite: { type: String },
     playerBlack: { type: String },
     orientation: { type: String, enum: ["white", "black"] },
+    result: { type: String },
   },
   { timestamps: true, collection: "games" }
 );

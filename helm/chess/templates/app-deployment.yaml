@@ -42,6 +42,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_MATERIAL_DIFF | quote }}
             - name: FEATURE_OPENING_BOOK
               value: {{ .Values.app.env.FEATURE_OPENING_BOOK | quote }}
+            - name: FEATURE_GAME_HISTORY
+              value: {{ .Values.app.env.FEATURE_GAME_HISTORY | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

@@ -249,6 +249,7 @@ export default function ComputerGame({ playerName }: Props) {
       playerWhite: isPlayerWhite ? playerName : `Stockfish ${levelConfig.label}`,
       playerBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : playerName,
       orientation: color,
+      result: result ?? undefined,
     });
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -656,6 +657,7 @@ export default function ComputerGame({ playerName }: Props) {
                         ? `Stockfish ${levelConfig.label}`
                         : playerName,
                       orientation: color,
+                      result: result ?? undefined,
                     });
                   }
                   navigate(`/analysis/${id}`);

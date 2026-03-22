@@ -17,6 +17,7 @@ app:
     FEATURE_GAME_STORAGE: "true"
     FEATURE_MATERIAL_DIFF: "true"
     FEATURE_OPENING_BOOK: "true"
+    FEATURE_GAME_HISTORY: "true"
 
 mongodb:
   image:

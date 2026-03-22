@@ -102,6 +102,7 @@ export interface AnalysisGameData {
   playerWhite?: string;
   playerBlack?: string;
   orientation?: "white" | "black";
+  result?: string;
 }
 
 const API_BASE = import.meta.env.PROD ? "" : "http://localhost:3001";

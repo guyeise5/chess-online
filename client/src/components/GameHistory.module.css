@@ -1,0 +1,193 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.logoIcon {
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.playerName {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.main {
+  flex: 1;
+  max-width: 750px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.sectionHeader h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+.gameList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gameCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.gameCard:hover {
+  border-color: var(--border);
+}
+
+.gameInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.players {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.currentPlayer {
+  color: var(--accent);
+}
+
+.gameMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.moveCount {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.gameRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.resultBadge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.resultWin {
+  background: rgba(150, 188, 75, 0.2);
+  color: #96bc4b;
+}
+
+.resultLoss {
+  background: rgba(202, 52, 49, 0.2);
+  color: #ca3431;
+}
+
+.resultDraw {
+  background: rgba(160, 160, 160, 0.2);
+  color: #a0a0a0;
+}
+
+.resultUnknown {
+  background: rgba(160, 160, 160, 0.1);
+  color: var(--text-muted);
+}
+
+.analyzeBtn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.analyzeBtn:hover {
+  background: var(--accent-hover);
+}
+
+.date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

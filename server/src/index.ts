@@ -143,7 +143,7 @@ async function main() {
     app.post("/api/games/:gameId", async (req, res) => {
       try {
         const { gameId } = req.params;
-        const { moves, startFen, playerWhite, playerBlack, orientation } = req.body;
+        const { moves, startFen, playerWhite, playerBlack, orientation, result } = req.body;
         if (!Array.isArray(moves) || moves.length === 0) {
           res.status(400).json({ error: "moves array is required" });
           return;
@@ -165,7 +165,7 @@ async function main() {
 
         await Game.findOneAndUpdate(
           { gameId },
-          { gameId, moves: validMoves, startFen, playerWhite, playerBlack, orientation },
+          { gameId, moves: validMoves, startFen, playerWhite, playerBlack, orientation, result },
           { upsert: true, new: true }
         );
         res.json({ ok: true, totalMoves: moves.length, savedMoves: validMoves.length });
@@ -189,12 +189,45 @@ async function main() {
           playerWhite: game.playerWhite,
           playerBlack: game.playerBlack,
           orientation: game.orientation,
+          result: game.result,
         });
       } catch (err) {
         console.error("Game fetch error:", err);
         res.status(500).json({ error: "Failed to fetch game" });
       }
     });
+
+    if (process.env.FEATURE_GAME_HISTORY !== "false") {
+      app.get("/api/games", async (req, res) => {
+        try {
+          const player = req.query.player as string;
+          if (!player) {
+            res.status(400).json({ error: "player query parameter is required" });
+            return;
+          }
+          const games = await Game.find({
+            $or: [{ playerWhite: player }, { playerBlack: player }],
+          })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+          res.json(
+            games.map((g) => ({
+              gameId: g.gameId,
+              moves: g.moves,
+              playerWhite: g.playerWhite,
+              playerBlack: g.playerBlack,
+              orientation: g.orientation,
+              result: g.result,
+              createdAt: g.createdAt,
+            }))
+          );
+        } catch (err) {
+          console.error("Game list error:", err);
+          res.status(500).json({ error: "Failed to list games" });
+        }
+      });
+    }
   }
 
   app.get("*", (_req, res) => {

@@ -39,6 +39,7 @@ services:
       - FEATURE_GAME_STORAGE=${FEATURE_GAME_STORAGE:-true}
       - FEATURE_MATERIAL_DIFF=${FEATURE_MATERIAL_DIFF:-true}
       - FEATURE_OPENING_BOOK=${FEATURE_OPENING_BOOK:-true}
+      - FEATURE_GAME_HISTORY=${FEATURE_GAME_HISTORY:-true}
     depends_on:
       - mongo
 

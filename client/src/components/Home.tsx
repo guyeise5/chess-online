@@ -7,6 +7,9 @@ interface Props {
 }
 
 export default function Home({ playerName, onChangeName }: Props) {
+  const flags = (window as any).__ENV__ || {};
+  const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -40,6 +43,14 @@ export default function Home({ playerName, onChangeName }: Props) {
             <span className={styles.cardTitle}>Puzzles</span>
             <span className={styles.cardDesc}>Train with tactics</span>
           </Link>
+
+          {showGameHistory && (
+            <Link to="/games" className={styles.card}>
+              <span className={styles.cardIcon}>&#128214;</span>
+              <span className={styles.cardTitle}>My Games</span>
+              <span className={styles.cardDesc}>Review &amp; analyze past games</span>
+            </Link>
+          )}
         </div>
       </main>
     </div>

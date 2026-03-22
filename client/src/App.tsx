@@ -7,6 +7,7 @@ import ComputerGame from "./components/ComputerGame";
 import GameRoom from "./components/GameRoom";
 import PuzzleTrainer from "./components/PuzzleTrainer";
 import AnalysisBoard from "./components/AnalysisBoard";
+import GameHistory from "./components/GameHistory";
 import NamePrompt from "./components/NamePrompt";
 import Footer from "./components/Footer";
 
@@ -69,6 +70,15 @@ export default function App() {
           element={<GameRoom playerName={playerName} />}
         />
         <Route path="/analysis/:gameId" element={<AnalysisBoard />} />
+        <Route
+          path="/games"
+          element={
+            <GameHistory
+              playerName={playerName}
+              onChangeName={handleChangeName}
+            />
+          }
+        />
         <Route path="/puzzles" element={<PuzzleTrainer />} />
         <Route path="/puzzles/:puzzleId" element={<PuzzleTrainer />} />
         <Route path="*" element={<Navigate to="/" replace />} />

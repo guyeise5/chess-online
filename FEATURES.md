@@ -61,6 +61,17 @@
 - Truncation warning banner when loaded game data contains invalid moves
 - Score flipping for black-to-move positions (always displayed from White's perspective)
 
+## Game History
+
+- **Route:** `/games`
+- **Key files:** `client/src/components/GameHistory.tsx`, `server/src/models/Game.ts`, `server/src/index.ts`
+- **Feature flag:** `FEATURE_GAME_HISTORY` (default: enabled)
+- Lists all games played by the current player (online and vs computer)
+- Shows opponent name, move count, result (Won/Lost/Draw), and date
+- Click any game to open it in the analysis board
+- Games fetched from MongoDB `games` collection via `GET /api/games?player=<name>`
+- Up to 100 most recent games, sorted by newest first
+
 ## UI/UX
 
 - **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
@@ -82,3 +93,4 @@
 | `FEATURE_GAME_STORAGE` | `true` | Server-side game storage for analysis (MongoDB `games` collection, 14-day TTL). Set to `false` to disable. |
 | `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |
 | `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |
+| `FEATURE_GAME_HISTORY` | `true` | Game history page listing the player's past games for analysis. Set to `false` to disable. |

@@ -672,6 +672,7 @@ export default function GameRoom({ playerName }: Props) {
                     playerWhite: room?.whitePlayer ?? "White",
                     playerBlack: room?.blackPlayer ?? "Black",
                     orientation,
+                    result: result ?? undefined,
                   });
                   navigate(`/analysis/${id}`);
                 }}

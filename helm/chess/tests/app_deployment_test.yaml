@@ -154,6 +154,24 @@ tests:
             name: FEATURE_OPENING_BOOK
             value: "false"
 
+  - it: should have default FEATURE_GAME_HISTORY as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_HISTORY
+            value: "true"
+
+  - it: should allow disabling FEATURE_GAME_HISTORY
+    set:
+      app.env.FEATURE_GAME_HISTORY: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_HISTORY
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:
