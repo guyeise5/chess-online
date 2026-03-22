@@ -301,3 +301,99 @@ describe("computer game route state", () => {
     expect(state).not.toHaveProperty("timeFormat");
   });
 });
+
+interface SavedGame {
+  level: number;
+  color: "white" | "black";
+  fen: string;
+  status: "playing" | "finished";
+  result: string | null;
+  gameOverReason: string | null;
+  moves: string[];
+  lastMove: { from: string; to: string } | null;
+}
+
+function resolveGameState(
+  saved: SavedGame | null,
+  routeState: { level?: number; color?: "white" | "black" }
+) {
+  const resuming = saved !== null;
+  return {
+    resuming,
+    level: resuming ? saved!.level : (routeState.level || 3),
+    color: resuming ? saved!.color : (routeState.color || "white"),
+    fen: resuming ? saved!.fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    status: resuming ? saved!.status : "playing" as const,
+    moves: resuming ? saved!.moves : [],
+  };
+}
+
+describe("computer game persistence across refresh", () => {
+  const midGameSave: SavedGame = {
+    level: 5,
+    color: "black",
+    fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+    status: "playing",
+    result: null,
+    gameOverReason: null,
+    moves: ["e4", "e6"],
+    lastMove: { from: "e7", to: "e6" },
+  };
+
+  it("resumes from saved game even when route state is present (refresh scenario)", () => {
+    const routeState = { level: 5, color: "black" as const };
+    const state = resolveGameState(midGameSave, routeState);
+
+    expect(state.resuming).toBe(true);
+    expect(state.fen).toBe(midGameSave.fen);
+    expect(state.moves).toEqual(["e4", "e6"]);
+    expect(state.status).toBe("playing");
+  });
+
+  it("uses saved level/color, not route state, when resuming", () => {
+    const routeState = { level: 3, color: "white" as const };
+    const state = resolveGameState(midGameSave, routeState);
+
+    expect(state.level).toBe(5);
+    expect(state.color).toBe("black");
+  });
+
+  it("starts fresh game when no saved state (new game from setup)", () => {
+    const routeState = { level: 4, color: "white" as const };
+    const state = resolveGameState(null, routeState);
+
+    expect(state.resuming).toBe(false);
+    expect(state.level).toBe(4);
+    expect(state.color).toBe("white");
+    expect(state.fen).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    expect(state.moves).toEqual([]);
+  });
+
+  it("falls back to defaults when no saved state and no route state", () => {
+    const state = resolveGameState(null, {});
+
+    expect(state.resuming).toBe(false);
+    expect(state.level).toBe(3);
+    expect(state.color).toBe("white");
+  });
+
+  it("resumes a finished game correctly", () => {
+    const finishedSave: SavedGame = {
+      ...midGameSave,
+      status: "finished",
+      result: "1-0",
+      gameOverReason: "checkmate",
+    };
+    const state = resolveGameState(finishedSave, { level: 5, color: "black" });
+
+    expect(state.resuming).toBe(true);
+    expect(state.status).toBe("finished");
+  });
+
+  it("after setup clears saved game, next load starts fresh", () => {
+    const state = resolveGameState(null, { level: 2, color: "white" });
+    expect(state.resuming).toBe(false);
+    expect(state.level).toBe(2);
+    expect(state.fen).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  });
+});

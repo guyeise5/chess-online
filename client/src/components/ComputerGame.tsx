@@ -85,11 +85,10 @@ export default function ComputerGame({ playerName }: Props) {
   };
 
   const saved = useRef(loadGame()).current;
-  const hasRouteState = !!routeState.level;
-  const resuming = !hasRouteState && saved !== null;
+  const resuming = saved !== null;
 
-  const level = hasRouteState ? (routeState.level || 3) : (saved?.level || 3);
-  const color = hasRouteState ? (routeState.color || "white") : (saved?.color || "white");
+  const level = resuming ? saved!.level : (routeState.level || 3);
+  const color = resuming ? saved!.color : (routeState.color || "white");
 
   const { ready, getMove, stop } = useStockfish(level);
   const levelConfig = getLevelConfig(level);
