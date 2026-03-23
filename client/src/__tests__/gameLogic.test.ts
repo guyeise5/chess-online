@@ -150,6 +150,42 @@ describe("board orientation", () => {
   });
 });
 
+describe("lobby time label formatting", () => {
+  function formatMinutes(v: number): string {
+    if (v === 0.25) return "¼";
+    if (v === 0.5) return "½";
+    return String(v);
+  }
+
+  function formatTimeLabel(timeControl: number, increment: number): string {
+    const mins = timeControl / 60;
+    return `${formatMinutes(mins)}+${increment}`;
+  }
+
+  it("formats 15-second (¼ min) time control correctly", () => {
+    expect(formatTimeLabel(15, 0)).toBe("¼+0");
+  });
+
+  it("formats 30-second (½ min) time control correctly", () => {
+    expect(formatTimeLabel(30, 0)).toBe("½+0");
+  });
+
+  it("formats 15-second time control with increment", () => {
+    expect(formatTimeLabel(15, 1)).toBe("¼+1");
+  });
+
+  it("formats 30-second time control with increment", () => {
+    expect(formatTimeLabel(30, 2)).toBe("½+2");
+  });
+
+  it("formats whole-minute time controls", () => {
+    expect(formatTimeLabel(300, 3)).toBe("5+3");
+    expect(formatTimeLabel(60, 0)).toBe("1+0");
+    expect(formatTimeLabel(600, 5)).toBe("10+5");
+    expect(formatTimeLabel(1800, 0)).toBe("30+0");
+  });
+});
+
 describe("time formatting", () => {
   function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);

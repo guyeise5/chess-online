@@ -47,8 +47,8 @@ function formatMinutes(v: number): string {
 }
 
 function formatTimeLabel(timeControl: number, increment: number): string {
-  const mins = Math.floor(timeControl / 60);
-  return `${mins}+${increment}`;
+  const mins = timeControl / 60;
+  return `${formatMinutes(mins)}+${increment}`;
 }
 
 function classifyTime(minutes: number, increment: number): string {
