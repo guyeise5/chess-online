@@ -1,5 +1,6 @@
 .container {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -8,18 +9,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 1.5rem;
+  padding: 0.875rem 2.625rem;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
 
 .backBtn {
-  padding: 0.35rem 0.7rem;
-  border-radius: 4px;
+  padding: 0.6rem 1.225rem;
+  border-radius: 7px;
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  font-size: 0.82rem;
+  font-size: 1.44rem;
 }
 
 .backBtn:hover {
@@ -28,26 +29,26 @@
 }
 
 .logo {
-  font-size: 1.2rem;
+  font-size: 2.1rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.6rem;
 }
 
 .logoIcon {
-  height: 1.4em;
+  height: 2.45em;
   width: auto;
   vertical-align: middle;
 }
 
 .levelBadge {
-  font-size: 0.82rem;
+  font-size: 1.44rem;
   color: var(--text-muted);
   font-family: monospace;
-  padding: 0.2rem 0.5rem;
+  padding: 0.35rem 0.875rem;
   background: var(--bg-card);
-  border-radius: 4px;
+  border-radius: 7px;
   border: 1px solid var(--border);
 }
 
@@ -56,17 +57,18 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 1.5rem;
-  padding: 1rem;
+  gap: 2.625rem;
+  padding: 1.75rem;
   flex-wrap: wrap;
   overflow: hidden;
+  min-height: 0;
 }
 
 .boardArea {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-width: min(560px, calc(100vh - 200px));
+  max-width: min(980px, calc(100vh - 200px));
   width: 100%;
 }
 
@@ -80,25 +82,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4rem 0.6rem;
+  padding: 0.7rem 1.05rem;
   background: var(--bg-secondary);
   border-radius: 4px;
 }
 
 .playerBarName {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.575rem;
 }
 
 .clock {
   font-family: "Courier New", monospace;
-  font-size: 1.2rem;
+  font-size: 2.1rem;
   font-weight: 700;
-  padding: 0.2rem 0.6rem;
+  padding: 0.35rem 1.05rem;
   border-radius: 4px;
   background: var(--bg-card);
   color: var(--text-secondary);
-  min-width: 75px;
+  min-width: 131px;
   text-align: center;
 }
 
@@ -110,20 +112,20 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  width: 260px;
-  min-width: 200px;
+  gap: 1.3rem;
+  width: 455px;
+  min-width: 350px;
 }
 
 .thinkingBanner {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.6rem 0.75rem;
+  padding: 1.05rem 1.3rem;
   text-align: center;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 1.49rem;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -136,30 +138,30 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.75rem;
+  padding: 1.3rem;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.525rem;
 }
 
 .resultBanner strong {
-  font-size: 1.05rem;
+  font-size: 1.84rem;
 }
 
 .reason {
-  font-size: 0.82rem;
+  font-size: 1.44rem;
   color: var(--text-muted);
 }
 
 .newGameBtn {
-  margin-top: 0.3rem;
-  padding: 0.4rem 0.9rem;
+  margin-top: 0.525rem;
+  padding: 0.7rem 1.575rem;
   border-radius: 4px;
   background: var(--accent);
   color: white;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 1.49rem;
   border: none;
 }
 
@@ -170,15 +172,15 @@
 .movesPanel {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  height: 300px;
+  border-radius: 7px;
+  height: 525px;
   display: flex;
   flex-direction: column;
 }
 
 .movesTitle {
-  padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
+  padding: 1.05rem 1.3rem;
+  font-size: 1.49rem;
   font-weight: 600;
   border-bottom: 1px solid var(--border);
 }
@@ -186,16 +188,16 @@
 .movesList {
   flex: 1;
   overflow-y: auto;
-  padding: 0.35rem;
+  padding: 0.6rem;
 }
 
 .movePair {
   display: grid;
-  grid-template-columns: 2rem 1fr 1fr;
-  gap: 0.2rem;
-  padding: 0.15rem 0.4rem;
+  grid-template-columns: 3.5rem 1fr 1fr;
+  gap: 0.35rem;
+  padding: 0.26rem 0.7rem;
   border-radius: 3px;
-  font-size: 0.85rem;
+  font-size: 1.49rem;
 }
 
 .movePair:nth-child(odd) {
@@ -204,7 +206,7 @@
 
 .moveNum {
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 1.365rem;
 }
 
 .moveWhite,
@@ -214,18 +216,18 @@
 
 .gameActions {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.7rem;
 }
 
 .undoBtn {
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.875rem 1.3rem;
   border-radius: 4px;
   background: var(--bg-card);
   color: var(--text-secondary);
   border: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 1.49rem;
 }
 
 .undoBtn:hover:not(:disabled) {
@@ -240,12 +242,12 @@
 
 .resignBtn {
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.875rem 1.3rem;
   border-radius: 4px;
   background: #b33430;
   color: white;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 1.49rem;
   border: none;
 }
 

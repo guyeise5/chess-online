@@ -1,0 +1,20 @@
+---
+description: No page-level scrolling — only popups and side panels may scroll
+globs: **/*.module.css
+alwaysApply: false
+---
+
+# No Page-Level Scrolling
+
+The page must never scroll. Only popup windows and side panels (e.g. moves list, game history list, board settings modal) may have internal scrolling.
+
+## Rules
+
+- Page containers use `height: 100vh; overflow: hidden` — never `min-height: 100vh`.
+- `body` and `#root` use `height: 100vh; overflow: hidden`.
+- Flex children that fill remaining space (`flex: 1`) must include `min-height: 0` so they shrink within the viewport.
+- Loading/empty states use `flex: 1` to fill available space — never `min-height: 100vh`.
+- Only these elements may use `overflow-y: auto`:
+  - Side-panel lists (`.movesList`, `.tableBody`, `.gameList`)
+  - Modal/popup bodies (`.modalBody .optionsCol`)
+- When adding new pages or panels, verify no content pushes the page beyond the viewport.

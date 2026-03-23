@@ -1,5 +1,6 @@
 .container {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -8,7 +9,9 @@
   flex: 1;
   display: flex;
   justify-content: center;
-  padding: 1.5rem 1.25rem;
+  align-items: flex-start;
+  padding: 1.5rem 3rem;
+  min-height: 0;
 }
 
 .layout {
@@ -16,21 +19,24 @@
   gap: 1.25rem;
   max-width: 1000px;
   width: 100%;
-  align-items: flex-start;
+  height: 75%;
+  align-items: stretch;
 }
 
 /* ── Setup panel (left) ──────────────────────────── */
 
 .setupPanel {
-  width: 400px;
-  flex-shrink: 0;
+  flex: 3;
+  min-width: 0;
+  min-height: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 1rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  overflow: hidden;
 }
 
 /* ── Color row ───────────────────────────────────── */
@@ -109,21 +115,40 @@
 .presetGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
 }
 
 .presetBtn {
-  padding: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
   border-radius: 3px;
   background: var(--bg-card);
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  font-size: 1rem;
-  font-weight: 700;
-  font-family: monospace;
   cursor: pointer;
   transition: background 0.1s, color 0.1s, border-color 0.1s;
   text-align: center;
+  overflow: hidden;
+}
+
+.presetTime {
+  font-size: clamp(1.1rem, 2.8vh, 2rem);
+  font-weight: 700;
+  font-family: monospace;
+  line-height: 1.2;
+}
+
+.presetCategory {
+  font-size: clamp(0.55rem, 1.2vh, 0.82rem);
+  font-weight: 500;
+  opacity: 0.7;
+  font-family: inherit;
 }
 
 .presetBtn:hover:not(:disabled) {
@@ -189,16 +214,55 @@
   }
 }
 
-/* ── Custom popup ────────────────────────────────── */
+/* ── Custom modal ───────────────────────────────── */
 
-.customPopup {
-  background: var(--bg-card);
+.customOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customModal {
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1rem;
+  border-radius: 6px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  width: 340px;
+  max-width: 90vw;
+}
+
+.customModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.customModalTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.customCloseBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+
+.customCloseBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card);
 }
 
 .sliderGroup {
@@ -232,9 +296,9 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--bg-secondary);
+  height: 14px;
+  border-radius: 7px;
+  background: var(--bg-primary);
   outline: none;
   cursor: pointer;
 }
@@ -242,12 +306,12 @@
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--bg-secondary);
+  border: 3px solid var(--bg-secondary);
   transition: background 0.1s;
 }
 
@@ -256,12 +320,12 @@
 }
 
 .slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--bg-secondary);
+  border: 3px solid var(--bg-secondary);
 }
 
 .customCreateBtn {
@@ -320,14 +384,14 @@
 /* ── Table panel (right) ─────────────────────────── */
 
 .tablePanel {
-  flex: 1;
+  flex: 2;
   min-width: 0;
+  min-height: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 120px);
 }
 
 .tableHeader {
@@ -494,16 +558,25 @@
 
 /* ── Responsive ──────────────────────────────────── */
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .layout {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .setupPanel {
+    flex: 0 0 auto;
     width: 100%;
+    overflow-y: visible;
+  }
+
+  .presetGrid {
+    grid-template-rows: auto;
+    flex: 0 0 auto;
   }
 
   .tablePanel {
-    max-height: 400px;
+    flex: 1;
+    min-height: 0;
   }
 }

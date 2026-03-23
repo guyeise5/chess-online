@@ -1,5 +1,6 @@
 .container {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -8,12 +9,13 @@
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   padding: 1.5rem 1.25rem;
+  min-height: 0;
 }
 
 .setupPanel {
-  width: 400px;
+  width: 700px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -133,7 +135,7 @@
 
 /* ── Responsive ──────────────────────────────────── */
 
-@media (max-width: 500px) {
+@media (max-width: 750px) {
   .setupPanel {
     width: 100%;
   }

@@ -53,10 +53,9 @@ function formatTimeLabel(timeControl: number, increment: number): string {
 
 function classifyTime(minutes: number, increment: number): string {
   const total = minutes * 60 + increment * 40;
-  if (total < 30) return "UltraBullet";
-  if (total < 120) return "UltraBullet";
-  if (total < 300) return "Bullet";
-  if (total < 600) return "Blitz";
+  if (total < 29) return "UltraBullet";
+  if (total < 180) return "Bullet";
+  if (total < 480) return "Blitz";
   if (total < 1500) return "Rapid";
   return "Classical";
 }
@@ -248,58 +247,18 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                   className={`${styles.presetBtn} ${waitingPreset === p.label ? styles.presetBtnWaiting : ""}`}
                   onClick={() => handlePresetClick(p)}
                 >
-                  {p.label}
+                  <span className={styles.presetTime}>{p.label}</span>
+                  <span className={styles.presetCategory}>{classifyTime(p.time / 60, p.increment)}</span>
                 </button>
               ))}
               <button
                 className={`${styles.presetBtn} ${showCustom ? styles.presetBtnActive : ""} ${isCustomWaiting ? styles.presetBtnWaiting : ""}`}
                 onClick={() => setShowCustom(!showCustom)}
               >
-                Custom
+                <span className={styles.presetTime}>Custom</span>
               </button>
             </div>
 
-            {showCustom && (
-              <div className={styles.customPopup}>
-                <div className={styles.sliderGroup}>
-                  <div className={styles.sliderHeader}>
-                    <span className={styles.sliderLabel}>Minutes</span>
-                    <span className={styles.sliderValue}>{formatMinutes(customMinutes)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    className={styles.slider}
-                    min={0}
-                    max={MINUTE_STEPS.length - 1}
-                    value={customMinIdx}
-                    onChange={(e) => setCustomMinIdx(Number(e.target.value))}
-                  />
-                </div>
-                <div className={styles.sliderGroup}>
-                  <div className={styles.sliderHeader}>
-                    <span className={styles.sliderLabel}>Increment</span>
-                    <span className={styles.sliderValue}>{customIncrement}s</span>
-                  </div>
-                  <input
-                    type="range"
-                    className={styles.slider}
-                    min={0}
-                    max={INCREMENT_STEPS.length - 1}
-                    value={customIncIdx}
-                    onChange={(e) => setCustomIncIdx(Number(e.target.value))}
-                  />
-                </div>
-                <button
-                  className={`${styles.customCreateBtn} ${isCustomWaiting ? styles.customCreateBtnWaiting : ""}`}
-                  onClick={handleCustomCreate}
-                  disabled={customMinutes === 0 && customIncrement === 0}
-                >
-                  {isCustomWaiting
-                    ? `Waiting… ${customLabel} ${customCategory}`
-                    : `Create lobby ${customLabel} ${customCategory}`}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Right: Room list table */}
@@ -344,6 +303,54 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
           </div>
         </div>
       </main>
+
+      {showCustom && (
+        <div className={styles.customOverlay} onClick={() => setShowCustom(false)}>
+          <div className={styles.customModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.customModalHeader}>
+              <span className={styles.customModalTitle}>Custom time control</span>
+              <button className={styles.customCloseBtn} onClick={() => setShowCustom(false)}>✕</button>
+            </div>
+            <div className={styles.sliderGroup}>
+              <div className={styles.sliderHeader}>
+                <span className={styles.sliderLabel}>Minutes</span>
+                <span className={styles.sliderValue}>{formatMinutes(customMinutes)}</span>
+              </div>
+              <input
+                type="range"
+                className={styles.slider}
+                min={0}
+                max={MINUTE_STEPS.length - 1}
+                value={customMinIdx}
+                onChange={(e) => setCustomMinIdx(Number(e.target.value))}
+              />
+            </div>
+            <div className={styles.sliderGroup}>
+              <div className={styles.sliderHeader}>
+                <span className={styles.sliderLabel}>Increment</span>
+                <span className={styles.sliderValue}>{customIncrement}s</span>
+              </div>
+              <input
+                type="range"
+                className={styles.slider}
+                min={0}
+                max={INCREMENT_STEPS.length - 1}
+                value={customIncIdx}
+                onChange={(e) => setCustomIncIdx(Number(e.target.value))}
+              />
+            </div>
+            <button
+              className={`${styles.customCreateBtn} ${isCustomWaiting ? styles.customCreateBtnWaiting : ""}`}
+              onClick={handleCustomCreate}
+              disabled={customMinutes === 0 && customIncrement === 0}
+            >
+              {isCustomWaiting
+                ? `Waiting… ${customLabel} ${customCategory}`
+                : `Create lobby ${customLabel} ${customCategory}`}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
