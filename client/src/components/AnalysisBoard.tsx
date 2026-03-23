@@ -17,6 +17,7 @@ import ScoreGraph from "./ScoreGraph";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
+import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import styles from "./AnalysisBoard.module.css";
 
 const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
@@ -216,7 +217,12 @@ export function navLastMove(
   }
 }
 
-export default function AnalysisBoard() {
+interface AnalysisBoardProps {
+  boardPrefs: BoardPreferences;
+  onOpenSettings?: () => void;
+}
+
+export default function AnalysisBoard({ boardPrefs, onOpenSettings }: AnalysisBoardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
@@ -855,7 +861,7 @@ export default function AnalysisBoard() {
 
   return (
     <div className={styles.container}>
-      <NavBar />
+      <NavBar onOpenSettings={onOpenSettings} />
 
       <main className={styles.main}>
         <div className={styles.boardSection}>
@@ -875,6 +881,7 @@ export default function AnalysisBoard() {
             <div className={styles.board}>
               <Chessboard
                 options={{
+                  pieces: boardPrefs.customPieces,
                   position: currentFen,
                   boardOrientation: orientation,
                   squareStyles: highlightStyles,
@@ -896,10 +903,10 @@ export default function AnalysisBoard() {
                   boardStyle: {
                     borderRadius: "0",
                   },
-                  darkSquareStyle: { backgroundColor: "#b58863" },
-                  lightSquareStyle: { backgroundColor: "#f0d9b5" },
-                  darkSquareNotationStyle: { color: "#f0d9b5", opacity: 0.8 },
-                  lightSquareNotationStyle: { color: "#b58863", opacity: 0.8 },
+                  darkSquareStyle: boardPrefs.darkSquareStyle,
+                  lightSquareStyle: boardPrefs.lightSquareStyle,
+                  darkSquareNotationStyle: boardPrefs.darkSquareNotationStyle,
+                  lightSquareNotationStyle: boardPrefs.lightSquareNotationStyle,
                   alphaNotationStyle: {
                     fontFamily: '"Inter", sans-serif',
                     fontSize: "12px",

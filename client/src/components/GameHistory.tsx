@@ -6,6 +6,7 @@ import styles from "./GameHistory.module.css";
 interface Props {
   playerName: string;
   onChangeName: () => void;
+  onOpenSettings?: () => void;
 }
 
 export interface GameSummary {
@@ -73,7 +74,7 @@ function formatDate(iso: string): string {
   }
 }
 
-export default function GameHistory({ playerName, onChangeName }: Props) {
+export default function GameHistory({ playerName, onChangeName, onOpenSettings }: Props) {
   const navigate = useNavigate();
   const [games, setGames] = useState<GameSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +108,7 @@ export default function GameHistory({ playerName, onChangeName }: Props) {
 
   return (
     <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} />
+      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
 
       <main className={styles.main}>
         <div className={styles.panel}>

@@ -172,6 +172,24 @@ tests:
             name: FEATURE_GAME_HISTORY
             value: "false"
 
+  - it: should have default FEATURE_BOARD_SETTINGS as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_BOARD_SETTINGS
+            value: "true"
+
+  - it: should allow disabling FEATURE_BOARD_SETTINGS
+    set:
+      app.env.FEATURE_BOARD_SETTINGS: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_BOARD_SETTINGS
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

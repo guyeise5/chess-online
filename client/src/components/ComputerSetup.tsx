@@ -11,9 +11,10 @@ const BlackKing = defaultPieces["bK"];
 interface Props {
   playerName: string;
   onChangeName: () => void;
+  onOpenSettings?: () => void;
 }
 
-export default function ComputerSetup({ playerName, onChangeName }: Props) {
+export default function ComputerSetup({ playerName, onChangeName, onOpenSettings }: Props) {
   const navigate = useNavigate();
   const [color, setColor] = useState<"white" | "black" | "random">("white");
 
@@ -29,7 +30,7 @@ export default function ComputerSetup({ playerName, onChangeName }: Props) {
 
   return (
     <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} />
+      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
 
       <main className={styles.main}>
         <div className={styles.setupPanel}>

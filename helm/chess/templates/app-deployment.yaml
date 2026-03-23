@@ -44,6 +44,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_OPENING_BOOK | quote }}
             - name: FEATURE_GAME_HISTORY
               value: {{ .Values.app.env.FEATURE_GAME_HISTORY | quote }}
+            - name: FEATURE_BOARD_SETTINGS
+              value: {{ .Values.app.env.FEATURE_BOARD_SETTINGS | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

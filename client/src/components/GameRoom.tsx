@@ -10,9 +10,12 @@ import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import styles from "./GameRoom.module.css";
+import type { BoardPreferences } from "../hooks/useBoardPreferences";
 
 interface Props {
   playerName: string;
+  boardPrefs: BoardPreferences;
+  onOpenSettings?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -51,7 +54,7 @@ function findKingSquare(game: Chess): string | null {
   return null;
 }
 
-export default function GameRoom({ playerName }: Props) {
+export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Props) {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
@@ -556,7 +559,7 @@ export default function GameRoom({ playerName }: Props) {
 
   return (
     <div className={styles.container}>
-      <NavBar playerName={playerName} />
+      <NavBar playerName={playerName} onOpenSettings={onOpenSettings} />
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
@@ -582,6 +585,7 @@ export default function GameRoom({ playerName }: Props) {
             )}
             <Chessboard
               options={{
+                pieces: boardPrefs.customPieces,
                 position: fen,
                 onPieceDrop: onDrop,
                 onPieceDrag: onPieceDrag,
@@ -597,10 +601,10 @@ export default function GameRoom({ playerName }: Props) {
                 boardStyle: {
                   borderRadius: "0",
                 },
-                darkSquareStyle: { backgroundColor: "#b58863" },
-                lightSquareStyle: { backgroundColor: "#f0d9b5" },
-                darkSquareNotationStyle: { color: "#f0d9b5", opacity: 0.8 },
-                lightSquareNotationStyle: { color: "#b58863", opacity: 0.8 },
+                darkSquareStyle: boardPrefs.darkSquareStyle,
+                lightSquareStyle: boardPrefs.lightSquareStyle,
+                darkSquareNotationStyle: boardPrefs.darkSquareNotationStyle,
+                lightSquareNotationStyle: boardPrefs.lightSquareNotationStyle,
                 alphaNotationStyle: {
                   fontFamily: '"Inter", sans-serif',
                   fontSize: "12px",

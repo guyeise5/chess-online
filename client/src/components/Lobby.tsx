@@ -12,6 +12,7 @@ const BlackKing = defaultPieces["bK"];
 interface Props {
   playerName: string;
   onChangeName: () => void;
+  onOpenSettings?: () => void;
 }
 
 const PRESETS = [
@@ -65,7 +66,7 @@ function ColorIcon({ choice }: { choice: ColorChoice }) {
   );
 }
 
-export default function Lobby({ playerName, onChangeName }: Props) {
+export default function Lobby({ playerName, onChangeName, onOpenSettings }: Props) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
@@ -196,7 +197,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
 
   return (
     <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} />
+      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
 
       <main className={styles.main}>
         <div className={styles.layout}>
