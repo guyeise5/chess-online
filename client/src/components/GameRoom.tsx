@@ -39,6 +39,9 @@ const HIGHLIGHT_CHECK: React.CSSProperties = {
 const HIGHLIGHT_PREMOVE: React.CSSProperties = {
   backgroundColor: "rgba(20, 85, 180, 0.5)",
 };
+const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
+  backgroundColor: "rgba(155, 199, 0, 0.41)",
+};
 
 function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
@@ -72,6 +75,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [undoRequester, setUndoRequester] = useState<string | null>(null);
   const [undoPending, setUndoPending] = useState(false);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
   const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
@@ -96,6 +100,15 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
           setStatus(r.status);
           setResult(r.result);
           setMoves(r.moves || []);
+          if (r.moves?.length) {
+            const replay = new Chess();
+            let last: { from: string; to: string } | null = null;
+            for (const san of r.moves) {
+              const m = replay.move(san);
+              if (m) last = { from: m.from, to: m.to };
+            }
+            setLastMove(last);
+          }
         } else {
           navigate("/", { replace: true });
         }
@@ -128,6 +141,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
       setResult(data.result);
       setStatus(data.status);
       setMoves((prev) => [...prev, data.move.san]);
+      setLastMove({ from: data.move.from, to: data.move.to });
 
       const pm = premoveRef.current;
       if (
@@ -205,6 +219,17 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
       setWhiteTime(data.whiteTime);
       setBlackTime(data.blackTime);
       setMoves(data.moves);
+      if (data.moves.length) {
+        const replay = new Chess();
+        let last: { from: string; to: string } | null = null;
+        for (const san of data.moves) {
+          const m = replay.move(san);
+          if (m) last = { from: m.from, to: m.to };
+        }
+        setLastMove(last);
+      } else {
+        setLastMove(null);
+      }
       setUndoRequester(null);
       setUndoPending(false);
       setPremove(null);
@@ -294,6 +319,11 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
     const result: Record<string, React.CSSProperties> = {};
 
+    if (lastMove) {
+      result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
+      result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
+    }
+
     if (game.inCheck()) {
       const kingSq = findKingSquare(game);
       if (kingSq) result[kingSq] = HIGHLIGHT_CHECK;
@@ -318,7 +348,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
     }
 
     return result;
-  }, [selectedSquare, premoveSelectedSquare, premove, game, getLegalMovesForSquare]);
+  }, [selectedSquare, premoveSelectedSquare, premove, lastMove, game, getLegalMovesForSquare]);
 
   const isMyTurn = useCallback(() => {
     if (status !== "playing" || !isPlayer) return false;
@@ -356,6 +386,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
         if (move) {
           setGame(gameCopy);
           setFen(gameCopy.fen());
+          setLastMove({ from, to });
           setSelectedSquare(null);
           setPendingPromotion(null);
           return true;

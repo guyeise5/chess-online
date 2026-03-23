@@ -31,7 +31,10 @@ const PIECE_CODES = ["wK", "wQ", "wR", "wB", "wN", "wP", "bK", "bQ", "bR", "bB",
 function buildBlindfoldComponents(): Record<string, () => React.JSX.Element> {
   const result: Record<string, () => React.JSX.Element> = {};
   for (const code of PIECE_CODES) {
-    result[code] = () => <span />;
+    const src = `/pieces/${DEFAULT_PIECES}/${code}.svg`;
+    result[code] = () => (
+      <img src={src} alt="" style={{ width: "100%", height: "100%", opacity: 0 }} />
+    );
   }
   return result;
 }

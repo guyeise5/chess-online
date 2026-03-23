@@ -6,6 +6,7 @@ import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
+import { BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import styles from "./PuzzleTrainer.module.css";
 
@@ -465,7 +466,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
             )}
             <Chessboard
               options={{
-                pieces: boardPrefs.customPieces,
+                pieces: boardPrefs.piecesName === BLINDFOLD_PIECES ? undefined : boardPrefs.customPieces,
                 position: fen,
                 onPieceDrop: onDrop,
                 onPieceDrag: onPieceDrag,

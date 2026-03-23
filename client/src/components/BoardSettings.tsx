@@ -60,7 +60,10 @@ function buildPreviewPieces(pieceSet: string): Record<string, () => React.JSX.El
   const result: Record<string, () => React.JSX.Element> = {};
   if (pieceSet === BLINDFOLD_PIECES) {
     for (const code of codes) {
-      result[code] = () => <span />;
+      const src = `/pieces/${DEFAULT_PIECES}/${code}.svg`;
+      result[code] = () => (
+        <img src={src} alt="" style={{ width: "100%", height: "100%", opacity: 0 }} />
+      );
     }
     return result;
   }
