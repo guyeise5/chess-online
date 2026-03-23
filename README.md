@@ -18,7 +18,7 @@ A real-time chess application with online multiplayer, computer opponent, and pu
 
 ### Play vs Computer
 - Stockfish 18 running client-side via WebAssembly
-- 8 difficulty levels (~800 to ~3000 Elo)
+- 12 difficulty levels (~400 to ~3200 Elo)
 - No time limit
 - Instant undo (no approval needed)
 - Game state persists across page refreshes via localStorage

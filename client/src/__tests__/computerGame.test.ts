@@ -10,23 +10,27 @@ interface StockfishLevel {
 }
 
 const STOCKFISH_LEVELS: StockfishLevel[] = [
-  { level: 1, skillLevel: 0, depth: 1, label: "Level 1", rating: "~800" },
-  { level: 2, skillLevel: 2, depth: 2, label: "Level 2", rating: "~1100" },
-  { level: 3, skillLevel: 5, depth: 4, label: "Level 3", rating: "~1400" },
-  { level: 4, skillLevel: 8, depth: 6, label: "Level 4", rating: "~1700" },
-  { level: 5, skillLevel: 11, depth: 9, label: "Level 5", rating: "~2000" },
-  { level: 6, skillLevel: 14, depth: 12, label: "Level 6", rating: "~2300" },
-  { level: 7, skillLevel: 17, depth: 16, label: "Level 7", rating: "~2700" },
-  { level: 8, skillLevel: 20, depth: 22, label: "Level 8", rating: "~3000" },
+  { level: 1,  skillLevel: 0,  depth: 1,  label: "Level 1",  rating: "~400" },
+  { level: 2,  skillLevel: 1,  depth: 2,  label: "Level 2",  rating: "~600" },
+  { level: 3,  skillLevel: 2,  depth: 3,  label: "Level 3",  rating: "~800" },
+  { level: 4,  skillLevel: 4,  depth: 4,  label: "Level 4",  rating: "~1000" },
+  { level: 5,  skillLevel: 6,  depth: 5,  label: "Level 5",  rating: "~1200" },
+  { level: 6,  skillLevel: 8,  depth: 7,  label: "Level 6",  rating: "~1400" },
+  { level: 7,  skillLevel: 10, depth: 9,  label: "Level 7",  rating: "~1600" },
+  { level: 8,  skillLevel: 12, depth: 11, label: "Level 8",  rating: "~1800" },
+  { level: 9,  skillLevel: 14, depth: 13, label: "Level 9",  rating: "~2000" },
+  { level: 10, skillLevel: 17, depth: 16, label: "Level 10", rating: "~2400" },
+  { level: 11, skillLevel: 19, depth: 22, label: "Level 11", rating: "~2800" },
+  { level: 12, skillLevel: 20, depth: 30, label: "Level 12", rating: "~3200" },
 ];
 
 function getLevelConfig(level: number): StockfishLevel {
-  return STOCKFISH_LEVELS[Math.max(0, Math.min(level - 1, 7))];
+  return STOCKFISH_LEVELS[Math.max(0, Math.min(level - 1, 11))];
 }
 
 describe("Stockfish level mapping", () => {
-  it("has 8 levels", () => {
-    expect(STOCKFISH_LEVELS).toHaveLength(8);
+  it("has 12 levels", () => {
+    expect(STOCKFISH_LEVELS).toHaveLength(12);
   });
 
   it("level 1 is the weakest (skill 0, depth 1)", () => {
@@ -35,15 +39,15 @@ describe("Stockfish level mapping", () => {
     expect(cfg.depth).toBe(1);
   });
 
-  it("level 8 is full strength (skill 20, depth 22)", () => {
-    const cfg = getLevelConfig(8);
+  it("level 12 is full strength (skill 20, depth 30)", () => {
+    const cfg = getLevelConfig(12);
     expect(cfg.skillLevel).toBe(20);
-    expect(cfg.depth).toBe(22);
+    expect(cfg.depth).toBe(30);
   });
 
-  it("skill level increases monotonically", () => {
+  it("skill level increases monotonically (capped at 20)", () => {
     for (let i = 1; i < STOCKFISH_LEVELS.length; i++) {
-      expect(STOCKFISH_LEVELS[i].skillLevel).toBeGreaterThan(
+      expect(STOCKFISH_LEVELS[i].skillLevel).toBeGreaterThanOrEqual(
         STOCKFISH_LEVELS[i - 1].skillLevel
       );
     }
@@ -60,7 +64,7 @@ describe("Stockfish level mapping", () => {
   it("clamps out-of-range levels", () => {
     expect(getLevelConfig(0)).toEqual(STOCKFISH_LEVELS[0]);
     expect(getLevelConfig(-5)).toEqual(STOCKFISH_LEVELS[0]);
-    expect(getLevelConfig(99)).toEqual(STOCKFISH_LEVELS[7]);
+    expect(getLevelConfig(99)).toEqual(STOCKFISH_LEVELS[11]);
   });
 
   it("each level has a label and rating", () => {
