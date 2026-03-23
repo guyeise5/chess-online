@@ -2,11 +2,12 @@
 
 ## Online Multiplayer
 
-- **Route:** `/lobby` (room list), `/game/:roomId` (game board)
-- **Key files:** `client/src/components/Lobby.tsx`, `client/src/components/GameRoom.tsx`, `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`
-- Create and join game rooms from a lobby
-- Lichess-style time controls: Bullet (1+0, 2+1), Blitz (3+0, 3+2, 5+0, 5+3), Rapid (10+0, 10+5, 15+10), Classical (30+0, 30+20)
-- Color selection (white / black / random)
+- **Route:** `/` (lobby, default landing page), `/game/:roomId` (game board)
+- **Key files:** `client/src/components/Lobby.tsx`, `client/src/components/GameRoom.tsx`, `client/src/components/NavBar.tsx`, `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`
+- Lichess-style lobby as the default landing page with game creation panel and open games table
+- 3×4 time-control grid: 1+0, 2+1, 3+0, 3+2, 5+0, 5+3, 10+0, 10+5, 15+10, 30+0, 30+20, Custom — clicking a preset instantly creates a room
+- Custom time control popup with range sliders: minutes (0, ¼, ½, 1–180), increment (0–180s); "Create lobby" button
+- Color selection (white / black / random) with chess piece SVG icons
 - Real-time move updates via Socket.IO
 - Server-side move validation with chess.js
 - Clocks with increment support (server-side timers)

@@ -1,86 +1,88 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { defaultPieces } from "react-chessboard";
 import { socket } from "../socket";
 import { RoomData, ColorChoice } from "../types";
+import NavBar from "./NavBar";
 import styles from "./Lobby.module.css";
+
+const WhiteKing = defaultPieces["wK"];
+const BlackKing = defaultPieces["bK"];
 
 interface Props {
   playerName: string;
   onChangeName: () => void;
 }
 
-interface TimePreset {
-  time: number;
-  increment: number;
-  label: string;
-}
-
-interface TimeCategory {
-  name: string;
-  presets: TimePreset[];
-}
-
-const TIME_CATEGORIES: TimeCategory[] = [
-  {
-    name: "Bullet",
-    presets: [
-      { time: 60, increment: 0, label: "1+0" },
-      { time: 120, increment: 1, label: "2+1" },
-    ],
-  },
-  {
-    name: "Blitz",
-    presets: [
-      { time: 180, increment: 0, label: "3+0" },
-      { time: 180, increment: 2, label: "3+2" },
-      { time: 300, increment: 0, label: "5+0" },
-      { time: 300, increment: 3, label: "5+3" },
-    ],
-  },
-  {
-    name: "Rapid",
-    presets: [
-      { time: 600, increment: 0, label: "10+0" },
-      { time: 600, increment: 5, label: "10+5" },
-      { time: 900, increment: 10, label: "15+10" },
-    ],
-  },
-  {
-    name: "Classical",
-    presets: [
-      { time: 1800, increment: 0, label: "30+0" },
-      { time: 1800, increment: 20, label: "30+20" },
-    ],
-  },
+const PRESETS = [
+  { time: 60, increment: 0, label: "1+0" },
+  { time: 120, increment: 1, label: "2+1" },
+  { time: 180, increment: 0, label: "3+0" },
+  { time: 180, increment: 2, label: "3+2" },
+  { time: 300, increment: 0, label: "5+0" },
+  { time: 300, increment: 3, label: "5+3" },
+  { time: 600, increment: 0, label: "10+0" },
+  { time: 600, increment: 5, label: "10+5" },
+  { time: 900, increment: 10, label: "15+10" },
+  { time: 1800, increment: 0, label: "30+0" },
+  { time: 1800, increment: 20, label: "30+20" },
 ];
 
-const DEFAULT_PRESET = TIME_CATEGORIES[1].presets[2]; // 5+0
+const MINUTE_STEPS = [0, 0.25, 0.5, ...Array.from({ length: 180 }, (_, i) => i + 1)];
+const INCREMENT_STEPS = Array.from({ length: 181 }, (_, i) => i);
+
+function formatMinutes(v: number): string {
+  if (v === 0.25) return "¼";
+  if (v === 0.5) return "½";
+  return String(v);
+}
 
 function formatTimeLabel(timeControl: number, increment: number): string {
   const mins = Math.floor(timeControl / 60);
   return `${mins}+${increment}`;
 }
 
-const COLOR_LABELS: Record<ColorChoice, string> = {
-  white: "White",
-  black: "Black",
-  random: "Random",
-};
+function classifyTime(minutes: number, increment: number): string {
+  const total = minutes * 60 + increment * 40;
+  if (total < 30) return "UltraBullet";
+  if (total < 120) return "UltraBullet";
+  if (total < 300) return "Bullet";
+  if (total < 600) return "Blitz";
+  if (total < 1500) return "Rapid";
+  return "Classical";
+}
+
+function ColorIcon({ choice }: { choice: ColorChoice }) {
+  if (choice === "white") return <div className={styles.colorIconWrap}>{WhiteKing && <WhiteKing />}</div>;
+  if (choice === "black") return <div className={styles.colorIconWrap}>{BlackKing && <BlackKing />}</div>;
+  return (
+    <div className={styles.colorIconWrap}>
+      <div className={styles.halfPieceWrap}>
+        <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
+        <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Lobby({ playerName, onChangeName }: Props) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<TimePreset>(DEFAULT_PRESET);
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
-  const [creating, setCreating] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
+  const [customMinIdx, setCustomMinIdx] = useState(MINUTE_STEPS.indexOf(5));
+  const [customIncIdx, setCustomIncIdx] = useState(INCREMENT_STEPS.indexOf(3));
+
+  const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
+  const [waitingPreset, setWaitingPreset] = useState<string | null>(null);
+  const busyRef = useRef(false);
+
+  const customMinutes = MINUTE_STEPS[customMinIdx] ?? 5;
+  const customIncrement = INCREMENT_STEPS[customIncIdx] ?? 3;
 
   useEffect(() => {
     const handleRoomsList = (data: RoomData[]) => setRooms(data);
-
-    const handleGameStart = (room: RoomData) => {
-      navigate(`/game/${room.roomId}`);
-    };
+    const handleGameStart = (room: RoomData) => navigate(`/game/${room.roomId}`);
 
     socket.on("rooms:list", handleRoomsList);
     socket.on("game:start", handleGameStart);
@@ -92,141 +94,227 @@ export default function Lobby({ playerName, onChangeName }: Props) {
     };
   }, [navigate]);
 
-  const handleCreate = () => {
-    setCreating(true);
-    socket.emit(
-      "room:create",
-      { playerName, timeControl: selectedPreset.time, increment: selectedPreset.increment, colorChoice },
-      (res: any) => {
-        setCreating(false);
-        if (res.success) {
-          navigate(`/game/${res.room.roomId}`);
-        }
-      }
-    );
-  };
+  const closeRoom = useCallback(
+    (roomId: string): Promise<void> =>
+      new Promise((resolve) => {
+        socket.emit("room:leave", { roomId, playerName }, () => resolve());
+      }),
+    [playerName]
+  );
 
-  const handleJoin = (roomId: string) => {
-    socket.emit(
-      "room:join",
-      { roomId, playerName },
-      (res: any) => {
-        if (res.success) {
-          navigate(`/game/${roomId}`);
-        }
+  const openRoom = useCallback(
+    (timeControl: number, increment: number, presetKey: string) => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+
+      const doCreate = () => {
+        socket.emit(
+          "room:create",
+          { playerName, timeControl, increment, colorChoice },
+          (res: any) => {
+            busyRef.current = false;
+            if (res.success) {
+              setWaitingRoomId(res.room.roomId);
+              setWaitingPreset(presetKey);
+            }
+          }
+        );
+      };
+
+      if (waitingRoomId) {
+        const oldId = waitingRoomId;
+        setWaitingRoomId(null);
+        setWaitingPreset(null);
+        closeRoom(oldId).then(doCreate);
+      } else {
+        doCreate();
       }
-    );
-  };
+    },
+    [playerName, colorChoice, waitingRoomId, closeRoom]
+  );
+
+  const handlePresetClick = useCallback(
+    (p: (typeof PRESETS)[number]) => {
+      setShowCustom(false);
+      if (waitingPreset === p.label) {
+        const oldId = waitingRoomId;
+        setWaitingRoomId(null);
+        setWaitingPreset(null);
+        if (oldId) closeRoom(oldId);
+        return;
+      }
+      openRoom(p.time, p.increment, p.label);
+    },
+    [waitingPreset, waitingRoomId, closeRoom, openRoom]
+  );
+
+  const handleCustomCreate = useCallback(() => {
+    const timeSec = Math.round(customMinutes * 60);
+    const key = `custom:${customMinutes}+${customIncrement}`;
+    openRoom(timeSec, customIncrement, key);
+  }, [customMinutes, customIncrement, openRoom]);
+
+  const handleJoin = useCallback(
+    (roomId: string) => {
+      socket.emit("room:join", { roomId, playerName }, (res: any) => {
+        if (res.success) navigate(`/game/${roomId}`);
+      });
+    },
+    [playerName, navigate]
+  );
+
+  const customLabel = useMemo(
+    () => `${formatMinutes(customMinutes)}+${customIncrement}`,
+    [customMinutes, customIncrement]
+  );
+  const customCategory = useMemo(
+    () => classifyTime(customMinutes, customIncrement),
+    [customMinutes, customIncrement]
+  );
+
+  const isCustomWaiting = waitingPreset?.startsWith("custom:");
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
-          <img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess
-        </Link>
-        <div className={styles.user}>
-          <span className={styles.playerName}>{playerName}</span>
-          <button className={styles.changeNameBtn} onClick={onChangeName}>
-            Change
-          </button>
-        </div>
-      </header>
+      <NavBar playerName={playerName} onChangeName={onChangeName} />
 
       <main className={styles.main}>
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Play Online</h2>
-            <button
-              className={styles.createBtn}
-              onClick={() => setShowCreate(!showCreate)}
-            >
-              {showCreate ? "Cancel" : "+ New Room"}
-            </button>
-          </div>
-
-          {showCreate && (
-            <div className={styles.createForm}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Time Control</label>
-                <div className={styles.timeGrid}>
-                  {TIME_CATEGORIES.map((cat) => (
-                    <div key={cat.name} className={styles.timeCategory}>
-                      <div className={styles.timeCategoryLabel}>
-                        {cat.name}
-                      </div>
-                      <div className={styles.timePresets}>
-                        {cat.presets.map((p) => (
-                          <button
-                            key={p.label}
-                            className={`${styles.timePresetBtn} ${
-                              selectedPreset.time === p.time && selectedPreset.increment === p.increment
-                                ? styles.timePresetBtnActive
-                                : ""
-                            }`}
-                            onClick={() => setSelectedPreset(p)}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Play as</label>
-                <div className={styles.colorOptions}>
-                  {(["white", "black", "random"] as ColorChoice[]).map((c) => (
-                    <button
-                      key={c}
-                      className={`${styles.colorBtn} ${
-                        colorChoice === c ? styles.colorBtnActive : ""
-                      }`}
-                      onClick={() => setColorChoice(c)}
-                    >
-                      {COLOR_LABELS[c]}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className={styles.layout}>
+          {/* Left: Game setup */}
+          <div className={styles.setupPanel}>
+            <div className={styles.colorRow}>
               <button
-                className={styles.submitBtn}
-                onClick={handleCreate}
-                disabled={creating}
+                className={`${styles.colorOption} ${colorChoice === "white" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColorChoice("white")}
+                title="White"
               >
-                {creating ? "Creating..." : "Create Room"}
+                <div className={styles.pieceIcon}>{WhiteKing && <WhiteKing />}</div>
+              </button>
+              <button
+                className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColorChoice("random")}
+                title="Random"
+              >
+                <div className={styles.pieceIcon}>
+                  <div className={styles.halfPieceWrap}>
+                    <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
+                    <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+                  </div>
+                </div>
+              </button>
+              <button
+                className={`${styles.colorOption} ${colorChoice === "black" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColorChoice("black")}
+                title="Black"
+              >
+                <div className={styles.pieceIcon}>{BlackKing && <BlackKing />}</div>
               </button>
             </div>
-          )}
 
-          {rooms.length === 0 ? (
-            <div className={styles.empty}>
-              <p>No rooms available. Create one to start playing!</p>
-            </div>
-          ) : (
-            <div className={styles.roomList}>
-              {rooms.map((room) => (
-                <div key={room.roomId} className={styles.roomCard}>
-                  <div className={styles.roomInfo}>
-                    <span className={styles.roomOwner}>{room.owner}</span>
-                    <span className={styles.roomFormat}>
-                      {formatTimeLabel(room.timeControl, room.increment)} &middot; {room.timeFormat}
-                    </span>
-                    <span className={styles.roomColor}>
-                      Owner plays: {COLOR_LABELS[room.colorChoice]}
-                    </span>
-                  </div>
-                  <button
-                    className={styles.joinBtn}
-                    onClick={() => handleJoin(room.roomId)}
-                    disabled={room.owner === playerName}
-                  >
-                    {room.owner === playerName ? "Your Room" : "Join"}
-                  </button>
-                </div>
+            <div className={styles.presetGrid}>
+              {PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  className={`${styles.presetBtn} ${waitingPreset === p.label ? styles.presetBtnWaiting : ""}`}
+                  onClick={() => handlePresetClick(p)}
+                >
+                  {p.label}
+                </button>
               ))}
+              <button
+                className={`${styles.presetBtn} ${showCustom ? styles.presetBtnActive : ""} ${isCustomWaiting ? styles.presetBtnWaiting : ""}`}
+                onClick={() => setShowCustom(!showCustom)}
+              >
+                Custom
+              </button>
             </div>
-          )}
+
+            {showCustom && (
+              <div className={styles.customPopup}>
+                <div className={styles.sliderGroup}>
+                  <div className={styles.sliderHeader}>
+                    <span className={styles.sliderLabel}>Minutes</span>
+                    <span className={styles.sliderValue}>{formatMinutes(customMinutes)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    className={styles.slider}
+                    min={0}
+                    max={MINUTE_STEPS.length - 1}
+                    value={customMinIdx}
+                    onChange={(e) => setCustomMinIdx(Number(e.target.value))}
+                  />
+                </div>
+                <div className={styles.sliderGroup}>
+                  <div className={styles.sliderHeader}>
+                    <span className={styles.sliderLabel}>Increment</span>
+                    <span className={styles.sliderValue}>{customIncrement}s</span>
+                  </div>
+                  <input
+                    type="range"
+                    className={styles.slider}
+                    min={0}
+                    max={INCREMENT_STEPS.length - 1}
+                    value={customIncIdx}
+                    onChange={(e) => setCustomIncIdx(Number(e.target.value))}
+                  />
+                </div>
+                <button
+                  className={`${styles.customCreateBtn} ${isCustomWaiting ? styles.customCreateBtnWaiting : ""}`}
+                  onClick={handleCustomCreate}
+                  disabled={customMinutes === 0 && customIncrement === 0}
+                >
+                  {isCustomWaiting
+                    ? `Waiting… ${customLabel} ${customCategory}`
+                    : `Create lobby ${customLabel} ${customCategory}`}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Room list table */}
+          <div className={styles.tablePanel}>
+            <div className={styles.tableHeader}>
+              <span className={styles.thPlayer}>Player</span>
+              <span className={styles.thColor}></span>
+              <span className={styles.thTime}>Time</span>
+              <span className={styles.thMode}>Mode</span>
+            </div>
+
+            {rooms.length === 0 ? (
+              <div className={styles.empty}>No open games right now</div>
+            ) : (
+              <div className={styles.tableBody}>
+                {rooms.map((room) => {
+                  const isOwn = room.owner === playerName;
+                  return (
+                    <div
+                      key={room.roomId}
+                      className={`${styles.tableRow} ${isOwn ? styles.tableRowOwn : ""}`}
+                      onClick={() => !isOwn && handleJoin(room.roomId)}
+                      role={!isOwn ? "button" : undefined}
+                      tabIndex={!isOwn ? 0 : undefined}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isOwn) handleJoin(room.roomId);
+                      }}
+                    >
+                      <span className={styles.tdPlayer}>
+                        {room.owner}
+                        {isOwn && <span className={styles.youTag}>you</span>}
+                      </span>
+                      <span className={styles.tdColor}>
+                        <ColorIcon choice={room.colorChoice} />
+                      </span>
+                      <span className={styles.tdTime}>
+                        {formatTimeLabel(room.timeControl, room.increment)}
+                      </span>
+                      <span className={styles.tdMode}>{room.timeFormat}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

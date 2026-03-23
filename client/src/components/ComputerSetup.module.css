@@ -4,56 +4,6 @@
   flex-direction: column;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-decoration: none;
-  color: var(--text-primary);
-}
-
-.logoIcon {
-  height: 1.4em;
-  width: auto;
-  vertical-align: middle;
-}
-
-.user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.playerName {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.changeNameBtn {
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  font-size: 0.8rem;
-}
-
-.changeNameBtn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
-
 .main {
   flex: 1;
   display: flex;
@@ -62,64 +12,63 @@
   padding: 2rem 1rem;
 }
 
-.section {
+.setupPanel {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2rem;
-  max-width: 500px;
+  border-radius: 4px;
+  padding: 1.25rem;
+  max-width: 420px;
   width: 100%;
-}
-
-.title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
-.formGroup {
+.setupTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
-.label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 500;
+.sectionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .levelGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .levelBtn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.05rem;
   padding: 0.5rem 0.3rem;
-  border-radius: 8px;
-  background: var(--bg-primary);
+  border-radius: 4px;
+  background: var(--bg-card);
   color: var(--text-secondary);
   border: 1px solid var(--border);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
 .levelBtn:hover {
-  border-color: var(--accent);
+  background: var(--bg-card-hover);
   color: var(--text-primary);
 }
 
@@ -129,56 +78,103 @@
   border-color: var(--accent);
 }
 
+.levelBtnActive:hover {
+  background: var(--accent-hover);
+  color: white;
+}
+
 .levelNum {
   font-weight: 700;
   font-size: 1rem;
 }
 
 .levelRating {
-  font-size: 0.7rem;
-  opacity: 0.75;
+  font-size: 0.65rem;
+  opacity: 0.7;
 }
 
-.colorOptions {
+/* ── Color picker ────────────────────────────────── */
+
+.colorPicker {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
-.colorBtn {
+.colorOption {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.5rem;
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  font-size: 0.9rem;
-  font-weight: 500;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 2px solid transparent;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition: border-color 0.1s, background 0.1s;
 }
 
-.colorBtn:hover {
-  border-color: var(--accent);
-  color: var(--text-primary);
+.colorOption:hover {
+  background: var(--bg-card-hover);
 }
 
-.colorBtnActive {
-  background: var(--accent);
-  color: white;
+.colorOptionActive {
   border-color: var(--accent);
 }
+
+.pieceIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.pieceIcon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.halfPieceWrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.halfLeft,
+.halfRight {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+}
+
+.halfLeft {
+  left: 0;
+  clip-path: inset(0 50% 0 0);
+}
+
+.halfRight {
+  left: 0;
+  clip-path: inset(0 0 0 50%);
+}
+
+.halfLeft > svg,
+.halfRight > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Play button ─────────────────────────────────── */
 
 .playBtn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  background: var(--success);
+  padding: 0.7rem 1.5rem;
+  border-radius: 4px;
+  background: var(--accent);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: background 0.1s;
 }
 
 .playBtn:hover {
-  opacity: 0.9;
+  background: var(--accent-hover);
 }

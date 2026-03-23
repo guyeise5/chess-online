@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { defaultPieces } from "react-chessboard";
 import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
+import NavBar from "./NavBar";
 import styles from "./ComputerSetup.module.css";
+
+const WhiteKing = defaultPieces["wK"];
+const BlackKing = defaultPieces["bK"];
 
 interface Props {
   playerName: string;
   onChangeName: () => void;
 }
-
-const COLOR_LABELS: Record<string, string> = {
-  white: "White",
-  black: "Black",
-  random: "Random",
-};
 
 export default function ComputerSetup({ playerName, onChangeName }: Props) {
   const navigate = useNavigate();
@@ -31,58 +30,63 @@ export default function ComputerSetup({ playerName, onChangeName }: Props) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
-          <img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess
-        </Link>
-        <div className={styles.user}>
-          <span className={styles.playerName}>{playerName}</span>
-          <button className={styles.changeNameBtn} onClick={onChangeName}>
-            Change
-          </button>
-        </div>
-      </header>
+      <NavBar playerName={playerName} onChangeName={onChangeName} />
 
       <main className={styles.main}>
-        <div className={styles.section}>
-          <h2 className={styles.title}>Play vs Computer</h2>
+        <div className={styles.setupPanel}>
+          <h2 className={styles.setupTitle}>Play vs Computer</h2>
 
-          <div className={styles.form}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Stockfish Level</label>
-              <div className={styles.levelGrid}>
-                {STOCKFISH_LEVELS.map((l) => (
-                  <button
-                    key={l.level}
-                    className={`${styles.levelBtn} ${level === l.level ? styles.levelBtnActive : ""}`}
-                    onClick={() => setLevel(l.level)}
-                  >
-                    <span className={styles.levelNum}>{l.level}</span>
-                    <span className={styles.levelRating}>{l.rating}</span>
-                  </button>
-                ))}
-              </div>
+          <div className={styles.section}>
+            <div className={styles.sectionLabel}>Stockfish Level</div>
+            <div className={styles.levelGrid}>
+              {STOCKFISH_LEVELS.map((l) => (
+                <button
+                  key={l.level}
+                  className={`${styles.levelBtn} ${level === l.level ? styles.levelBtnActive : ""}`}
+                  onClick={() => setLevel(l.level)}
+                >
+                  <span className={styles.levelNum}>{l.level}</span>
+                  <span className={styles.levelRating}>{l.rating}</span>
+                </button>
+              ))}
             </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Play as</label>
-              <div className={styles.colorOptions}>
-                {(["white", "black", "random"] as const).map((c) => (
-                  <button
-                    key={c}
-                    className={`${styles.colorBtn} ${color === c ? styles.colorBtnActive : ""}`}
-                    onClick={() => setColor(c)}
-                  >
-                    {COLOR_LABELS[c]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button className={styles.playBtn} onClick={handlePlay}>
-              Play
-            </button>
           </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionLabel}>Color</div>
+            <div className={styles.colorPicker}>
+              <button
+                className={`${styles.colorOption} ${color === "white" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColor("white")}
+                title="White"
+              >
+                <div className={styles.pieceIcon}>{WhiteKing && <WhiteKing />}</div>
+              </button>
+              <button
+                className={`${styles.colorOption} ${color === "random" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColor("random")}
+                title="Random"
+              >
+                <div className={styles.pieceIcon}>
+                  <div className={styles.halfPieceWrap}>
+                    <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
+                    <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+                  </div>
+                </div>
+              </button>
+              <button
+                className={`${styles.colorOption} ${color === "black" ? styles.colorOptionActive : ""}`}
+                onClick={() => setColor("black")}
+                title="Black"
+              >
+                <div className={styles.pieceIcon}>{BlackKing && <BlackKing />}</div>
+              </button>
+            </div>
+          </div>
+
+          <button className={styles.playBtn} onClick={handlePlay}>
+            Play
+          </button>
         </div>
       </main>
     </div>

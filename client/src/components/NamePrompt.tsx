@@ -19,13 +19,16 @@ export default function NamePrompt({ onSubmit }: Props) {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}><img src="/favicon.png" alt="" className={styles.titleIcon} /> Chess</h1>
-        <p className={styles.subtitle}>Enter your name to get started</p>
+        <div className={styles.logoRow}>
+          <img src="/favicon.png" alt="" className={styles.logoIcon} />
+          <span className={styles.logoText}>Chess</span>
+        </div>
+        <p className={styles.subtitle}>Choose a username to play</p>
         <form onSubmit={handleSubmit} className={styles.form}>
           <input
             className={styles.input}
             type="text"
-            placeholder="Your name..."
+            placeholder="Username"
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
@@ -36,7 +39,7 @@ export default function NamePrompt({ onSubmit }: Props) {
             type="submit"
             disabled={name.trim().length < 2}
           >
-            Enter Lobby
+            Enter
           </button>
         </form>
       </div>

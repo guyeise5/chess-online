@@ -8,6 +8,7 @@ import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
+import NavBar from "./NavBar";
 import styles from "./GameRoom.module.css";
 
 interface Props {
@@ -555,13 +556,7 @@ export default function GameRoom({ playerName }: Props) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <button className={styles.backBtn} onClick={handleLeave}>
-          &larr; Lobby
-        </button>
-        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess</h1>
-        <span className={styles.roomId}>Room: {roomId}</span>
-      </header>
+      <NavBar playerName={playerName} />
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
@@ -600,13 +595,12 @@ export default function GameRoom({ playerName }: Props) {
                 boardOrientation: orientation,
                 animationDurationInMs: 200,
                 boardStyle: {
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+                  borderRadius: "0",
                 },
-                darkSquareStyle: { backgroundColor: "#779952" },
-                lightSquareStyle: { backgroundColor: "#edeed1" },
-                darkSquareNotationStyle: { color: "#edeed1", opacity: 0.8 },
-                lightSquareNotationStyle: { color: "#779952", opacity: 0.8 },
+                darkSquareStyle: { backgroundColor: "#b58863" },
+                lightSquareStyle: { backgroundColor: "#f0d9b5" },
+                darkSquareNotationStyle: { color: "#f0d9b5", opacity: 0.8 },
+                lightSquareNotationStyle: { color: "#b58863", opacity: 0.8 },
                 alphaNotationStyle: {
                   fontFamily: '"Inter", sans-serif',
                   fontSize: "12px",

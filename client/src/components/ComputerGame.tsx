@@ -7,6 +7,7 @@ import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
+import NavBar from "./NavBar";
 import styles from "./ComputerGame.module.css";
 
 interface Props {
@@ -532,18 +533,7 @@ export default function ComputerGame({ playerName }: Props) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate("/")}>
-          &larr; Lobby
-        </button>
-        <h1 className={styles.logo}>
-          <img src="/favicon.png" alt="" className={styles.logoIcon} /> vs
-          Computer
-        </h1>
-        <span className={styles.levelBadge}>
-          {levelConfig.label} ({levelConfig.rating})
-        </span>
-      </header>
+      <NavBar playerName={playerName} />
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
@@ -579,17 +569,16 @@ export default function ComputerGame({ playerName }: Props) {
                 boardOrientation: orientation,
                 animationDurationInMs: 200,
                 boardStyle: {
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+                  borderRadius: "0",
                 },
-                darkSquareStyle: { backgroundColor: "#779952" },
-                lightSquareStyle: { backgroundColor: "#edeed1" },
+                darkSquareStyle: { backgroundColor: "#b58863" },
+                lightSquareStyle: { backgroundColor: "#f0d9b5" },
                 darkSquareNotationStyle: {
-                  color: "#edeed1",
+                  color: "#f0d9b5",
                   opacity: 0.8,
                 },
                 lightSquareNotationStyle: {
-                  color: "#779952",
+                  color: "#b58863",
                   opacity: 0.8,
                 },
                 alphaNotationStyle: {

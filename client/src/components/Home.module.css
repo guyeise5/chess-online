@@ -4,53 +4,7 @@
   flex-direction: column;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.logoIcon {
-  height: 1.4em;
-  width: auto;
-  vertical-align: middle;
-}
-
-.user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.playerName {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.changeNameBtn {
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  font-size: 0.8rem;
-}
-
-.changeNameBtn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
+/* ── Main content ────────────────────────────────── */
 
 .main {
   flex: 1;
@@ -60,54 +14,75 @@
   padding: 2rem 1rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1.5rem;
-  max-width: 800px;
-  width: 100%;
-}
-
-.card {
+.playPanel {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 2.5rem 1.5rem;
-  background: var(--bg-secondary);
+  gap: 0;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 4px;
+  overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 14px;
+}
+
+.playBtn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--bg-secondary);
   text-decoration: none;
   color: var(--text-primary);
-  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
 }
 
-.card:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+.playBtn:last-child {
+  border-bottom: none;
 }
 
-.cardIcon {
-  font-size: 2.5rem;
-  line-height: 1;
+.playBtn:hover {
+  background: var(--bg-card);
 }
 
-.cardTitle {
-  font-size: 1.15rem;
-  font-weight: 700;
+.playBtnIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--accent);
 }
 
-.cardDesc {
-  font-size: 0.85rem;
+.playBtnIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.playBtnText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.playBtnTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.playBtnDesc {
+  font-size: 0.78rem;
   color: var(--text-muted);
-  text-align: center;
 }
 
-@media (max-width: 550px) {
-  .grid {
-    grid-template-columns: 1fr;
-    max-width: 320px;
+/* ── Responsive ──────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .playPanel {
+    max-width: 100%;
   }
 }

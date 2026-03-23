@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Home from "./components/Home";
 import Lobby from "./components/Lobby";
 import ComputerSetup from "./components/ComputerSetup";
 import ComputerGame from "./components/ComputerGame";
@@ -42,12 +41,6 @@ export default function App() {
       <Routes>
         <Route
           path="/"
-          element={
-            <Home playerName={playerName} onChangeName={handleChangeName} />
-          }
-        />
-        <Route
-          path="/rooms"
           element={
             <Lobby playerName={playerName} onChangeName={handleChangeName} />
           }

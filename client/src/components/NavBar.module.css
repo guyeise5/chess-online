@@ -1,0 +1,98 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  height: 48px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.logoIcon {
+  height: 1.3em;
+  width: auto;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.12s, background 0.12s;
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.navLinkActive {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.navIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.playerName {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.changeNameBtn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+
+.changeNameBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card);
+}
+
+@media (max-width: 600px) {
+  .nav {
+    display: none;
+  }
+}

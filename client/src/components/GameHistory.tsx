@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import NavBar from "./NavBar";
 import styles from "./GameHistory.module.css";
 
 interface Props {
@@ -106,28 +107,23 @@ export default function GameHistory({ playerName, onChangeName }: Props) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
-          <img src="/favicon.png" alt="" className={styles.logoIcon} /> Chess
-        </Link>
-        <div className={styles.user}>
-          <span className={styles.playerName}>{playerName}</span>
-        </div>
-      </header>
+      <NavBar playerName={playerName} onChangeName={onChangeName} />
 
       <main className={styles.main}>
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>My Games</h2>
-          </div>
+        <div className={styles.panel}>
+          <h2 className={styles.panelTitle}>
+            My Games
+            {!loading && !error && (
+              <span className={styles.gameCount}>{games.length}</span>
+            )}
+          </h2>
 
-          {loading && <div className={styles.loading}>Loading games...</div>}
-
-          {error && <div className={styles.empty}>Failed to load games.</div>}
+          {loading && <div className={styles.status}>Loading games...</div>}
+          {error && <div className={styles.status}>Failed to load games.</div>}
 
           {!loading && !error && games.length === 0 && (
-            <div className={styles.empty}>
-              <p>No games found. Play a game and it will appear here!</p>
+            <div className={styles.status}>
+              No games found. Play a game and it will appear here!
             </div>
           )}
 
@@ -143,7 +139,7 @@ export default function GameHistory({ playerName, onChangeName }: Props) {
                 return (
                   <div
                     key={game.gameId}
-                    className={styles.gameCard}
+                    className={styles.gameRow}
                     onClick={() => navigate(`/analysis/${game.gameId}`)}
                     role="link"
                     tabIndex={0}
@@ -152,6 +148,9 @@ export default function GameHistory({ playerName, onChangeName }: Props) {
                         navigate(`/analysis/${game.gameId}`);
                     }}
                   >
+                    <span
+                      className={`${styles.resultDot} ${resultClass(outcome)}`}
+                    />
                     <div className={styles.gameInfo}>
                       <span className={styles.players}>
                         <span className={styles.currentPlayer}>
@@ -159,25 +158,16 @@ export default function GameHistory({ playerName, onChangeName }: Props) {
                         </span>{" "}
                         vs {opponent}
                       </span>
-                      <div className={styles.gameMeta}>
-                        <span className={styles.moveCount}>
-                          {game.moves.length} moves
-                        </span>
-                        {game.createdAt && (
-                          <span className={styles.date}>
-                            {formatDate(game.createdAt)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className={styles.gameRight}>
-                      <span
-                        className={`${styles.resultBadge} ${resultClass(outcome)}`}
-                      >
-                        {resultLabel(outcome)}
+                      <span className={styles.gameMeta}>
+                        {game.moves.length} moves
+                        {game.createdAt && ` · ${formatDate(game.createdAt)}`}
                       </span>
-                      <span className={styles.analyzeBtn}>Analyze</span>
                     </div>
+                    <span
+                      className={`${styles.resultBadge} ${resultClass(outcome)}`}
+                    >
+                      {resultLabel(outcome)}
+                    </span>
                   </div>
                 );
               })}

@@ -5,6 +5,7 @@ import { Chess, Square } from "chess.js";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
+import NavBar from "./NavBar";
 import styles from "./PuzzleTrainer.module.css";
 
 const PUZZLE_RATING_KEY = "chess-puzzle-rating";
@@ -438,13 +439,7 @@ export default function PuzzleTrainer() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate("/")}>
-          &larr; Lobby
-        </button>
-        <h1 className={styles.logo}><img src="/favicon.png" alt="" className={styles.logoIcon} /> Puzzle Trainer</h1>
-        <span className={styles.ratingBadge}>#{puzzle.puzzleId}</span>
-      </header>
+      <NavBar />
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
@@ -474,13 +469,12 @@ export default function PuzzleTrainer() {
                 boardOrientation: orientation,
                 animationDurationInMs: 500,
                 boardStyle: {
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+                  borderRadius: "0",
                 },
-                darkSquareStyle: { backgroundColor: "#779952" },
-                lightSquareStyle: { backgroundColor: "#edeed1" },
-                darkSquareNotationStyle: { color: "#edeed1", opacity: 0.8 },
-                lightSquareNotationStyle: { color: "#779952", opacity: 0.8 },
+                darkSquareStyle: { backgroundColor: "#b58863" },
+                lightSquareStyle: { backgroundColor: "#f0d9b5" },
+                darkSquareNotationStyle: { color: "#f0d9b5", opacity: 0.8 },
+                lightSquareNotationStyle: { color: "#b58863", opacity: 0.8 },
                 alphaNotationStyle: {
                   fontFamily: '"Inter", sans-serif',
                   fontSize: "12px",
