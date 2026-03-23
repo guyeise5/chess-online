@@ -475,7 +475,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                 squareStyles: highlightStyles,
                 arrows: hintArrow,
                 boardOrientation: orientation,
-                animationDurationInMs: 500,
+                animationDurationInMs: 200,
                 boardStyle: {
                   borderRadius: "0",
                 },

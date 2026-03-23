@@ -77,10 +77,19 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const navigate = useNavigate();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
+  const [colorChoice, setColorChoice] = useState<ColorChoice>(() => {
+    const saved = localStorage.getItem("lobby:colorChoice");
+    return saved === "white" || saved === "black" || saved === "random" ? saved : "random";
+  });
   const [showCustom, setShowCustom] = useState(false);
-  const [customMinIdx, setCustomMinIdx] = useState(MINUTE_STEPS.indexOf(5));
-  const [customIncIdx, setCustomIncIdx] = useState(INCREMENT_STEPS.indexOf(3));
+  const [customMinIdx, setCustomMinIdx] = useState(() => {
+    const saved = parseInt(localStorage.getItem("lobby:customMinIdx") ?? "", 10);
+    return !isNaN(saved) && saved >= 0 && saved < MINUTE_STEPS.length ? saved : MINUTE_STEPS.indexOf(5);
+  });
+  const [customIncIdx, setCustomIncIdx] = useState(() => {
+    const saved = parseInt(localStorage.getItem("lobby:customIncIdx") ?? "", 10);
+    return !isNaN(saved) && saved >= 0 && saved < INCREMENT_STEPS.length ? saved : INCREMENT_STEPS.indexOf(3);
+  });
 
   const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
   const [waitingPreset, setWaitingPreset] = useState<string | null>(null);
@@ -175,6 +184,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const handleColorChange = useCallback(
     (newColor: ColorChoice) => {
       setColorChoice(newColor);
+      localStorage.setItem("lobby:colorChoice", newColor);
       if (waitingPreset && waitingTimeRef.current) {
         const { time, increment } = waitingTimeRef.current;
         openRoom(time, increment, waitingPreset, newColor);
@@ -322,7 +332,11 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                 min={0}
                 max={MINUTE_STEPS.length - 1}
                 value={customMinIdx}
-                onChange={(e) => setCustomMinIdx(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setCustomMinIdx(v);
+                  localStorage.setItem("lobby:customMinIdx", String(v));
+                }}
               />
             </div>
             <div className={styles.sliderGroup}>
@@ -336,7 +350,11 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                 min={0}
                 max={INCREMENT_STEPS.length - 1}
                 value={customIncIdx}
-                onChange={(e) => setCustomIncIdx(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setCustomIncIdx(v);
+                  localStorage.setItem("lobby:customIncIdx", String(v));
+                }}
               />
             </div>
             <button

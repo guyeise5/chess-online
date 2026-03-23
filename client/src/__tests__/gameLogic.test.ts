@@ -186,6 +186,84 @@ describe("lobby time label formatting", () => {
   });
 });
 
+describe("lobby localStorage persistence", () => {
+  const MINUTE_STEPS = [0, 0.25, 0.5, ...Array.from({ length: 180 }, (_, i) => i + 1)];
+  const INCREMENT_STEPS = Array.from({ length: 181 }, (_, i) => i);
+
+  let store: Map<string, string>;
+  const getItem = (k: string) => store.get(k) ?? null;
+  const setItem = (k: string, v: string) => store.set(k, v);
+
+  function loadMinIdx(): number {
+    const saved = parseInt(getItem("lobby:customMinIdx") ?? "", 10);
+    return !isNaN(saved) && saved >= 0 && saved < MINUTE_STEPS.length ? saved : MINUTE_STEPS.indexOf(5);
+  }
+
+  function loadIncIdx(): number {
+    const saved = parseInt(getItem("lobby:customIncIdx") ?? "", 10);
+    return !isNaN(saved) && saved >= 0 && saved < INCREMENT_STEPS.length ? saved : INCREMENT_STEPS.indexOf(3);
+  }
+
+  function loadColorChoice(): string {
+    const saved = getItem("lobby:colorChoice");
+    return saved === "white" || saved === "black" || saved === "random" ? saved : "random";
+  }
+
+  beforeEach(() => { store = new Map(); });
+
+  it("defaults minute index to 5 min when nothing stored", () => {
+    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  });
+
+  it("defaults increment index to 3s when nothing stored", () => {
+    expect(loadIncIdx()).toBe(INCREMENT_STEPS.indexOf(3));
+  });
+
+  it("defaults color choice to random when nothing stored", () => {
+    expect(loadColorChoice()).toBe("random");
+  });
+
+  it("restores saved minute index", () => {
+    setItem("lobby:customMinIdx", "10");
+    expect(loadMinIdx()).toBe(10);
+  });
+
+  it("restores saved increment index", () => {
+    setItem("lobby:customIncIdx", "20");
+    expect(loadIncIdx()).toBe(20);
+  });
+
+  it("restores saved color choice", () => {
+    setItem("lobby:colorChoice", "black");
+    expect(loadColorChoice()).toBe("black");
+  });
+
+  it("falls back to default for out-of-range minute index", () => {
+    setItem("lobby:customMinIdx", "9999");
+    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  });
+
+  it("falls back to default for negative minute index", () => {
+    setItem("lobby:customMinIdx", "-1");
+    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  });
+
+  it("falls back to default for non-numeric minute index", () => {
+    setItem("lobby:customMinIdx", "abc");
+    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  });
+
+  it("falls back to default for out-of-range increment index", () => {
+    setItem("lobby:customIncIdx", "999");
+    expect(loadIncIdx()).toBe(INCREMENT_STEPS.indexOf(3));
+  });
+
+  it("falls back to default for invalid color choice", () => {
+    setItem("lobby:colorChoice", "green");
+    expect(loadColorChoice()).toBe("random");
+  });
+});
+
 describe("time formatting", () => {
   function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
