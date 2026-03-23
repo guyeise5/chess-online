@@ -57,9 +57,9 @@ function ColorIcon({ choice }: { choice: ColorChoice }) {
   if (choice === "black") return <div className={styles.colorIconWrap}>{BlackKing && <BlackKing />}</div>;
   return (
     <div className={styles.colorIconWrap}>
-      <div className={styles.halfPieceWrap}>
-        <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
-        <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+      <div className={styles.halfPieceSmall}>
+        <div className={styles.halfSmallLeft}>{WhiteKing && <WhiteKing />}</div>
+        <div className={styles.halfSmallRight}>{BlackKing && <BlackKing />}</div>
       </div>
     </div>
   );
@@ -75,7 +75,11 @@ export default function Lobby({ playerName, onChangeName }: Props) {
 
   const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
   const [waitingPreset, setWaitingPreset] = useState<string | null>(null);
+  const waitingTimeRef = useRef<{ time: number; increment: number } | null>(null);
+  const waitingRoomIdRef = useRef<string | null>(null);
   const busyRef = useRef(false);
+
+  waitingRoomIdRef.current = waitingRoomId;
 
   const customMinutes = MINUTE_STEPS[customMinIdx] ?? 5;
   const customIncrement = INCREMENT_STEPS[customIncIdx] ?? 3;
@@ -91,8 +95,11 @@ export default function Lobby({ playerName, onChangeName }: Props) {
     return () => {
       socket.off("rooms:list", handleRoomsList);
       socket.off("game:start", handleGameStart);
+      if (waitingRoomIdRef.current) {
+        socket.emit("room:leave", { roomId: waitingRoomIdRef.current, playerName });
+      }
     };
-  }, [navigate]);
+  }, [navigate, playerName]);
 
   const closeRoom = useCallback(
     (roomId: string): Promise<void> =>
@@ -103,19 +110,20 @@ export default function Lobby({ playerName, onChangeName }: Props) {
   );
 
   const openRoom = useCallback(
-    (timeControl: number, increment: number, presetKey: string) => {
+    (timeControl: number, increment: number, presetKey: string, color: ColorChoice) => {
       if (busyRef.current) return;
       busyRef.current = true;
 
       const doCreate = () => {
         socket.emit(
           "room:create",
-          { playerName, timeControl, increment, colorChoice },
+          { playerName, timeControl, increment, colorChoice: color },
           (res: any) => {
             busyRef.current = false;
             if (res.success) {
               setWaitingRoomId(res.room.roomId);
               setWaitingPreset(presetKey);
+              waitingTimeRef.current = { time: timeControl, increment };
             }
           }
         );
@@ -130,7 +138,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
         doCreate();
       }
     },
-    [playerName, colorChoice, waitingRoomId, closeRoom]
+    [playerName, waitingRoomId, closeRoom]
   );
 
   const handlePresetClick = useCallback(
@@ -140,19 +148,31 @@ export default function Lobby({ playerName, onChangeName }: Props) {
         const oldId = waitingRoomId;
         setWaitingRoomId(null);
         setWaitingPreset(null);
+        waitingTimeRef.current = null;
         if (oldId) closeRoom(oldId);
         return;
       }
-      openRoom(p.time, p.increment, p.label);
+      openRoom(p.time, p.increment, p.label, colorChoice);
     },
-    [waitingPreset, waitingRoomId, closeRoom, openRoom]
+    [waitingPreset, waitingRoomId, closeRoom, openRoom, colorChoice]
   );
 
   const handleCustomCreate = useCallback(() => {
     const timeSec = Math.round(customMinutes * 60);
     const key = `custom:${customMinutes}+${customIncrement}`;
-    openRoom(timeSec, customIncrement, key);
-  }, [customMinutes, customIncrement, openRoom]);
+    openRoom(timeSec, customIncrement, key, colorChoice);
+  }, [customMinutes, customIncrement, openRoom, colorChoice]);
+
+  const handleColorChange = useCallback(
+    (newColor: ColorChoice) => {
+      setColorChoice(newColor);
+      if (waitingPreset && waitingTimeRef.current) {
+        const { time, increment } = waitingTimeRef.current;
+        openRoom(time, increment, waitingPreset, newColor);
+      }
+    },
+    [waitingPreset, openRoom]
+  );
 
   const handleJoin = useCallback(
     (roomId: string) => {
@@ -185,14 +205,14 @@ export default function Lobby({ playerName, onChangeName }: Props) {
             <div className={styles.colorRow}>
               <button
                 className={`${styles.colorOption} ${colorChoice === "white" ? styles.colorOptionActive : ""}`}
-                onClick={() => setColorChoice("white")}
+                onClick={() => handleColorChange("white")}
                 title="White"
               >
                 <div className={styles.pieceIcon}>{WhiteKing && <WhiteKing />}</div>
               </button>
               <button
                 className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
-                onClick={() => setColorChoice("random")}
+                onClick={() => handleColorChange("random")}
                 title="Random"
               >
                 <div className={styles.pieceIcon}>
@@ -204,7 +224,7 @@ export default function Lobby({ playerName, onChangeName }: Props) {
               </button>
               <button
                 className={`${styles.colorOption} ${colorChoice === "black" ? styles.colorOptionActive : ""}`}
-                onClick={() => setColorChoice("black")}
+                onClick={() => handleColorChange("black")}
                 title="Black"
               >
                 <div className={styles.pieceIcon}>{BlackKing && <BlackKing />}</div>
@@ -276,7 +296,6 @@ export default function Lobby({ playerName, onChangeName }: Props) {
           <div className={styles.tablePanel}>
             <div className={styles.tableHeader}>
               <span className={styles.thPlayer}>Player</span>
-              <span className={styles.thColor}></span>
               <span className={styles.thTime}>Time</span>
               <span className={styles.thMode}>Mode</span>
             </div>
@@ -299,11 +318,9 @@ export default function Lobby({ playerName, onChangeName }: Props) {
                       }}
                     >
                       <span className={styles.tdPlayer}>
+                        <ColorIcon choice={room.colorChoice} />
                         {room.owner}
                         {isOwn && <span className={styles.youTag}>you</span>}
-                      </span>
-                      <span className={styles.tdColor}>
-                        <ColorIcon choice={room.colorChoice} />
                       </span>
                       <span className={styles.tdTime}>
                         {formatTimeLabel(room.timeControl, room.increment)}

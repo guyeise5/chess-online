@@ -350,11 +350,6 @@
   min-width: 0;
 }
 
-.thColor {
-  width: 36px;
-  text-align: center;
-}
-
 .thTime {
   width: 72px;
   text-align: center;
@@ -440,19 +435,42 @@
   letter-spacing: 0.03em;
 }
 
-.tdColor {
-  width: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .colorIconWrap {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .colorIconWrap > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.halfPieceSmall {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.halfSmallLeft,
+.halfSmallRight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.halfSmallLeft {
+  clip-path: inset(0 50% 0 0);
+}
+
+.halfSmallRight {
+  clip-path: inset(0 0 0 50%);
+}
+
+.halfSmallLeft > svg,
+.halfSmallRight > svg {
   width: 100%;
   height: 100%;
 }
