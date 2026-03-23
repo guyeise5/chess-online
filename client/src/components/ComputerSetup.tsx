@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
-import { DEFAULT_PIECES } from "../boardThemes";
+import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
 import styles from "./ComputerSetup.module.css";
 
 function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) {
-  if (piecesName === DEFAULT_PIECES) {
+  if (piecesName === DEFAULT_PIECES || piecesName === BLINDFOLD_PIECES) {
     const Comp = defaultPieces[piece];
     return Comp ? <Comp /> : null;
   }

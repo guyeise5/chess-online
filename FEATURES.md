@@ -34,7 +34,7 @@
 
 - **Key files:** `client/src/components/BoardSettings.tsx`, `client/src/hooks/useBoardPreferences.tsx`, `client/src/boardThemes.ts`
 - 19 board color themes from Lichess (brown, blue, green, wood, maple, etc.)
-- 38 piece sets from Lichess (cburnett, merida, alpha, california, horsey, etc.)
+- 39 piece sets: 38 from Lichess (cburnett, merida, alpha, california, horsey, etc.) plus a "blindfold" mode (invisible pieces; menu icons stay default)
 - Settings stored in localStorage, persist across sessions
 - Applied to all board views: online play, computer play, puzzles, analysis
 - Selected piece set also used for color picker icons in lobby and computer setup menus
@@ -113,4 +113,4 @@
 | `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |
 | `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |
 | `FEATURE_GAME_HISTORY` | `true` | Game history page listing the player's past games for analysis. Set to `false` to disable. |
-| `FEATURE_BOARD_SETTINGS` | `true` | Board and piece customization page (40 piece sets, 19 board themes). Set to `false` to hide settings. |
+| `FEATURE_BOARD_SETTINGS` | `true` | Board and piece customization page (39 piece sets incl. blindfold, 19 board themes). Set to `false` to hide settings. |

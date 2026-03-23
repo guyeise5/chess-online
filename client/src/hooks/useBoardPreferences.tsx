@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { getBoardTheme, DEFAULT_BOARD, DEFAULT_PIECES, type BoardTheme } from "../boardThemes";
+import { getBoardTheme, DEFAULT_BOARD, DEFAULT_PIECES, BLINDFOLD_PIECES, type BoardTheme } from "../boardThemes";
 
 const STORAGE_KEY = "chess-board-prefs";
 
@@ -28,7 +28,16 @@ function savePrefs(prefs: BoardPrefs) {
 
 const PIECE_CODES = ["wK", "wQ", "wR", "wB", "wN", "wP", "bK", "bQ", "bR", "bB", "bN", "bP"] as const;
 
+function buildBlindfoldComponents(): Record<string, () => React.JSX.Element> {
+  const result: Record<string, () => React.JSX.Element> = {};
+  for (const code of PIECE_CODES) {
+    result[code] = () => <span />;
+  }
+  return result;
+}
+
 function buildPieceComponents(pieceSet: string): Record<string, () => React.JSX.Element> {
+  if (pieceSet === BLINDFOLD_PIECES) return buildBlindfoldComponents();
   const result: Record<string, () => React.JSX.Element> = {};
   for (const code of PIECE_CODES) {
     const src = `/pieces/${pieceSet}/${code}.svg`;

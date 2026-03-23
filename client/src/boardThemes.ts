@@ -26,6 +26,8 @@ export const BOARD_THEMES: BoardTheme[] = [
   { name: "wood4", light: "#caab6e", dark: "#7b5330" },
 ];
 
+export const BLINDFOLD_PIECES = "blindfold";
+
 export const PIECE_SETS = [
   "alpha",
   "anarcandy",
@@ -65,6 +67,7 @@ export const PIECE_SETS = [
   "staunty",
   "tatiana",
   "xkcd",
+  BLINDFOLD_PIECES,
 ];
 
 export const DEFAULT_BOARD = "brown";

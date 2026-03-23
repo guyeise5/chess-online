@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { socket } from "../socket";
 import { RoomData, ColorChoice } from "../types";
-import { DEFAULT_PIECES } from "../boardThemes";
+import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
 import styles from "./Lobby.module.css";
@@ -16,7 +16,7 @@ interface Props {
 }
 
 function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) {
-  if (piecesName === DEFAULT_PIECES) {
+  if (piecesName === DEFAULT_PIECES || piecesName === BLINDFOLD_PIECES) {
     const Comp = defaultPieces[piece];
     return Comp ? <Comp /> : null;
   }
