@@ -50,7 +50,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Lobby playerName={playerName} onChangeName={handleChangeName} onOpenSettings={openSettings} />
+            <Lobby playerName={playerName} onChangeName={handleChangeName} onOpenSettings={openSettings} boardPrefs={boardPrefs} />
           }
         />
         <Route
@@ -60,6 +60,7 @@ export default function App() {
               playerName={playerName}
               onChangeName={handleChangeName}
               onOpenSettings={openSettings}
+              boardPrefs={boardPrefs}
             />
           }
         />

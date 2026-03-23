@@ -37,6 +37,7 @@
 - 38 piece sets from Lichess (cburnett, merida, alpha, california, horsey, etc.)
 - Settings stored in localStorage, persist across sessions
 - Applied to all board views: online play, computer play, puzzles, analysis
+- Selected piece set also used for color picker icons in lobby and computer setup menus
 - Accessible via gear icon in the navigation bar
 - Feature flag: `FEATURE_BOARD_SETTINGS`
 

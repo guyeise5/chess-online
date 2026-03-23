@@ -2,20 +2,29 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
+import { DEFAULT_PIECES } from "../boardThemes";
+import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
 import styles from "./ComputerSetup.module.css";
 
-const WhiteKing = defaultPieces["wK"];
-const BlackKing = defaultPieces["bK"];
+function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) {
+  if (piecesName === DEFAULT_PIECES) {
+    const Comp = defaultPieces[piece];
+    return Comp ? <Comp /> : null;
+  }
+  return <img src={`/pieces/${piecesName}/${piece}.svg`} alt={piece} style={{ width: "100%", height: "100%" }} />;
+}
 
 interface Props {
   playerName: string;
   onChangeName: () => void;
   onOpenSettings?: () => void;
+  boardPrefs?: BoardPreferences;
 }
 
-export default function ComputerSetup({ playerName, onChangeName, onOpenSettings }: Props) {
+export default function ComputerSetup({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const navigate = useNavigate();
+  const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
   const [color, setColor] = useState<"white" | "black" | "random">("white");
 
   const handlePlay = (level: number) => {
@@ -40,7 +49,7 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
               onClick={() => setColor("white")}
               title="White"
             >
-              <div className={styles.pieceIcon}>{WhiteKing && <WhiteKing />}</div>
+              <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
             </button>
             <button
               className={`${styles.colorOption} ${color === "random" ? styles.colorOptionActive : ""}`}
@@ -49,8 +58,8 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
             >
               <div className={styles.pieceIcon}>
                 <div className={styles.halfPieceWrap}>
-                  <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
-                  <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+                  <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                  <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
                 </div>
               </div>
             </button>
@@ -59,7 +68,7 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
               onClick={() => setColor("black")}
               title="Black"
             >
-              <div className={styles.pieceIcon}>{BlackKing && <BlackKing />}</div>
+              <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
             </button>
           </div>
 

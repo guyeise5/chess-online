@@ -3,16 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { socket } from "../socket";
 import { RoomData, ColorChoice } from "../types";
+import { DEFAULT_PIECES } from "../boardThemes";
+import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
 import styles from "./Lobby.module.css";
-
-const WhiteKing = defaultPieces["wK"];
-const BlackKing = defaultPieces["bK"];
 
 interface Props {
   playerName: string;
   onChangeName: () => void;
   onOpenSettings?: () => void;
+  boardPrefs?: BoardPreferences;
+}
+
+function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) {
+  if (piecesName === DEFAULT_PIECES) {
+    const Comp = defaultPieces[piece];
+    return Comp ? <Comp /> : null;
+  }
+  return <img src={`/pieces/${piecesName}/${piece}.svg`} alt={piece} style={{ width: "100%", height: "100%" }} />;
 }
 
 const PRESETS = [
@@ -53,21 +61,22 @@ function classifyTime(minutes: number, increment: number): string {
   return "Classical";
 }
 
-function ColorIcon({ choice }: { choice: ColorChoice }) {
-  if (choice === "white") return <div className={styles.colorIconWrap}>{WhiteKing && <WhiteKing />}</div>;
-  if (choice === "black") return <div className={styles.colorIconWrap}>{BlackKing && <BlackKing />}</div>;
+function ColorIcon({ choice, piecesName }: { choice: ColorChoice; piecesName: string }) {
+  if (choice === "white") return <div className={styles.colorIconWrap}><PieceImg piece="wK" piecesName={piecesName} /></div>;
+  if (choice === "black") return <div className={styles.colorIconWrap}><PieceImg piece="bK" piecesName={piecesName} /></div>;
   return (
     <div className={styles.colorIconWrap}>
       <div className={styles.halfPieceSmall}>
-        <div className={styles.halfSmallLeft}>{WhiteKing && <WhiteKing />}</div>
-        <div className={styles.halfSmallRight}>{BlackKing && <BlackKing />}</div>
+        <div className={styles.halfSmallLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
+        <div className={styles.halfSmallRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
       </div>
     </div>
   );
 }
 
-export default function Lobby({ playerName, onChangeName, onOpenSettings }: Props) {
+export default function Lobby({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const navigate = useNavigate();
+  const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [colorChoice, setColorChoice] = useState<ColorChoice>("random");
   const [showCustom, setShowCustom] = useState(false);
@@ -209,7 +218,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings }: Prop
                 onClick={() => handleColorChange("white")}
                 title="White"
               >
-                <div className={styles.pieceIcon}>{WhiteKing && <WhiteKing />}</div>
+                <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
               </button>
               <button
                 className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
@@ -218,8 +227,8 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings }: Prop
               >
                 <div className={styles.pieceIcon}>
                   <div className={styles.halfPieceWrap}>
-                    <div className={styles.halfLeft}>{WhiteKing && <WhiteKing />}</div>
-                    <div className={styles.halfRight}>{BlackKing && <BlackKing />}</div>
+                    <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                    <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
                   </div>
                 </div>
               </button>
@@ -228,7 +237,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings }: Prop
                 onClick={() => handleColorChange("black")}
                 title="Black"
               >
-                <div className={styles.pieceIcon}>{BlackKing && <BlackKing />}</div>
+                <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
               </button>
             </div>
 
@@ -319,7 +328,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings }: Prop
                       }}
                     >
                       <span className={styles.tdPlayer}>
-                        <ColorIcon choice={room.colorChoice} />
+                        <ColorIcon choice={room.colorChoice} piecesName={piecesName} />
                         {room.owner}
                         {isOwn && <span className={styles.youTag}>you</span>}
                       </span>
