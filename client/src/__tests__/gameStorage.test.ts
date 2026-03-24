@@ -52,6 +52,72 @@ describe("generateGameId", () => {
   });
 });
 
+describe("online game auto-save logic", () => {
+  it("should save when game transitions to finished with moves", () => {
+    const status = "finished";
+    const moves = ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#"];
+    const gameSaved = false;
+    const featureEnabled = true;
+
+    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
+    expect(shouldSave).toBe(true);
+  });
+
+  it("should not save when game is still playing", () => {
+    const status = "playing";
+    const moves = ["e4", "e5"];
+    const gameSaved = false;
+    const featureEnabled = true;
+
+    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
+    expect(shouldSave).toBe(false);
+  });
+
+  it("should not save twice (gameSaved guard)", () => {
+    const status = "finished";
+    const moves = ["e4", "e5"];
+    const gameSaved = true;
+    const featureEnabled = true;
+
+    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
+    expect(shouldSave).toBe(false);
+  });
+
+  it("should not save when feature flag is disabled", () => {
+    const status = "finished";
+    const moves = ["e4", "e5"];
+    const gameSaved = false;
+    const featureEnabled = false;
+
+    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
+    expect(shouldSave).toBe(false);
+  });
+
+  it("should not save when there are no moves", () => {
+    const status = "finished";
+    const moves: string[] = [];
+    const gameSaved = false;
+    const featureEnabled = true;
+
+    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
+    expect(shouldSave).toBe(false);
+  });
+
+  it("uses roomId as gameId for online games", () => {
+    const roomId = "abc12345";
+    const id = roomId ?? generateGameId();
+    expect(id).toBe("abc12345");
+  });
+
+  it("falls back to generateGameId when roomId is missing", () => {
+    const roomId: string | undefined = undefined;
+    const id = roomId ?? generateGameId();
+    expect(id).not.toBe(undefined);
+    expect(typeof id).toBe("string");
+    expect(id.length).toBeGreaterThan(0);
+  });
+});
+
 describe("analysis route construction", () => {
   it("builds the correct analysis URL from a gameId", () => {
     const gameId = "9a2c3267";

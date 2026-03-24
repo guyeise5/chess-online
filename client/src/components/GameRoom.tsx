@@ -338,6 +338,22 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     }
   }, [status]);
 
+  const gameSavedRef = useRef(false);
+  useEffect(() => {
+    if (status !== "finished" || gameSavedRef.current) return;
+    if ((window as any).__ENV__?.FEATURE_GAME_STORAGE === "false") return;
+    if (!moves.length) return;
+    gameSavedRef.current = true;
+    const id = roomId ?? generateGameId();
+    saveAnalysisGame(id, {
+      moves,
+      playerWhite: room?.whitePlayer ?? "White",
+      playerBlack: room?.blackPlayer ?? "Black",
+      orientation: isBlack ? "black" : "white",
+      result: result ?? undefined,
+    });
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [moves]);
