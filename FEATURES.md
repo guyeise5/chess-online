@@ -24,6 +24,19 @@
 - Lichess-style game control bar: compact icon buttons (↶ takeback, ½ draw, ⚑ resign) with dark background; confirm/cancel (✓/✗) pattern for destructive actions
 - Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`
 
+## Private Games
+
+- **Route:** `/invite/:roomId` (invite acceptance page)
+- **Key files:** `client/src/components/PrivateInvite.tsx`, `client/src/components/Lobby.tsx` (modal), `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`
+- **Feature flag:** `FEATURE_PRIVATE_GAMES`
+- Create a private game from the lobby via the "Create Private Game" button
+- Same configuration as public games: time control presets/custom, color selection
+- Private rooms are hidden from the lobby room list
+- Owner receives a shareable invite link (`/invite/<roomId>`)
+- Invitee opens the link, sees game configuration (time, mode, color assignment), and accepts to start the game
+- If the owner disconnects or cancels before an opponent joins, the room is deleted and the invite link shows "Game not found"
+- Once accepted, the game proceeds identically to a public game (same timers, controls, reconnection, etc.)
+
 ## Play vs Computer
 
 - **Route:** `/computer/setup` (configuration), `/computer` (game board)
@@ -123,3 +136,4 @@
 | `FEATURE_DISCONNECT_CLAIM` | `true` | Disconnect claim system: notifies opponent when a player disconnects or navigates away, allows claiming win or draw after 10s grace period. Navigation lock prevents leaving an active game. Set to `false` to disable. |
 | `FEATURE_GIVE_TIME` | `true` | Give time button: "+" next to opponent's clock adds 15 seconds. Set to `false` to disable. |
 | `FEATURE_DRAW_OFFER` | `true` | Draw offer system: players can offer a draw with anti-spam protection (Lichess-style). Set to `false` to disable. |
+| `FEATURE_PRIVATE_GAMES` | `true` | Private game creation with shareable invite links. Rooms are hidden from the lobby. Set to `false` to disable. |

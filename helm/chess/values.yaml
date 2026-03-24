@@ -22,6 +22,7 @@ app:
     FEATURE_DISCONNECT_CLAIM: "true"
     FEATURE_GIVE_TIME: "true"
     FEATURE_DRAW_OFFER: "true"
+    FEATURE_PRIVATE_GAMES: "true"
 
 mongodb:
   image:

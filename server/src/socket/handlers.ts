@@ -30,15 +30,22 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           timeControl: number;
           increment: number;
           colorChoice: ColorChoice;
+          isPrivate?: boolean;
         },
         callback: (res: any) => void
       ) => {
         try {
+          const isPrivate = data.isPrivate === true;
+          if (isPrivate && process.env.FEATURE_PRIVATE_GAMES === "false") {
+            callback({ success: false, error: "Feature disabled" });
+            return;
+          }
           const room = await gm.createRoom(
             data.playerName,
             data.timeControl,
             data.increment,
-            data.colorChoice
+            data.colorChoice,
+            isPrivate
           );
           socket.join(room.roomId);
           socketPlayers.set(socket.id, data.playerName);
@@ -110,6 +117,26 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         } catch (err) {
           console.error("Error leaving room:", err);
           callback({ success: false, error: "Failed to leave room" });
+        }
+      }
+    );
+
+    socket.on(
+      "room:info",
+      async (
+        data: { roomId: string },
+        callback: (res: any) => void
+      ) => {
+        try {
+          const room = await gm.getPrivateRoomInfo(data.roomId);
+          if (!room) {
+            callback({ success: false, error: "Room not found" });
+            return;
+          }
+          callback({ success: true, room: gm.serializeRoom(room) });
+        } catch (err) {
+          console.error("Error fetching room info:", err);
+          callback({ success: false, error: "Failed to fetch room info" });
         }
       }
     );

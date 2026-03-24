@@ -44,6 +44,7 @@ services:
       - FEATURE_DISCONNECT_CLAIM=${FEATURE_DISCONNECT_CLAIM:-true}
       - FEATURE_GIVE_TIME=${FEATURE_GIVE_TIME:-true}
       - FEATURE_DRAW_OFFER=${FEATURE_DRAW_OFFER:-true}
+      - FEATURE_PRIVATE_GAMES=${FEATURE_PRIVATE_GAMES:-true}
     depends_on:
       - mongo
 

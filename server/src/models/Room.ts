@@ -12,6 +12,7 @@ export interface IRoom extends Document {
   timeControl: number;
   timeIncrement: number;
   colorChoice: ColorChoice;
+  isPrivate: boolean;
   status: RoomStatus;
   fen: string;
   pgn: string;
@@ -57,6 +58,7 @@ const RoomSchema = new Schema<IRoom>(
       enum: ["white", "black", "random"],
       default: "random",
     },
+    isPrivate: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["waiting", "playing", "finished"],

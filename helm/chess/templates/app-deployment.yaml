@@ -52,6 +52,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_GIVE_TIME | quote }}
             - name: FEATURE_DRAW_OFFER
               value: {{ .Values.app.env.FEATURE_DRAW_OFFER | quote }}
+            - name: FEATURE_PRIVATE_GAMES
+              value: {{ .Values.app.env.FEATURE_PRIVATE_GAMES | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

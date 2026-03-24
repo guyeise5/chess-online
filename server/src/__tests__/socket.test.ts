@@ -902,3 +902,170 @@ describe("full game flow", () => {
     black.disconnect();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Private games (socket integration)
+// ---------------------------------------------------------------------------
+describe("private games", () => {
+  it("creates a private room that does not appear in rooms:list", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const createRes = await emitWithAck(client, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+      isPrivate: true,
+    });
+
+    expect(createRes.success).toBe(true);
+    expect(createRes.room.isPrivate).toBe(true);
+
+    const roomsList = await waitForEvent(client, "rooms:list");
+    expect(roomsList.length).toBe(0);
+
+    client.disconnect();
+  });
+
+  it("room:info returns private room details", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const createRes = await emitWithAck(client, "room:create", {
+      playerName: "Alice",
+      timeControl: 600,
+      increment: 5,
+      colorChoice: "random",
+      isPrivate: true,
+    });
+    const roomId = createRes.room.roomId;
+
+    const infoRes = await emitWithAck(client, "room:info", { roomId });
+
+    expect(infoRes.success).toBe(true);
+    expect(infoRes.room.roomId).toBe(roomId);
+    expect(infoRes.room.owner).toBe("Alice");
+    expect(infoRes.room.timeControl).toBe(600);
+    expect(infoRes.room.increment).toBe(5);
+
+    client.disconnect();
+  });
+
+  it("room:info returns error for nonexistent room", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const infoRes = await emitWithAck(client, "room:info", { roomId: "no-such" });
+
+    expect(infoRes.success).toBe(false);
+    expect(infoRes.error).toBe("Room not found");
+
+    client.disconnect();
+  });
+
+  it("room:info returns error for non-private rooms", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const createRes = await emitWithAck(client, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    const infoRes = await emitWithAck(client, "room:info", { roomId });
+
+    expect(infoRes.success).toBe(false);
+
+    client.disconnect();
+  });
+
+  it("full private game flow: create → info → join → game starts", async () => {
+    const owner = connectClient();
+    const invitee = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(invitee, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+      isPrivate: true,
+    });
+    const roomId = createRes.room.roomId;
+
+    const infoRes = await emitWithAck(invitee, "room:info", { roomId });
+    expect(infoRes.success).toBe(true);
+    expect(infoRes.room.status).toBe("waiting");
+
+    const gameStartPromise = waitForEvent(owner, "game:start");
+
+    const joinRes = await emitWithAck(invitee, "room:join", {
+      roomId,
+      playerName: "Bob",
+    });
+    expect(joinRes.success).toBe(true);
+    expect(joinRes.room.status).toBe("playing");
+
+    const startedRoom = await gameStartPromise;
+    expect(startedRoom.roomId).toBe(roomId);
+    expect(startedRoom.status).toBe("playing");
+
+    owner.disconnect();
+    invitee.disconnect();
+  });
+
+  it("rejects private room creation when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_PRIVATE_GAMES;
+    process.env.FEATURE_PRIVATE_GAMES = "false";
+
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const res = await emitWithAck(client, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+      isPrivate: true,
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe("Feature disabled");
+
+    client.disconnect();
+    process.env.FEATURE_PRIVATE_GAMES = orig;
+  });
+
+  it("owner disconnect deletes private waiting room", async () => {
+    const owner = connectClient();
+    const viewer = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(viewer, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+      isPrivate: true,
+    });
+    const roomId = createRes.room.roomId;
+
+    owner.disconnect();
+    await new Promise((r) => setTimeout(r, 100));
+
+    const infoRes = await emitWithAck(viewer, "room:info", { roomId });
+    expect(infoRes.success).toBe(false);
+
+    viewer.disconnect();
+  });
+});

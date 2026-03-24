@@ -10,6 +10,7 @@ export interface RoomData {
   timeControl: number;
   increment: number;
   colorChoice: ColorChoice;
+  isPrivate?: boolean;
   status: RoomStatus;
   fen: string;
   whitePlayer: string | null;

@@ -1354,3 +1354,101 @@ describe("giveTime", () => {
     expect(updated!.blackTime).toBeCloseTo(blackBefore + 30, 0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Private Games
+// ---------------------------------------------------------------------------
+describe("private games", () => {
+  it("creates a private room with isPrivate flag", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+
+    expect(room.isPrivate).toBe(true);
+    expect(room.owner).toBe("Alice");
+    expect(room.status).toBe("waiting");
+  });
+
+  it("defaults isPrivate to false", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+
+    expect(room.isPrivate).toBe(false);
+  });
+
+  it("excludes private rooms from getRooms()", async () => {
+    await gm.createRoom("Alice", 300, 2, "white", true);
+    await gm.createRoom("Bob", 600, 5, "random", false);
+
+    const rooms = await gm.getRooms();
+    expect(rooms).toHaveLength(1);
+    expect(rooms[0].owner).toBe("Bob");
+  });
+
+  it("getPrivateRoomInfo returns a private room", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+
+    const info = await gm.getPrivateRoomInfo(room.roomId);
+    expect(info).not.toBeNull();
+    expect(info!.roomId).toBe(room.roomId);
+    expect(info!.owner).toBe("Alice");
+  });
+
+  it("getPrivateRoomInfo returns null for non-private rooms", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", false);
+
+    const info = await gm.getPrivateRoomInfo(room.roomId);
+    expect(info).toBeNull();
+  });
+
+  it("getPrivateRoomInfo returns null for nonexistent rooms", async () => {
+    const info = await gm.getPrivateRoomInfo("no-such-id");
+    expect(info).toBeNull();
+  });
+
+  it("getPrivateRoomInfo returns null when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_PRIVATE_GAMES;
+    process.env.FEATURE_PRIVATE_GAMES = "false";
+
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+    const info = await gm.getPrivateRoomInfo(room.roomId);
+    expect(info).toBeNull();
+
+    process.env.FEATURE_PRIVATE_GAMES = orig;
+  });
+
+  it("joining a private room starts the game", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+    const sock = mockSocket("sock-2");
+
+    const joined = await gm.joinRoom(room.roomId, "Bob", sock);
+
+    expect(joined).not.toBeNull();
+    expect(joined!.status).toBe("playing");
+    expect(joined!.isPrivate).toBe(true);
+  });
+
+  it("closing a private waiting room deletes it", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+
+    const closed = await gm.closeRoom(room.roomId, "Alice");
+    expect(closed).toBe(true);
+
+    const info = await gm.getPrivateRoomInfo(room.roomId);
+    expect(info).toBeNull();
+  });
+
+  it("closeWaitingRoomsByOwner deletes private rooms too", async () => {
+    await gm.createRoom("Alice", 300, 2, "white", true);
+    await gm.createRoom("Alice", 600, 5, "random", false);
+
+    await gm.closeWaitingRoomsByOwner("Alice");
+
+    const allRooms = await Room.find({});
+    expect(allRooms).toHaveLength(0);
+  });
+
+  it("serializeRoom includes isPrivate", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true);
+    const serialized = gm.serializeRoom(room);
+
+    expect(serialized.isPrivate).toBe(true);
+  });
+});

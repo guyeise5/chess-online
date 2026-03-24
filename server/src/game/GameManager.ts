@@ -44,7 +44,8 @@ export class GameManager {
     ownerName: string,
     timeControl: number,
     increment: number,
-    colorChoice: ColorChoice
+    colorChoice: ColorChoice,
+    isPrivate: boolean = false
   ): Promise<IRoom> {
     const roomId = uuidv4().slice(0, 8);
     const timeFormat = deriveTimeFormat(timeControl, increment);
@@ -56,6 +57,7 @@ export class GameManager {
       timeControl,
       timeIncrement: increment,
       colorChoice,
+      isPrivate,
       whiteTime: timeControl,
       blackTime: timeControl,
     });
@@ -65,7 +67,14 @@ export class GameManager {
   }
 
   async getRooms(): Promise<IRoom[]> {
-    return Room.find({ status: "waiting" }).sort({ createdAt: -1 });
+    return Room.find({ status: "waiting", isPrivate: { $ne: true } }).sort({ createdAt: -1 });
+  }
+
+  async getPrivateRoomInfo(roomId: string): Promise<IRoom | null> {
+    if (process.env.FEATURE_PRIVATE_GAMES === "false") return null;
+    const room = await Room.findOne({ roomId, isPrivate: true });
+    if (!room) return null;
+    return room;
   }
 
   async joinRoom(
@@ -650,6 +659,7 @@ export class GameManager {
       timeControl: room.timeControl,
       increment: room.timeIncrement,
       colorChoice: room.colorChoice,
+      isPrivate: room.isPrivate,
       status: room.status,
       fen: room.fen,
       whitePlayer: room.whitePlayer,

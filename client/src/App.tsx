@@ -7,6 +7,7 @@ import GameRoom from "./components/GameRoom";
 import PuzzleTrainer from "./components/PuzzleTrainer";
 import AnalysisBoard from "./components/AnalysisBoard";
 import GameHistory from "./components/GameHistory";
+import PrivateInvite from "./components/PrivateInvite";
 import BoardSettings from "./components/BoardSettings";
 import NamePrompt from "./components/NamePrompt";
 import Footer from "./components/Footer";
@@ -109,6 +110,17 @@ export default function App() {
                 playerName={playerName}
                 onChangeName={handleChangeName}
                 onOpenSettings={openSettings}
+              />
+            }
+          />
+          <Route
+            path="/invite/:roomId"
+            element={
+              <PrivateInvite
+                playerName={playerName}
+                onChangeName={handleChangeName}
+                onOpenSettings={openSettings}
+                boardPrefs={boardPrefs}
               />
             }
           />

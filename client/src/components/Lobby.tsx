@@ -97,6 +97,15 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const waitingRoomIdRef = useRef<string | null>(null);
   const busyRef = useRef(false);
 
+  const [showPrivate, setShowPrivate] = useState(false);
+  const [privateRoomId, setPrivateRoomId] = useState<string | null>(null);
+  const [privateBusy, setPrivateBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const privateRoomIdRef = useRef<string | null>(null);
+  privateRoomIdRef.current = privateRoomId;
+
+  const privateGamesEnabled = (window as any).__ENV__?.FEATURE_PRIVATE_GAMES !== "false";
+
   waitingRoomIdRef.current = waitingRoomId;
 
   const customMinutes = MINUTE_STEPS[customMinIdx] ?? 5;
@@ -115,6 +124,9 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       socket.off("game:start", handleGameStart);
       if (waitingRoomIdRef.current) {
         socket.emit("room:leave", { roomId: waitingRoomIdRef.current, playerName });
+      }
+      if (privateRoomIdRef.current) {
+        socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName });
       }
     };
   }, [navigate, playerName]);
@@ -202,6 +214,77 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
     [playerName, navigate]
   );
 
+  const closePrivateRoom = useCallback(() => {
+    if (privateRoomIdRef.current) {
+      socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName }, () => {});
+      setPrivateRoomId(null);
+    }
+  }, [playerName]);
+
+  const handleClosePrivateModal = useCallback(() => {
+    closePrivateRoom();
+    setShowPrivate(false);
+    setCopied(false);
+  }, [closePrivateRoom]);
+
+  const handleCreatePrivate = useCallback(
+    (timeControl: number, increment: number) => {
+      if (privateBusy) return;
+      setPrivateBusy(true);
+      setCopied(false);
+
+      const doCreate = () => {
+        socket.emit(
+          "room:create",
+          { playerName, timeControl, increment, colorChoice: colorChoice, isPrivate: true },
+          (res: any) => {
+            setPrivateBusy(false);
+            if (res.success) {
+              setPrivateRoomId(res.room.roomId);
+            }
+          }
+        );
+      };
+
+      if (privateRoomIdRef.current) {
+        const oldId = privateRoomIdRef.current;
+        setPrivateRoomId(null);
+        socket.emit("room:leave", { roomId: oldId, playerName }, () => doCreate());
+      } else {
+        doCreate();
+      }
+    },
+    [playerName, colorChoice, privateBusy]
+  );
+
+  const privateInviteUrl = privateRoomId
+    ? `${window.location.origin}/invite/${privateRoomId}`
+    : "";
+
+  const handleCopyLink = useCallback(() => {
+    if (!privateInviteUrl) return;
+    const fallbackCopy = () => {
+      const ta = document.createElement("textarea");
+      ta.value = privateInviteUrl;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(privateInviteUrl).then(
+        () => {},
+        () => fallbackCopy()
+      );
+    } else {
+      fallbackCopy();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [privateInviteUrl]);
+
   const customLabel = useMemo(
     () => `${formatMinutes(customMinutes)}+${customIncrement}`,
     [customMinutes, customIncrement]
@@ -269,6 +352,14 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
               </button>
             </div>
 
+            {privateGamesEnabled && (
+              <button
+                className={styles.privateBtn}
+                onClick={() => setShowPrivate(true)}
+              >
+                Create Private Game
+              </button>
+            )}
           </div>
 
           {/* Right: Room list table */}
@@ -313,6 +404,87 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
           </div>
         </div>
       </main>
+
+      {showPrivate && privateGamesEnabled && (
+        <div className={styles.customOverlay} onClick={handleClosePrivateModal}>
+          <div className={styles.customModal} onClick={(e) => e.stopPropagation()} style={{ width: 400 }}>
+            <div className={styles.customModalHeader}>
+              <span className={styles.customModalTitle}>Create private game</span>
+              <button className={styles.customCloseBtn} onClick={handleClosePrivateModal}>✕</button>
+            </div>
+
+            {!privateRoomId ? (
+              <>
+                <div className={styles.colorRow}>
+                  <button
+                    className={`${styles.colorOption} ${colorChoice === "white" ? styles.colorOptionActive : ""}`}
+                    onClick={() => handleColorChange("white")}
+                    title="White"
+                  >
+                    <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                  </button>
+                  <button
+                    className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
+                    onClick={() => handleColorChange("random")}
+                    title="Random"
+                  >
+                    <div className={styles.pieceIcon}>
+                      <div className={styles.halfPieceWrap}>
+                        <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                        <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    className={`${styles.colorOption} ${colorChoice === "black" ? styles.colorOptionActive : ""}`}
+                    onClick={() => handleColorChange("black")}
+                    title="Black"
+                  >
+                    <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                  </button>
+                </div>
+
+                <div className={styles.privatePresetGrid}>
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      className={styles.privatePresetBtn}
+                      onClick={() => handleCreatePrivate(p.time, p.increment)}
+                      disabled={privateBusy}
+                    >
+                      <span className={styles.presetTime}>{p.label}</span>
+                      <span className={styles.presetCategory}>{classifyTime(p.time / 60, p.increment)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className={styles.privateLinkSection}>
+                <div className={styles.privateLinkLabel}>Share this link with your opponent:</div>
+                <div className={styles.privateLinkRow}>
+                  <input
+                    className={styles.privateLinkInput}
+                    value={privateInviteUrl}
+                    readOnly
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button className={styles.privateCopyBtn} onClick={handleCopyLink} title={copied ? "Copied!" : "Copy link"}>
+                    {copied ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    )}
+                  </button>
+                </div>
+                <div className={styles.privateWaiting}>Waiting for opponent…</div>
+                <button className={styles.privateCancelBtn} onClick={handleClosePrivateModal}>
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showCustom && (
         <div className={styles.customOverlay} onClick={() => setShowCustom(false)}>

@@ -244,6 +244,24 @@ tests:
             name: FEATURE_DRAW_OFFER
             value: "false"
 
+  - it: should have default FEATURE_PRIVATE_GAMES as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_PRIVATE_GAMES
+            value: "true"
+
+  - it: should allow disabling FEATURE_PRIVATE_GAMES
+    set:
+      app.env.FEATURE_PRIVATE_GAMES: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_PRIVATE_GAMES
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:
