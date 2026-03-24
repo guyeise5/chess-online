@@ -504,23 +504,21 @@ describe("computer game orientation and turns", () => {
   });
 
   it("correct top/bottom player names for white orientation", () => {
-    const isPlayerWhite = true;
     const playerName = "Alice";
     const levelLabel = "Level 3";
-    const topName = isPlayerWhite ? `Stockfish ${levelLabel}` : playerName;
-    const bottomName = isPlayerWhite ? playerName : `Stockfish ${levelLabel}`;
+    const topName = `Stockfish ${levelLabel}`;
+    const bottomName = playerName;
     expect(topName).toBe("Stockfish Level 3");
     expect(bottomName).toBe("Alice");
   });
 
   it("correct top/bottom player names for black orientation", () => {
-    const isPlayerWhite = false;
     const playerName = "Alice";
     const levelLabel = "Level 5";
-    const topName = isPlayerWhite ? `Stockfish ${levelLabel}` : playerName;
-    const bottomName = isPlayerWhite ? playerName : `Stockfish ${levelLabel}`;
-    expect(topName).toBe("Alice");
-    expect(bottomName).toBe("Stockfish Level 5");
+    const topName = `Stockfish ${levelLabel}`;
+    const bottomName = playerName;
+    expect(topName).toBe("Stockfish Level 5");
+    expect(bottomName).toBe("Alice");
   });
 });
 

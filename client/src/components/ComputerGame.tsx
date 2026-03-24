@@ -508,12 +508,8 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     navigate("/");
   };
 
-  const topPlayerName = isPlayerWhite
-    ? `Stockfish ${levelConfig.label}`
-    : playerName;
-  const bottomPlayerName = isPlayerWhite
-    ? playerName
-    : `Stockfish ${levelConfig.label}`;
+  const topPlayerName = `Stockfish ${levelConfig.label}`;
+  const bottomPlayerName = playerName;
 
   const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
   const topMaterial: SideMaterial = isPlayerWhite
