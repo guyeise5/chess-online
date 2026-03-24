@@ -21,6 +21,7 @@ app:
     FEATURE_BOARD_SETTINGS: "true"
     FEATURE_DISCONNECT_CLAIM: "true"
     FEATURE_GIVE_TIME: "true"
+    FEATURE_DRAW_OFFER: "true"
 
 mongodb:
   image:

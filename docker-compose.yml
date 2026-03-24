@@ -43,6 +43,7 @@ services:
       - FEATURE_BOARD_SETTINGS=${FEATURE_BOARD_SETTINGS:-true}
       - FEATURE_DISCONNECT_CLAIM=${FEATURE_DISCONNECT_CLAIM:-true}
       - FEATURE_GIVE_TIME=${FEATURE_GIVE_TIME:-true}
+      - FEATURE_DRAW_OFFER=${FEATURE_DRAW_OFFER:-true}
     depends_on:
       - mongo
 

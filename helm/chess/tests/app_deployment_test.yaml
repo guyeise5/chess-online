@@ -226,6 +226,24 @@ tests:
             name: FEATURE_GIVE_TIME
             value: "false"
 
+  - it: should have default FEATURE_DRAW_OFFER as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_DRAW_OFFER
+            value: "true"
+
+  - it: should allow disabling FEATURE_DRAW_OFFER
+    set:
+      app.env.FEATURE_DRAW_OFFER: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_DRAW_OFFER
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

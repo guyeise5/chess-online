@@ -20,7 +20,8 @@
 - Disconnect claim: if a player disconnects or navigates away during a game, the opponent is notified and after a 10-second grace period can claim a win or draw; reconnecting within the grace period cancels the claim
 - Navigation lock: players in an active game cannot navigate to other tabs (lobby, computer, puzzles, etc.); nav links are visually disabled and route guard redirects back to the game
 - Give time: "+" button next to opponent's clock adds 15 seconds instantly (no confirmation)
-- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`
+- Draw offer: either player can offer a draw; opponent sees a banner with Accept/Decline; making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
+- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`
 
 ## Play vs Computer
 
@@ -120,3 +121,4 @@
 | `FEATURE_BOARD_SETTINGS` | `true` | Board and piece customization page (39 piece sets incl. blindfold, 19 board themes). Set to `false` to hide settings. |
 | `FEATURE_DISCONNECT_CLAIM` | `true` | Disconnect claim system: notifies opponent when a player disconnects or navigates away, allows claiming win or draw after 10s grace period. Navigation lock prevents leaving an active game. Set to `false` to disable. |
 | `FEATURE_GIVE_TIME` | `true` | Give time button: "+" next to opponent's clock adds 15 seconds. Set to `false` to disable. |
+| `FEATURE_DRAW_OFFER` | `true` | Draw offer system: players can offer a draw with anti-spam protection (Lichess-style). Set to `false` to disable. |

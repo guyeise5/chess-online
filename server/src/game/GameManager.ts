@@ -13,6 +13,11 @@ interface UndoRequest {
   moveCount: number;
 }
 
+interface DrawOfferState {
+  offeredBy: string;
+  moveCountAtOffer: number;
+}
+
 interface DisconnectState {
   playerName: string;
   timeout: NodeJS.Timeout;
@@ -27,6 +32,8 @@ export class GameManager {
   private timers: Map<string, TimerState> = new Map();
   private games: Map<string, Chess> = new Map();
   private undoRequests: Map<string, UndoRequest> = new Map();
+  private drawOffers: Map<string, DrawOfferState> = new Map();
+  private drawOfferCooldowns: Map<string, DrawOfferState> = new Map();
   private disconnectTimers: Map<string, DisconnectState> = new Map();
 
   constructor(io: Server) {
@@ -201,11 +208,20 @@ export class GameManager {
         room.status = "finished";
         this.stopTimer(roomId);
         this.games.delete(roomId);
+        this.drawOffers.delete(roomId);
+        this.drawOfferCooldowns.delete(roomId);
       }
 
       if (this.undoRequests.has(roomId)) {
         this.undoRequests.delete(roomId);
         this.io.to(roomId).emit("game:undo-cancelled");
+      }
+
+      if (this.drawOffers.has(roomId)) {
+        const offer = this.drawOffers.get(roomId)!;
+        this.drawOfferCooldowns.set(roomId, { ...offer });
+        this.drawOffers.delete(roomId);
+        this.io.to(roomId).emit("game:draw-cancelled");
       }
 
       await room.save();
@@ -291,6 +307,12 @@ export class GameManager {
 
     if (undoCount === 0) return { success: false };
 
+    if (this.drawOffers.has(roomId)) {
+      this.drawOffers.delete(roomId);
+      this.io.to(roomId).emit("game:draw-cancelled");
+    }
+    this.drawOfferCooldowns.delete(roomId);
+
     room.fen = chess.fen();
     room.pgn = chess.pgn();
     room.turn = chess.turn() as "w" | "b";
@@ -342,6 +364,105 @@ export class GameManager {
     return { success: true };
   }
 
+  async offerDraw(
+    roomId: string,
+    playerName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (process.env.FEATURE_DRAW_OFFER === "false") {
+      return { success: false, error: "Feature disabled" };
+    }
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing") {
+      return { success: false, error: "Game not active" };
+    }
+
+    const isWhite = room.whitePlayer === playerName;
+    const isBlack = room.blackPlayer === playerName;
+    if (!isWhite && !isBlack) {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    if (this.drawOffers.has(roomId)) {
+      return { success: false, error: "Draw already offered" };
+    }
+
+    const cooldown = this.drawOfferCooldowns.get(roomId);
+    if (cooldown && cooldown.offeredBy === playerName) {
+      const opponentMovesNow = isWhite
+        ? Math.floor(room.moves.length / 2)
+        : Math.ceil(room.moves.length / 2);
+      const opponentMovesAtOffer = isWhite
+        ? Math.floor(cooldown.moveCountAtOffer / 2)
+        : Math.ceil(cooldown.moveCountAtOffer / 2);
+      if (opponentMovesNow <= opponentMovesAtOffer) {
+        return { success: false, error: "Must wait for opponent to move" };
+      }
+    }
+
+    this.drawOffers.set(roomId, {
+      offeredBy: playerName,
+      moveCountAtOffer: room.moves.length,
+    });
+
+    this.io.to(roomId).emit("game:draw-offer", { playerName });
+    return { success: true };
+  }
+
+  async respondDraw(
+    roomId: string,
+    playerName: string,
+    accepted: boolean
+  ): Promise<{ success: boolean; error?: string }> {
+    const offer = this.drawOffers.get(roomId);
+    if (!offer) {
+      return { success: false, error: "No pending draw offer" };
+    }
+
+    if (offer.offeredBy === playerName) {
+      return { success: false, error: "Cannot respond to your own offer" };
+    }
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing") {
+      return { success: false, error: "Game not active" };
+    }
+
+    const isPlayer =
+      room.whitePlayer === playerName || room.blackPlayer === playerName;
+    if (!isPlayer) {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    if (accepted) {
+      this.drawOffers.delete(roomId);
+      this.drawOfferCooldowns.delete(roomId);
+
+      room.result = "1/2-1/2";
+      room.status = "finished";
+      await room.save();
+
+      this.stopTimer(roomId);
+      this.games.delete(roomId);
+
+      this.io.to(roomId).emit("game:over", {
+        result: "1/2-1/2",
+        reason: "mutual agreement",
+      });
+      this.broadcastRooms();
+    } else {
+      this.drawOfferCooldowns.set(roomId, { ...offer });
+      this.drawOffers.delete(roomId);
+      this.io.to(roomId).emit("game:draw-declined");
+    }
+
+    return { success: true };
+  }
+
+  getDrawOffer(roomId: string): DrawOfferState | undefined {
+    return this.drawOffers.get(roomId);
+  }
+
   async resign(roomId: string, playerName: string): Promise<void> {
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return;
@@ -353,6 +474,8 @@ export class GameManager {
 
     this.stopTimer(roomId);
     this.games.delete(roomId);
+    this.drawOffers.delete(roomId);
+    this.drawOfferCooldowns.delete(roomId);
 
     this.io.to(roomId).emit("game:over", {
       result: room.result,
@@ -509,6 +632,8 @@ export class GameManager {
       clearTimeout(state.timeout);
     }
     this.disconnectTimers.clear();
+    this.drawOffers.clear();
+    this.drawOfferCooldowns.clear();
   }
 
   async broadcastRooms(): Promise<void> {

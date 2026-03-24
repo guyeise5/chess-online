@@ -76,6 +76,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [undoRequester, setUndoRequester] = useState<string | null>(null);
   const [undoPending, setUndoPending] = useState(false);
+  const [drawOfferer, setDrawOfferer] = useState<string | null>(null);
+  const [drawOfferPending, setDrawOfferPending] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [disconnectClaimAvailable, setDisconnectClaimAvailable] = useState(false);
   const [disconnectCountdown, setDisconnectCountdown] = useState(10);
@@ -200,6 +202,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setResult(data.result);
       setStatus("finished");
       setGameOverReason(data.reason);
+      setDrawOfferer(null);
+      setDrawOfferPending(false);
     };
 
     const handleTimer = (data: TimerData) => {
@@ -236,6 +240,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       }
       setUndoRequester(null);
       setUndoPending(false);
+      setDrawOfferer(null);
+      setDrawOfferPending(false);
       setPremove(null);
       premoveRef.current = null;
       setPremoveSelectedSquare(null);
@@ -249,6 +255,20 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     const handleUndoCancelled = () => {
       setUndoRequester(null);
       setUndoPending(false);
+    };
+
+    const handleDrawOffer = (data: { playerName: string }) => {
+      setDrawOfferer(data.playerName);
+    };
+
+    const handleDrawDeclined = () => {
+      setDrawOfferer(null);
+      setDrawOfferPending(false);
+    };
+
+    const handleDrawCancelled = () => {
+      setDrawOfferer(null);
+      setDrawOfferPending(false);
     };
 
     const handleOpponentDisconnected = () => {
@@ -275,6 +295,9 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     socket.on("game:undo", handleUndo);
     socket.on("game:undo-declined", handleUndoDeclined);
     socket.on("game:undo-cancelled", handleUndoCancelled);
+    socket.on("game:draw-offer", handleDrawOffer);
+    socket.on("game:draw-declined", handleDrawDeclined);
+    socket.on("game:draw-cancelled", handleDrawCancelled);
     socket.on("game:opponent-disconnected", handleOpponentDisconnected);
     socket.on("game:opponent-reconnected", handleOpponentReconnected);
     socket.on("game:disconnect-claim-available", handleDisconnectClaimAvailable);
@@ -288,6 +311,9 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       socket.off("game:undo", handleUndo);
       socket.off("game:undo-declined", handleUndoDeclined);
       socket.off("game:undo-cancelled", handleUndoCancelled);
+      socket.off("game:draw-offer", handleDrawOffer);
+      socket.off("game:draw-declined", handleDrawDeclined);
+      socket.off("game:draw-cancelled", handleDrawCancelled);
       socket.off("game:opponent-disconnected", handleOpponentDisconnected);
       socket.off("game:opponent-reconnected", handleOpponentReconnected);
       socket.off("game:disconnect-claim-available", handleDisconnectClaimAvailable);
@@ -373,6 +399,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
   const showMaterial =
     (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+  const showDrawOffer =
+    (window as any).__ENV__?.FEATURE_DRAW_OFFER !== "false";
   const showDisconnectClaim =
     (window as any).__ENV__?.FEATURE_DISCONNECT_CLAIM !== "false";
 
@@ -843,6 +871,26 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             </div>
           )}
 
+          {showDrawOffer && drawOfferer && drawOfferer !== playerName && status === "playing" && (
+            <div className={styles.drawBanner}>
+              <span>{drawOfferer} offers a draw</span>
+              <div className={styles.drawActions}>
+                <button
+                  className={styles.drawAccept}
+                  onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: true })}
+                >
+                  Accept
+                </button>
+                <button
+                  className={styles.drawDecline}
+                  onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: false })}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          )}
+
           {showDisconnectClaim && opponentDisconnected && isPlayer && status === "playing" && (
             <div className={styles.disconnectBanner}>
               {disconnectClaimAvailable ? (
@@ -881,6 +929,22 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
               >
                 {undoPending ? "Undo requested..." : "Undo"}
               </button>
+              {showDrawOffer && (
+                <button
+                  className={styles.drawBtn}
+                  disabled={drawOfferPending}
+                  onClick={() => {
+                    setDrawOfferPending(true);
+                    socket.emit("game:draw-offer", { roomId, playerName }, (res: any) => {
+                      if (!res.success) {
+                        setDrawOfferPending(false);
+                      }
+                    });
+                  }}
+                >
+                  {drawOfferPending ? "Draw offered" : "½ Draw"}
+                </button>
+              )}
               <button className={styles.resignBtn} onClick={handleResign}>
                 Resign
               </button>

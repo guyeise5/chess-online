@@ -170,6 +170,24 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     );
 
     socket.on(
+      "game:draw-offer",
+      async (
+        data: { roomId: string; playerName: string },
+        callback: (res: any) => void
+      ) => {
+        const result = await gm.offerDraw(data.roomId, data.playerName);
+        callback(result);
+      }
+    );
+
+    socket.on(
+      "game:draw-response",
+      async (data: { roomId: string; playerName: string; accepted: boolean }) => {
+        await gm.respondDraw(data.roomId, data.playerName, data.accepted);
+      }
+    );
+
+    socket.on(
       "game:resign",
       async (data: { roomId: string; playerName: string }) => {
         await gm.resign(data.roomId, data.playerName);

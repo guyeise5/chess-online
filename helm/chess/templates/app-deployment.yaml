@@ -50,6 +50,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_DISCONNECT_CLAIM | quote }}
             - name: FEATURE_GIVE_TIME
               value: {{ .Values.app.env.FEATURE_GIVE_TIME | quote }}
+            - name: FEATURE_DRAW_OFFER
+              value: {{ .Values.app.env.FEATURE_DRAW_OFFER | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

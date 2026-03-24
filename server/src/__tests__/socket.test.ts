@@ -726,6 +726,129 @@ describe("game:resign", () => {
 });
 
 // ---------------------------------------------------------------------------
+// game:draw-offer
+// ---------------------------------------------------------------------------
+describe("game:draw-offer", () => {
+  it("offers draw, opponent accepts, game ends as draw", async () => {
+    const white = connectClient();
+    const black = connectClient();
+    await Promise.all([
+      waitForEvent(white, "connect"),
+      waitForEvent(black, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(white, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    await emitWithAck(black, "room:join", {
+      roomId,
+      playerName: "Bob",
+    });
+
+    const drawOfferPromise = waitForEvent(black, "game:draw-offer");
+    const offerRes = await emitWithAck(white, "game:draw-offer", {
+      roomId,
+      playerName: "Alice",
+    });
+    expect(offerRes.success).toBe(true);
+
+    const offerData = await drawOfferPromise;
+    expect(offerData.playerName).toBe("Alice");
+
+    const gameOverPromise = waitForEvent(white, "game:over");
+    black.emit("game:draw-response", { roomId, playerName: "Bob", accepted: true });
+
+    const gameOver = await gameOverPromise;
+    expect(gameOver.result).toBe("1/2-1/2");
+    expect(gameOver.reason).toBe("mutual agreement");
+
+    white.disconnect();
+    black.disconnect();
+  });
+
+  it("offers draw, opponent declines", async () => {
+    const white = connectClient();
+    const black = connectClient();
+    await Promise.all([
+      waitForEvent(white, "connect"),
+      waitForEvent(black, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(white, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    await emitWithAck(black, "room:join", {
+      roomId,
+      playerName: "Bob",
+    });
+
+    await emitWithAck(white, "game:draw-offer", {
+      roomId,
+      playerName: "Alice",
+    });
+
+    const declinePromise = waitForEvent(white, "game:draw-declined");
+    black.emit("game:draw-response", { roomId, playerName: "Bob", accepted: false });
+
+    await declinePromise;
+
+    white.disconnect();
+    black.disconnect();
+  });
+
+  it("draw offer auto-cancelled when opponent makes a move", async () => {
+    const white = connectClient();
+    const black = connectClient();
+    await Promise.all([
+      waitForEvent(white, "connect"),
+      waitForEvent(black, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(white, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    await emitWithAck(black, "room:join", {
+      roomId,
+      playerName: "Bob",
+    });
+
+    await emitWithAck(white, "game:draw-offer", {
+      roomId,
+      playerName: "Alice",
+    });
+
+    const cancelPromise = waitForEvent(black, "game:draw-cancelled");
+
+    await emitWithAck(white, "game:move", {
+      roomId,
+      playerName: "Alice",
+      from: "e2",
+      to: "e4",
+    });
+
+    await cancelPromise;
+
+    white.disconnect();
+    black.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Full game flow
 // ---------------------------------------------------------------------------
 describe("full game flow", () => {

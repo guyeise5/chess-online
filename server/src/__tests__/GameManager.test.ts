@@ -997,6 +997,233 @@ describe("disconnect claim", () => {
 });
 
 // ---------------------------------------------------------------------------
+// draw offer
+// ---------------------------------------------------------------------------
+describe("draw offer", () => {
+  async function createPlayingRoom(
+    ownerColor: "white" | "black" = "white"
+  ) {
+    const room = await gm.createRoom("Alice", 300, 2, ownerColor);
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    const fresh = await Room.findOne({ roomId: room.roomId });
+    return fresh!;
+  }
+
+  it("offers a draw successfully", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(true);
+    expect(gm.getDrawOffer(room.roomId)).toBeDefined();
+    expect(gm.getDrawOffer(room.roomId)!.offeredBy).toBe("Alice");
+  });
+
+  it("accepts a draw and ends the game", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    const result = await gm.respondDraw(room.roomId, "Bob", true);
+    expect(result.success).toBe(true);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.status).toBe("finished");
+    expect(dbRoom!.result).toBe("1/2-1/2");
+  });
+
+  it("declines a draw", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    const result = await gm.respondDraw(room.roomId, "Bob", false);
+    expect(result.success).toBe(true);
+    expect(gm.getDrawOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("making a move auto-cancels a pending draw offer", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Bob");
+    expect(gm.getDrawOffer(room.roomId)).toBeDefined();
+
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    expect(gm.getDrawOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("anti-spam: cannot offer again before opponent moves", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.respondDraw(room.roomId, "Bob", false);
+
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Must wait for opponent to move");
+  });
+
+  it("anti-spam: can offer again after opponent moves", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.respondDraw(room.roomId, "Bob", false);
+
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(true);
+  });
+
+  it("anti-spam: offerer's own move does not reset cooldown", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.respondDraw(room.roomId, "Bob", false);
+
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Must wait for opponent to move");
+  });
+
+  it("other player can offer after first player's offer was declined", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.respondDraw(room.roomId, "Bob", false);
+
+    const result = await gm.offerDraw(room.roomId, "Bob");
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects offer when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_DRAW_OFFER;
+    process.env.FEATURE_DRAW_OFFER = "false";
+
+    const room = await createPlayingRoom();
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Feature disabled");
+
+    process.env.FEATURE_DRAW_OFFER = orig;
+  });
+
+  it("rejects offer on non-playing game", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    const result = await gm.offerDraw(room.roomId, "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not active");
+  });
+
+  it("rejects offer by non-player", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.offerDraw(room.roomId, "Eve");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("rejects offer when one is already pending", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    const result = await gm.offerDraw(room.roomId, "Bob");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Draw already offered");
+  });
+
+  it("rejects self-response to draw offer", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    const result = await gm.respondDraw(room.roomId, "Alice", true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Cannot respond to your own offer");
+  });
+
+  it("rejects response when no offer pending", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.respondDraw(room.roomId, "Bob", true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("No pending draw offer");
+  });
+
+  it("rejects response by non-player", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    const result = await gm.respondDraw(room.roomId, "Eve", true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("clears draw offer on resign", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.resign(room.roomId, "Alice");
+    expect(gm.getDrawOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("clears draw offer on undo", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+    await gm.offerDraw(room.roomId, "Alice");
+    gm.requestUndo(room.roomId, "Alice", 2);
+    await gm.undoToPlayer(room.roomId);
+    expect(gm.getDrawOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("emits game:over with 'mutual agreement' reason on accept", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+
+    const mockEmit = jest.fn();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: mockEmit,
+    } as any);
+
+    await gm.respondDraw(room.roomId, "Bob", true);
+
+    expect(mockEmit).toHaveBeenCalledWith("game:over", {
+      result: "1/2-1/2",
+      reason: "mutual agreement",
+    });
+
+    emitSpy.mockRestore();
+  });
+
+  it("emits game:draw-declined on decline", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+
+    const mockEmit = jest.fn();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: mockEmit,
+    } as any);
+
+    await gm.respondDraw(room.roomId, "Bob", false);
+
+    expect(mockEmit).toHaveBeenCalledWith("game:draw-declined");
+
+    emitSpy.mockRestore();
+  });
+
+  it("emits game:draw-cancelled when a move auto-cancels the offer", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Bob");
+
+    const mockEmit = jest.fn();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: mockEmit,
+    } as any);
+
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+
+    expect(mockEmit).toHaveBeenCalledWith("game:draw-cancelled");
+
+    emitSpy.mockRestore();
+  });
+
+  it("stopAllTimers clears draw offer state", async () => {
+    const room = await createPlayingRoom();
+    await gm.offerDraw(room.roomId, "Alice");
+    expect(gm.getDrawOffer(room.roomId)).toBeDefined();
+
+    gm.stopAllTimers();
+    expect(gm.getDrawOffer(room.roomId)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // serializeRoom
 // ---------------------------------------------------------------------------
 describe("serializeRoom", () => {

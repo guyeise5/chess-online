@@ -389,3 +389,75 @@
   color: var(--text-primary);
   background: var(--bg-card-hover);
 }
+
+.drawBtn {
+  flex: 1;
+  padding: 0.875rem 1.3rem;
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 1.49rem;
+}
+
+.drawBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.drawBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.drawBanner {
+  background: var(--bg-card);
+  border: 1px solid var(--text-muted);
+  border-radius: 7px;
+  padding: 1.05rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 1.49rem;
+}
+
+.drawActions {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.drawAccept {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 7px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 1.44rem;
+  border: none;
+  cursor: pointer;
+}
+
+.drawAccept:hover {
+  background: var(--accent-hover);
+}
+
+.drawDecline {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 7px;
+  background: #b33430;
+  color: white;
+  font-weight: 600;
+  font-size: 1.44rem;
+  border: none;
+  cursor: pointer;
+}
+
+.drawDecline:hover {
+  background: #cc3b36;
+}
