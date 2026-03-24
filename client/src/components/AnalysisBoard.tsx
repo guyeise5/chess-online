@@ -732,7 +732,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
             className={styles.boardGlyph}
             style={{ backgroundColor: boardAnnotation.color }}
           >
-            <AnnotationContent classification={boardAnnotation.classification} iconSize={12} />
+            <AnnotationContent classification={boardAnnotation.classification} iconSize={22} />
           </div>
         </div>
       );
@@ -1096,7 +1096,7 @@ function MainMoveCell({
           className={styles.annotationGlyph}
           style={{ backgroundColor: color }}
         >
-          <AnnotationContent classification={classification} iconSize={9} />
+          <AnnotationContent classification={classification} iconSize={16} />
         </span>
       )}
     </span>
