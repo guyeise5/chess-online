@@ -80,3 +80,54 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ needs.set-tag.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:latest
+
+  release:
+    name: Create GitHub release
+    needs: [set-tag, push-app, push-puzzle-init, push-opening-init]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull Docker images
+        run: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:${{ needs.set-tag.outputs.tag }}
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:${{ needs.set-tag.outputs.tag }}
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ needs.set-tag.outputs.tag }}
+          docker pull mongo:8
+
+      - name: Save Docker images as tarballs
+        run: |
+          docker save ${{ secrets.DOCKERHUB_USERNAME }}/chess-app:${{ needs.set-tag.outputs.tag }} -o chess-app.tar
+          docker save ${{ secrets.DOCKERHUB_USERNAME }}/chess-puzzle-init:${{ needs.set-tag.outputs.tag }} -o chess-puzzle-init.tar
+          docker save ${{ secrets.DOCKERHUB_USERNAME }}/chess-opening-init:${{ needs.set-tag.outputs.tag }} -o chess-opening-init.tar
+          docker save mongo:8 -o mongo.tar
+
+      - name: Create archives
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full
+          mkdir -p release-bundle/images release-bundle/source
+          cp chess-app.tar chess-puzzle-init.tar chess-opening-init.tar mongo.tar release-bundle/images/
+          rsync -a --exclude='.git' --exclude='release-bundle' . release-bundle/source/
+          7z a chess-online-${{ needs.set-tag.outputs.tag }}.7z release-bundle/
+          cd release-bundle && zip -r ../chess-online-${{ needs.set-tag.outputs.tag }}.zip . && cd ..
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ needs.set-tag.outputs.tag }}" \
+            chess-online-${{ needs.set-tag.outputs.tag }}.7z \
+            chess-online-${{ needs.set-tag.outputs.tag }}.zip \
+            chess-app.tar \
+            chess-puzzle-init.tar \
+            chess-opening-init.tar \
+            mongo.tar \
+            --title "Release ${{ needs.set-tag.outputs.tag }}" \
+            --notes "Automated release for commit ${{ github.sha }}"

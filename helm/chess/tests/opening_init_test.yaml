@@ -66,7 +66,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "chess-opening-init:latest"
+          value: "guyeise5/chess-opening-init:latest"
 
   - it: should use custom image
     set:

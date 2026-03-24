@@ -1,7 +1,7 @@
 app:
   replicaCount: 1
   image:
-    repository: chess-app
+    repository: guyeise5/chess-app
     tag: latest
     pullPolicy: IfNotPresent
   port: 3001
@@ -44,7 +44,7 @@ mongodb:
 puzzleInit:
   enabled: true
   image:
-    repository: chess-puzzle-init
+    repository: guyeise5/chess-puzzle-init
     tag: latest
     pullPolicy: IfNotPresent
   resources:
@@ -59,7 +59,7 @@ puzzleInit:
 openingInit:
   enabled: true
   image:
-    repository: chess-opening-init
+    repository: guyeise5/chess-opening-init
     tag: latest
     pullPolicy: IfNotPresent
   resources:

@@ -122,6 +122,7 @@
 - **CI** (`.github/workflows/ci.yaml`): Runs on pull requests — server tests, client tests, builds, Helm lint/unit tests, Docker build, Kind deploy + smoke test
 - **CD** (`.github/workflows/cd.yaml`): Runs on push to `main` — builds and pushes `linux/amd64` Docker images to Docker Hub (3 parallel jobs) tagged with 7-char commit SHA and `latest`
 - **Images pushed:** `chess-app`, `chess-puzzle-init`, `chess-opening-init`
+- **GitHub Release**: After all images are pushed, creates a GitHub release tagged with the 7-char commit SHA. The release includes a 7z artifact containing all 4 Docker images (`chess-app`, `chess-puzzle-init`, `chess-opening-init`, `mongo:8`) and the repository source code.
 - **Required secrets:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`
 
 ## Feature Flags
