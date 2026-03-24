@@ -101,7 +101,7 @@ export default function App() {
               />
             }
           />
-          <Route path="/analysis/:gameId" element={<AnalysisBoard boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
+          <Route path="/analysis/:gameId" element={<AnalysisBoard playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
           <Route
             path="/games"
             element={

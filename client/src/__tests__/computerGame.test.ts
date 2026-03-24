@@ -524,6 +524,50 @@ describe("computer game orientation and turns", () => {
   });
 });
 
+describe("computer setup color persistence", () => {
+  let store: Map<string, string>;
+  function getItem(key: string) { return store.get(key) ?? null; }
+  function setItem(key: string, value: string) { store.set(key, value); }
+
+  function loadColorChoice(): "white" | "black" | "random" {
+    const saved = getItem("computer:colorChoice");
+    return saved === "white" || saved === "black" || saved === "random" ? saved : "white";
+  }
+
+  beforeEach(() => { store = new Map(); });
+
+  it("defaults to white when nothing stored", () => {
+    expect(loadColorChoice()).toBe("white");
+  });
+
+  it("restores saved color choice (black)", () => {
+    setItem("computer:colorChoice", "black");
+    expect(loadColorChoice()).toBe("black");
+  });
+
+  it("restores saved color choice (random)", () => {
+    setItem("computer:colorChoice", "random");
+    expect(loadColorChoice()).toBe("random");
+  });
+
+  it("restores saved color choice (white)", () => {
+    setItem("computer:colorChoice", "white");
+    expect(loadColorChoice()).toBe("white");
+  });
+
+  it("falls back to default for invalid color choice", () => {
+    setItem("computer:colorChoice", "green");
+    expect(loadColorChoice()).toBe("white");
+  });
+
+  it("persists color choice on change", () => {
+    setItem("computer:colorChoice", "black");
+    expect(loadColorChoice()).toBe("black");
+    setItem("computer:colorChoice", "random");
+    expect(loadColorChoice()).toBe("random");
+  });
+});
+
 describe("computer game route state", () => {
   it("uses default values when state is empty", () => {
     const state: Record<string, unknown> = {};

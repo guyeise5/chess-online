@@ -25,7 +25,10 @@ interface Props {
 export default function ComputerSetup({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const navigate = useNavigate();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
-  const [color, setColor] = useState<"white" | "black" | "random">("white");
+  const [color, setColor] = useState<"white" | "black" | "random">(() => {
+    const saved = localStorage.getItem("computer:colorChoice");
+    return saved === "white" || saved === "black" || saved === "random" ? saved : "white";
+  });
 
   const handlePlay = (level: number) => {
     const actualColor = color === "random"
@@ -46,14 +49,14 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
           <div className={styles.colorRow}>
             <button
               className={`${styles.colorOption} ${color === "white" ? styles.colorOptionActive : ""}`}
-              onClick={() => setColor("white")}
+              onClick={() => { setColor("white"); localStorage.setItem("computer:colorChoice", "white"); }}
               title="White"
             >
               <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
             </button>
             <button
               className={`${styles.colorOption} ${color === "random" ? styles.colorOptionActive : ""}`}
-              onClick={() => setColor("random")}
+              onClick={() => { setColor("random"); localStorage.setItem("computer:colorChoice", "random"); }}
               title="Random"
             >
               <div className={styles.pieceIcon}>
@@ -65,7 +68,7 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
             </button>
             <button
               className={`${styles.colorOption} ${color === "black" ? styles.colorOptionActive : ""}`}
-              onClick={() => setColor("black")}
+              onClick={() => { setColor("black"); localStorage.setItem("computer:colorChoice", "black"); }}
               title="Black"
             >
               <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>

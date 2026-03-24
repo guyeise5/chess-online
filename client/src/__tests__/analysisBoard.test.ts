@@ -4,6 +4,8 @@ import {
   fenAfterMoves,
   navFen,
   navLastMove,
+  inferOrientation,
+  type AnalysisGameData,
   type Variation,
   type Nav,
 } from "../components/AnalysisBoard";
@@ -359,5 +361,57 @@ describe("rapid navigation resilience", () => {
     });
     expect(typeof result).toBe("string");
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+/* ---------- inferOrientation ---------- */
+
+describe("inferOrientation", () => {
+  it("returns saved orientation when present (white)", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "white", playerBlack: "Alice" };
+    expect(inferOrientation(data, "Alice")).toBe("white");
+  });
+
+  it("returns saved orientation when present (black)", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "black", playerWhite: "Alice" };
+    expect(inferOrientation(data, "Alice")).toBe("black");
+  });
+
+  it("infers black when playerName matches playerBlack and no saved orientation", () => {
+    const data: AnalysisGameData = { moves: ["e4"], playerWhite: "Bob", playerBlack: "Alice" };
+    expect(inferOrientation(data, "Alice")).toBe("black");
+  });
+
+  it("infers white when playerName matches playerWhite and no saved orientation", () => {
+    const data: AnalysisGameData = { moves: ["e4"], playerWhite: "Alice", playerBlack: "Bob" };
+    expect(inferOrientation(data, "Alice")).toBe("white");
+  });
+
+  it("defaults to white when playerName is not provided", () => {
+    const data: AnalysisGameData = { moves: ["e4"], playerBlack: "Alice" };
+    expect(inferOrientation(data)).toBe("white");
+  });
+
+  it("defaults to white when playerName matches neither player", () => {
+    const data: AnalysisGameData = { moves: ["e4"], playerWhite: "Bob", playerBlack: "Carol" };
+    expect(inferOrientation(data, "Alice")).toBe("white");
+  });
+
+  it("defaults to white when gameData is null", () => {
+    expect(inferOrientation(null, "Alice")).toBe("white");
+  });
+
+  it("defaults to white when gameData is null and no playerName", () => {
+    expect(inferOrientation(null)).toBe("white");
+  });
+
+  it("saved orientation takes precedence over playerName inference", () => {
+    const data: AnalysisGameData = {
+      moves: ["e4"],
+      orientation: "white",
+      playerWhite: "Bob",
+      playerBlack: "Alice",
+    };
+    expect(inferOrientation(data, "Alice")).toBe("white");
   });
 });

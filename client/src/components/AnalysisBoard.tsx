@@ -156,6 +156,15 @@ export type Nav =
   | { on: "main"; index: number }
   | { on: "var"; vi: number; mi: number };
 
+export function inferOrientation(
+  gameData: AnalysisGameData | null,
+  playerName?: string
+): "white" | "black" {
+  if (gameData?.orientation) return gameData.orientation;
+  if (playerName && gameData?.playerBlack === playerName) return "black";
+  return "white";
+}
+
 export function fenAfterMoves(startFen: string | undefined, moves: string[]): string {
   try {
     const g = new Chess(startFen);
@@ -218,11 +227,12 @@ export function navLastMove(
 }
 
 interface AnalysisBoardProps {
+  playerName?: string;
   boardPrefs: BoardPreferences;
   onOpenSettings?: () => void;
 }
 
-export default function AnalysisBoard({ boardPrefs, onOpenSettings }: AnalysisBoardProps) {
+export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }: AnalysisBoardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
@@ -262,7 +272,7 @@ export default function AnalysisBoard({ boardPrefs, onOpenSettings }: AnalysisBo
     return { gameMoves: valid, movesTruncated: valid.length < raw.length };
   }, [gameData]);
   const startFen = gameData?.startFen;
-  const orientation = gameData?.orientation ?? "white";
+  const orientation = inferOrientation(gameData, playerName);
   const playerWhite = gameData?.playerWhite ?? "White";
   const playerBlack = gameData?.playerBlack ?? "Black";
 
