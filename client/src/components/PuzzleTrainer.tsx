@@ -196,14 +196,21 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
         return false;
       }
 
+      const promotion = chosenPromotion || undefined;
+
+      try {
+        const testGame = new Chess(game.fen());
+        testGame.move({ from, to, promotion: promotion || "q" });
+      } catch {
+        return false;
+      }
+
       const expectedUci = puzzle.moves[moveIndex];
       if (!expectedUci) return false;
 
       const expectedFrom = expectedUci.slice(0, 2);
       const expectedTo = expectedUci.slice(2, 4);
       const expectedPromo = expectedUci.length > 4 ? expectedUci[4] : undefined;
-
-      const promotion = chosenPromotion || undefined;
 
       if (from !== expectedFrom || to !== expectedTo || (expectedPromo && promotion !== expectedPromo)) {
         if (!hasFailed) {

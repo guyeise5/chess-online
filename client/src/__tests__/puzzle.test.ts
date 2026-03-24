@@ -208,6 +208,16 @@ describe("puzzle move validation", () => {
     expect(isCorrect).toBe(false);
   });
 
+  it("illegal move is silently ignored (not counted as wrong)", () => {
+    const fen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const g = new Chess(fen);
+
+    expect(() => g.move({ from: "d1", to: "d5" })).toThrow();
+
+    const legalMove = g.move({ from: "d3", to: "d4" });
+    expect(legalMove).not.toBeNull();
+  });
+
   it("handles promotion moves in UCI format", () => {
     const uci = "e7e8q";
     const from = uci.slice(0, 2);
