@@ -114,6 +114,8 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(resuming ? saved!.lastMove : null);
   const [computerThinking, setComputerThinking] = useState(false);
   const [analysisId, setAnalysisId] = useState<string | null>(resuming ? saved!.analysisId ?? null : null);
+  const [resignConfirm, setResignConfirm] = useState(false);
+  const resignTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist game state to localStorage on every meaningful change
   useEffect(() => {
@@ -447,15 +449,25 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     [selectedSquare, getLegalMovesForSquare, tryMove]
   );
 
-  const handleResign = () => {
-    if (window.confirm("Are you sure you want to resign?")) {
-      stop();
-      const loser = isPlayerWhite ? "0-1" : "1-0";
-      setResult(loser);
-      setStatus("finished");
-      setGameOverReason("resignation");
-    }
-  };
+  const startResignConfirm = useCallback(() => {
+    setResignConfirm(true);
+    if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
+    resignTimerRef.current = setTimeout(() => setResignConfirm(false), 3000);
+  }, []);
+
+  const cancelResignConfirm = useCallback(() => {
+    setResignConfirm(false);
+    if (resignTimerRef.current) { clearTimeout(resignTimerRef.current); resignTimerRef.current = null; }
+  }, []);
+
+  const confirmResign = useCallback(() => {
+    cancelResignConfirm();
+    stop();
+    const loser = isPlayerWhite ? "0-1" : "1-0";
+    setResult(loser);
+    setStatus("finished");
+    setGameOverReason("resignation");
+  }, [isPlayerWhite, stop, cancelResignConfirm]);
 
   const handleUndo = () => {
     if (moves.length === 0 || status !== "playing") return;
@@ -671,14 +683,19 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
           {status === "playing" && (
             <div className={styles.gameActions}>
               <button
-                className={styles.undoBtn}
+                className={styles.actionBtn}
                 disabled={moves.length === 0}
                 onClick={handleUndo}
+                title="Takeback"
               >
-                Undo
+                ↶
               </button>
-              <button className={styles.resignBtn} onClick={handleResign}>
-                Resign
+              <button
+                className={`${styles.actionBtn} ${resignConfirm ? styles.actionResignArmed : ""}`}
+                onClick={resignConfirm ? confirmResign : startResignConfirm}
+                title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
+              >
+                ⚑
               </button>
             </div>
           )}

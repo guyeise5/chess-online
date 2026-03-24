@@ -216,41 +216,68 @@
 
 .gameActions {
   display: flex;
-  gap: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  overflow: hidden;
+  gap: 1px;
 }
 
-.undoBtn {
+.actionBtn {
   flex: 1;
-  padding: 0.875rem 1.3rem;
-  border-radius: 4px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 1.49rem;
-}
-
-.undoBtn:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-.undoBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.resignBtn {
-  flex: 1;
-  padding: 0.875rem 1.3rem;
-  border-radius: 4px;
-  background: #b33430;
-  color: white;
-  font-weight: 600;
-  font-size: 1.49rem;
+  padding: 0.5rem;
+  background: #302e2c;
+  color: #8a8886;
   border: none;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  transition: color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
-.resignBtn:hover {
+.actionBtn:hover:not(:disabled) {
+  color: #fff;
+  background: #3d3b39;
+}
+
+.actionBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.actionConfirm {
+  color: #629924;
+}
+
+.actionConfirm:hover:not(:disabled) {
+  color: #7ab929;
+  background: rgba(98, 153, 36, 0.15);
+}
+
+.actionCancel {
+  color: #ac3333;
+}
+
+.actionCancel:hover:not(:disabled) {
+  color: #cc3b36;
+  background: rgba(172, 51, 51, 0.15);
+}
+
+.actionResignArmed {
+  color: #fff;
+  background: #b33430;
+  box-shadow: 0 0 12px rgba(179, 52, 48, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  transform: scale(1.12);
+  z-index: 1;
+  position: relative;
+  border-radius: 4px;
+}
+
+.actionResignArmed:hover:not(:disabled) {
+  color: #fff;
   background: #cc3b36;
+  box-shadow: 0 0 16px rgba(179, 52, 48, 0.7), 0 4px 10px rgba(0, 0, 0, 0.5);
 }

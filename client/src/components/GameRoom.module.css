@@ -233,92 +233,96 @@
 
 .gameActions {
   display: flex;
-  gap: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  overflow: hidden;
+  gap: 1px;
 }
 
-.undoBtn {
+.actionBtn {
   flex: 1;
-  padding: 0.875rem 1.3rem;
-  border-radius: 7px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 1.49rem;
-}
-
-.undoBtn:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-.undoBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.resignBtn {
-  flex: 1;
-  padding: 0.875rem 1.3rem;
-  border-radius: 7px;
-  background: #b33430;
-  color: white;
-  font-weight: 600;
-  font-size: 1.49rem;
+  padding: 0.5rem;
+  background: #302e2c;
+  color: #8a8886;
   border: none;
-}
-
-.resignBtn:hover {
-  background: #cc3b36;
-}
-
-.undoBanner {
-  background: var(--bg-card);
-  border: 1px solid var(--warning);
-  border-radius: 7px;
-  padding: 1.05rem 1.3rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  transition: color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.actionBtn:hover:not(:disabled) {
+  color: #fff;
+  background: #3d3b39;
+}
+
+.actionBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.actionConfirm {
+  color: #629924;
+}
+
+.actionConfirm:hover:not(:disabled) {
+  color: #7ab929;
+  background: rgba(98, 153, 36, 0.15);
+}
+
+.actionCancel {
+  color: #ac3333;
+}
+
+.actionCancel:hover:not(:disabled) {
+  color: #cc3b36;
+  background: rgba(172, 51, 51, 0.15);
+}
+
+.actionDrawArmed {
+  color: #fff;
+  background: #3692e7;
+  font-weight: 800;
+  font-size: 1.7rem;
+  text-shadow: 0 0 8px rgba(54, 146, 231, 0.6);
+  box-shadow: 0 0 12px rgba(54, 146, 231, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  transform: scale(1.12);
+  z-index: 1;
+  position: relative;
+  border-radius: 4px;
+}
+
+.actionDrawArmed:hover:not(:disabled) {
+  color: #fff;
+  background: #4a9fec;
+  box-shadow: 0 0 16px rgba(54, 146, 231, 0.7), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.actionResignArmed {
+  color: #fff;
+  background: #b33430;
+  box-shadow: 0 0 12px rgba(179, 52, 48, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  transform: scale(1.12);
+  z-index: 1;
+  position: relative;
+  border-radius: 4px;
+}
+
+.actionResignArmed:hover:not(:disabled) {
+  color: #fff;
+  background: #cc3b36;
+  box-shadow: 0 0 16px rgba(179, 52, 48, 0.7), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.requestLabel {
   text-align: center;
-  color: var(--warning);
-  font-weight: 500;
-  font-size: 1.49rem;
-}
-
-.undoActions {
-  display: flex;
-  gap: 0.7rem;
-}
-
-.undoAccept {
-  flex: 1;
-  padding: 0.7rem;
-  border-radius: 7px;
-  background: var(--accent);
-  color: white;
-  font-weight: 600;
-  font-size: 1.44rem;
-  border: none;
-}
-
-.undoAccept:hover {
-  background: var(--accent-hover);
-}
-
-.undoDecline {
-  flex: 1;
-  padding: 0.7rem;
-  border-radius: 7px;
-  background: #b33430;
-  color: white;
-  font-weight: 600;
-  font-size: 1.44rem;
-  border: none;
-}
-
-.undoDecline:hover {
-  background: #cc3b36;
+  font-size: 1.15rem;
+  color: #8a8886;
+  padding: 0.2rem 0;
 }
 
 .analyzeBtn {
@@ -390,74 +394,3 @@
   background: var(--bg-card-hover);
 }
 
-.drawBtn {
-  flex: 1;
-  padding: 0.875rem 1.3rem;
-  border-radius: 7px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 1.49rem;
-}
-
-.drawBtn:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-.drawBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.drawBanner {
-  background: var(--bg-card);
-  border: 1px solid var(--text-muted);
-  border-radius: 7px;
-  padding: 1.05rem 1.3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  text-align: center;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 1.49rem;
-}
-
-.drawActions {
-  display: flex;
-  gap: 0.7rem;
-}
-
-.drawAccept {
-  flex: 1;
-  padding: 0.7rem;
-  border-radius: 7px;
-  background: var(--accent);
-  color: white;
-  font-weight: 600;
-  font-size: 1.44rem;
-  border: none;
-  cursor: pointer;
-}
-
-.drawAccept:hover {
-  background: var(--accent-hover);
-}
-
-.drawDecline {
-  flex: 1;
-  padding: 0.7rem;
-  border-radius: 7px;
-  background: #b33430;
-  color: white;
-  font-weight: 600;
-  font-size: 1.44rem;
-  border: none;
-  cursor: pointer;
-}
-
-.drawDecline:hover {
-  background: #cc3b36;
-}

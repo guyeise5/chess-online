@@ -78,6 +78,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const [undoPending, setUndoPending] = useState(false);
   const [drawOfferer, setDrawOfferer] = useState<string | null>(null);
   const [drawOfferPending, setDrawOfferPending] = useState(false);
+  const [resignConfirm, setResignConfirm] = useState(false);
+  const [drawConfirm, setDrawConfirm] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [disconnectClaimAvailable, setDisconnectClaimAvailable] = useState(false);
   const [disconnectCountdown, setDisconnectCountdown] = useState(10);
@@ -85,6 +87,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
   const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
+  const resignTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
   const rejoin = useCallback(() => {
@@ -259,6 +263,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
 
     const handleDrawOffer = (data: { playerName: string }) => {
       setDrawOfferer(data.playerName);
+      setDrawConfirm(false);
+      if (drawTimerRef.current) { clearTimeout(drawTimerRef.current); drawTimerRef.current = null; }
     };
 
     const handleDrawDeclined = () => {
@@ -318,6 +324,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       socket.off("game:opponent-reconnected", handleOpponentReconnected);
       socket.off("game:disconnect-claim-available", handleDisconnectClaimAvailable);
       if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
+      if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
+      if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
     };
   }, []);
 
@@ -662,11 +670,44 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     return () => { socket.off("room:closed", onClosed); };
   }, [navigate]);
 
-  const handleResign = () => {
-    if (window.confirm("Are you sure you want to resign?")) {
-      socket.emit("game:resign", { roomId, playerName });
-    }
-  };
+  const startResignConfirm = useCallback(() => {
+    setResignConfirm(true);
+    setDrawConfirm(false);
+    if (drawTimerRef.current) { clearTimeout(drawTimerRef.current); drawTimerRef.current = null; }
+    if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
+    resignTimerRef.current = setTimeout(() => setResignConfirm(false), 3000);
+  }, []);
+
+  const cancelResignConfirm = useCallback(() => {
+    setResignConfirm(false);
+    if (resignTimerRef.current) { clearTimeout(resignTimerRef.current); resignTimerRef.current = null; }
+  }, []);
+
+  const confirmResign = useCallback(() => {
+    cancelResignConfirm();
+    socket.emit("game:resign", { roomId, playerName });
+  }, [roomId, playerName, cancelResignConfirm]);
+
+  const startDrawConfirm = useCallback(() => {
+    setDrawConfirm(true);
+    setResignConfirm(false);
+    if (resignTimerRef.current) { clearTimeout(resignTimerRef.current); resignTimerRef.current = null; }
+    if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
+    drawTimerRef.current = setTimeout(() => setDrawConfirm(false), 3000);
+  }, []);
+
+  const cancelDrawConfirm = useCallback(() => {
+    setDrawConfirm(false);
+    if (drawTimerRef.current) { clearTimeout(drawTimerRef.current); drawTimerRef.current = null; }
+  }, []);
+
+  const confirmDrawOffer = useCallback(() => {
+    cancelDrawConfirm();
+    setDrawOfferPending(true);
+    socket.emit("game:draw-offer", { roomId, playerName }, (res: any) => {
+      if (!res.success) setDrawOfferPending(false);
+    });
+  }, [roomId, playerName, cancelDrawConfirm]);
 
   if (loading || !room) {
     return (
@@ -851,46 +892,6 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             </div>
           </div>
 
-          {undoRequester && undoRequester !== playerName && (
-            <div className={styles.undoBanner}>
-              <span>{undoRequester} requests to undo</span>
-              <div className={styles.undoActions}>
-                <button
-                  className={styles.undoAccept}
-                  onClick={() => socket.emit("game:undo-response", { roomId, accepted: true })}
-                >
-                  Accept
-                </button>
-                <button
-                  className={styles.undoDecline}
-                  onClick={() => socket.emit("game:undo-response", { roomId, accepted: false })}
-                >
-                  Decline
-                </button>
-              </div>
-            </div>
-          )}
-
-          {showDrawOffer && drawOfferer && drawOfferer !== playerName && status === "playing" && (
-            <div className={styles.drawBanner}>
-              <span>{drawOfferer} offers a draw</span>
-              <div className={styles.drawActions}>
-                <button
-                  className={styles.drawAccept}
-                  onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: true })}
-                >
-                  Accept
-                </button>
-                <button
-                  className={styles.drawDecline}
-                  onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: false })}
-                >
-                  Decline
-                </button>
-              </div>
-            </div>
-          )}
-
           {showDisconnectClaim && opponentDisconnected && isPlayer && status === "playing" && (
             <div className={styles.disconnectBanner}>
               {disconnectClaimAvailable ? (
@@ -918,37 +919,94 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           )}
 
           {isPlayer && status === "playing" && (
-            <div className={styles.gameActions}>
-              <button
-                className={styles.undoBtn}
-                disabled={moves.length === 0 || undoPending}
-                onClick={() => {
-                  setUndoPending(true);
-                  socket.emit("game:undo-request", { roomId, playerName, moveCount: moves.length });
-                }}
-              >
-                {undoPending ? "Undo requested..." : "Undo"}
-              </button>
-              {showDrawOffer && (
-                <button
-                  className={styles.drawBtn}
-                  disabled={drawOfferPending}
-                  onClick={() => {
-                    setDrawOfferPending(true);
-                    socket.emit("game:draw-offer", { roomId, playerName }, (res: any) => {
-                      if (!res.success) {
-                        setDrawOfferPending(false);
-                      }
-                    });
-                  }}
-                >
-                  {drawOfferPending ? "Draw offered" : "½ Draw"}
-                </button>
+            <>
+              {undoRequester && undoRequester !== playerName && (
+                <div className={styles.requestLabel}>Takeback requested</div>
               )}
-              <button className={styles.resignBtn} onClick={handleResign}>
-                Resign
-              </button>
-            </div>
+              {showDrawOffer && drawOfferer && drawOfferer !== playerName && (
+                <div className={styles.requestLabel}>Draw offered</div>
+              )}
+              <div className={styles.gameActions}>
+                {undoRequester && undoRequester !== playerName ? (
+                  <>
+                    <button
+                      className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                      onClick={() => socket.emit("game:undo-response", { roomId, accepted: true })}
+                      title="Accept takeback"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.actionCancel}`}
+                      onClick={() => socket.emit("game:undo-response", { roomId, accepted: false })}
+                      title="Decline takeback"
+                    >
+                      ✗
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className={styles.actionBtn}
+                    disabled={moves.length === 0 || undoPending}
+                    onClick={() => {
+                      setUndoPending(true);
+                      socket.emit("game:undo-request", { roomId, playerName, moveCount: moves.length });
+                    }}
+                    title={undoPending ? "Takeback requested" : "Takeback"}
+                  >
+                    ↶
+                  </button>
+                )}
+
+                {showDrawOffer && (
+                  <>
+                    {drawOfferer && drawOfferer !== playerName ? (
+                      <>
+                        <button
+                          className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                          onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: true })}
+                          title="Accept draw"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          className={`${styles.actionBtn} ${styles.actionCancel}`}
+                          onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: false })}
+                          title="Decline draw"
+                        >
+                          ✗
+                        </button>
+                      </>
+                    ) : drawConfirm ? (
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionDrawArmed}`}
+                        onClick={confirmDrawOffer}
+                        title="Click again to confirm draw offer"
+                      >
+                        ½
+                      </button>
+                    ) : (
+                      <button
+                        className={styles.actionBtn}
+                        disabled={drawOfferPending}
+                        onClick={startDrawConfirm}
+                        title={drawOfferPending ? "Draw offered" : "Offer draw"}
+                      >
+                        ½
+                      </button>
+                    )}
+                  </>
+                )}
+
+                <button
+                  className={`${styles.actionBtn} ${resignConfirm ? styles.actionResignArmed : ""}`}
+                  onClick={resignConfirm ? confirmResign : startResignConfirm}
+                  title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
+                >
+                  ⚑
+                </button>
+              </div>
+            </>
           )}
         </div>
       </main>

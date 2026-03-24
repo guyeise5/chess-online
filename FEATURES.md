@@ -13,14 +13,15 @@
 - Clocks with increment support (server-side timers)
 - Premoves: drag or click to queue a move while waiting for opponent; auto-executed when it becomes your turn; Lichess-style blue highlight
 - Material difference display in player bars (piece icons + point advantage, Lichess-style)
-- Undo request system (requires opponent approval)
-- Resign option
+- Undo request system (requires opponent approval); Lichess-style inline accept/decline in the control bar
+- Resign with Lichess-style two-click confirmation (click flag icon, then confirm ✓ or cancel ✗; auto-cancels after 3s)
 - Reconnection support (roomId + playerName persisted in localStorage)
 - Waiting rooms auto-close if the owner disconnects
 - Disconnect claim: if a player disconnects or navigates away during a game, the opponent is notified and after a 10-second grace period can claim a win or draw; reconnecting within the grace period cancels the claim
 - Navigation lock: players in an active game cannot navigate to other tabs (lobby, computer, puzzles, etc.); nav links are visually disabled and route guard redirects back to the game
 - Give time: "+" button next to opponent's clock adds 15 seconds instantly (no confirmation)
-- Draw offer: either player can offer a draw; opponent sees a banner with Accept/Decline; making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
+- Draw offer: two-click to offer (click ½ icon, confirm ✓ or cancel ✗; auto-cancels after 3s); opponent sees minimal inline accept/decline in the control bar (no banner); making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
+- Lichess-style game control bar: compact icon buttons (↶ takeback, ½ draw, ⚑ resign) with dark background; confirm/cancel (✓/✗) pattern for destructive actions
 - Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`
 
 ## Play vs Computer
