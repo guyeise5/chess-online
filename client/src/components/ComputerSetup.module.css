@@ -17,7 +17,7 @@
 .setupPanel {
   max-width: 600px;
   width: 100%;
-  height: 75%;
+  height: 40%;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
