@@ -112,22 +112,27 @@ jobs:
       - name: Create archives
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full
-          mkdir -p release-bundle/images release-bundle/source
-          cp chess-app.tar chess-puzzle-init.tar chess-opening-init.tar mongo.tar release-bundle/images/
-          rsync -a --exclude='.git' --exclude='release-bundle' . release-bundle/source/
-          7z a chess-online-${{ needs.set-tag.outputs.tag }}.7z release-bundle/
-          cd release-bundle && zip -r ../chess-online-${{ needs.set-tag.outputs.tag }}.zip . && cd ..
+          for img in chess-app chess-puzzle-init chess-opening-init mongo; do
+            zip "${img}.zip" "${img}.tar"
+            7z a "${img}.7z" "${img}.tar"
+          done
+          TAG=${{ needs.set-tag.outputs.tag }}
+          mkdir -p source-bundle
+          rsync -a --exclude='.git' --exclude='source-bundle' --exclude='*.tar' --exclude='*.zip' --exclude='*.7z' . source-bundle/
+          cd source-bundle && zip -r "../chess-online-src-${TAG}.zip" . && cd ..
+          7z a "chess-online-src-${TAG}.7z" source-bundle/
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ needs.set-tag.outputs.tag }}" \
-            chess-online-${{ needs.set-tag.outputs.tag }}.7z \
-            chess-online-${{ needs.set-tag.outputs.tag }}.zip \
-            chess-app.tar \
-            chess-puzzle-init.tar \
-            chess-opening-init.tar \
-            mongo.tar \
-            --title "Release ${{ needs.set-tag.outputs.tag }}" \
+          TAG=${{ needs.set-tag.outputs.tag }}
+          gh release create "$TAG" \
+            chess-app.tar chess-app.zip chess-app.7z \
+            chess-puzzle-init.tar chess-puzzle-init.zip chess-puzzle-init.7z \
+            chess-opening-init.tar chess-opening-init.zip chess-opening-init.7z \
+            mongo.tar mongo.zip mongo.7z \
+            "chess-online-src-${TAG}.zip" \
+            "chess-online-src-${TAG}.7z" \
+            --title "Release $TAG" \
             --notes "Automated release for commit ${{ github.sha }}"
