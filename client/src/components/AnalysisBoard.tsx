@@ -40,6 +40,7 @@ const HIGHLIGHT_CAPTURE: React.CSSProperties = {
 const CLASSIFICATION_TEXT: Record<MoveClassification, string> = {
   book: "",
   best: "",
+  excellent: "",
   good: "",
   inaccuracy: "?!",
   mistake: "?",
@@ -49,7 +50,8 @@ const CLASSIFICATION_TEXT: Record<MoveClassification, string> = {
 const CLASSIFICATION_COLORS: Record<MoveClassification, string> = {
   book: "#a88b5a",
   best: "#96bc4b",
-  good: "#96bc4b",
+  excellent: "#96bc4b",
+  good: "#81a93e",
   inaccuracy: "#f7c631",
   mistake: "#e68f3c",
   blunder: "#ca3431",
@@ -76,10 +78,17 @@ function AnnotationIcon({
       </svg>
     );
   }
-  if (classification === "good") {
+  if (classification === "excellent") {
     return (
       <svg viewBox="0 0 16 16" width={size} height={size} fill="white">
         <path d="M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a10 10 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856s-.036.586-.113.856c-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.2 3.2 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.8 4.8 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z" />
+      </svg>
+    );
+  }
+  if (classification === "good") {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="white">
+        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
       </svg>
     );
   }

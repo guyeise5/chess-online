@@ -4,6 +4,7 @@ import { Chess } from "chess.js";
 export type MoveClassification =
   | "book"
   | "best"
+  | "excellent"
   | "good"
   | "inaccuracy"
   | "mistake"
@@ -71,20 +72,37 @@ export function winningChances(cp: number): number {
 }
 
 /**
- * Classify a move based on the winning-chances delta.
- *
- * Thresholds follow chess.com's Expected Points model (ClassificationV2):
- *   best+excellent  ≤ 0.02 EP  →  ≤ 0.04 WC delta  →  "best"
- *   good            0.02-0.05  →  0.04-0.10         →  "good"
- *   inaccuracy      0.05-0.10  →  0.10-0.20         →  "inaccuracy"
- *   mistake         0.10-0.20  →  0.20-0.40         →  "mistake"
- *   blunder         > 0.20     →  > 0.40            →  "blunder"
+ * Convert a SAN move to UCI notation given the position FEN.
  */
-function classifyWinningChancesDelta(delta: number): MoveClassification {
+function sanToUci(fen: string, san: string): string {
+  try {
+    const g = new Chess(fen);
+    const m = g.move(san);
+    if (!m) return "";
+    return m.from + m.to + (m.promotion || "");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Classify a move based on the winning-chances delta and whether it
+ * matches the engine's top choice.
+ *
+ * Thresholds follow chess.com's Expected Points model:
+ *   best           engine's #1 move                  →  "best"
+ *   excellent      ≤ 0.04 WC delta (not #1)          →  "excellent"
+ *   good           0.04-0.10                          →  "good"
+ *   inaccuracy     0.10-0.20                          →  "inaccuracy"
+ *   mistake        0.20-0.40                          →  "mistake"
+ *   blunder        > 0.40                             →  "blunder"
+ */
+export function classifyMove(delta: number, isBestMove: boolean): MoveClassification {
   if (delta > 0.4) return "blunder";
   if (delta > 0.2) return "mistake";
   if (delta > 0.1) return "inaccuracy";
-  if (delta <= 0.04) return "best";
+  if (isBestMove) return "best";
+  if (delta <= 0.04) return "excellent";
   return "good";
 }
 
@@ -369,7 +387,9 @@ export function useStockfishAnalysis(
             const delta = whiteToMoveBefore
               ? wcBefore - wcAfter
               : wcAfter - wcBefore;
-            entry.classification = classifyWinningChancesDelta(Math.max(0, delta));
+            const playedUci = sanToUci(fens[i - 1]!, sanMoves[i - 1]);
+            const isBest = !!prev.bestMove && playedUci === prev.bestMove;
+            entry.classification = classifyMove(Math.max(0, delta), isBest);
           }
         }
         built.push(entry);

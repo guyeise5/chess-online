@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { winningChances } from "../hooks/useStockfishAnalysis";
+import { winningChances, classifyMove } from "../hooks/useStockfishAnalysis";
 
 /**
  * parseInfoEval-equivalent logic used to verify depth handling.
@@ -18,12 +18,8 @@ function simulateBestEval(
   return bestEval?.whiteCp ?? 0;
 }
 
-function classifyDelta(delta: number) {
-  if (delta > 0.4) return "blunder";
-  if (delta > 0.2) return "mistake";
-  if (delta > 0.1) return "inaccuracy";
-  if (delta <= 0.04) return "best";
-  return "good";
+function classifyDelta(delta: number, isBestMove = false) {
+  return classifyMove(delta, isBestMove);
 }
 
 function wcDelta(
@@ -81,9 +77,14 @@ describe("winningChances function", () => {
 });
 
 describe("move classification via winning chances delta", () => {
-  it("classifies equal → equal as best", () => {
+  it("classifies equal → equal as excellent when not engine's best move", () => {
     const delta = wcDelta(0, 0, true);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
+  });
+
+  it("classifies equal → equal as best when it IS the engine's best move", () => {
+    const delta = wcDelta(0, 0, true);
+    expect(classifyDelta(delta, true)).toBe("best");
   });
 
   it("classifies a 50cp loss from equal as good (below inaccuracy threshold)", () => {
@@ -101,20 +102,25 @@ describe("move classification via winning chances delta", () => {
     expect(classifyDelta(delta)).toBe("blunder");
   });
 
-  it("classifies a small 20cp loss from equal as best (within engine noise)", () => {
+  it("classifies a small 20cp loss as excellent when not engine's best", () => {
     const delta = wcDelta(0, -20, true);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
   });
 
-  it("losing 200cp when already +2000 is NOT a blunder (still winning)", () => {
+  it("classifies a small 20cp loss as best when it IS engine's best", () => {
+    const delta = wcDelta(0, -20, true);
+    expect(classifyDelta(delta, true)).toBe("best");
+  });
+
+  it("losing 200cp when already +2000 is excellent (still winning)", () => {
     const delta = wcDelta(2000, 1800, true);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
   });
 
-  it("losing 500cp when +1500 is still best/good (winning chances barely change)", () => {
+  it("losing 500cp when +1500 is still excellent/good (winning chances barely change)", () => {
     const delta = wcDelta(1500, 1000, true);
     const cls = classifyDelta(delta);
-    expect(["best", "good"]).toContain(cls);
+    expect(["excellent", "good"]).toContain(cls);
   });
 
   it("works from black's perspective: black moves, eval goes from -100 to 0", () => {
@@ -124,18 +130,23 @@ describe("move classification via winning chances delta", () => {
 
   it("black plays a good move: eval stays similar", () => {
     const delta = wcDelta(-50, -40, false);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
   });
 
-  it("improving the position (negative delta) is best", () => {
+  it("improving the position (negative delta) is excellent when not best move", () => {
     const delta = wcDelta(0, 50, true);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
+  });
+
+  it("improving the position is best when it IS the engine's best move", () => {
+    const delta = wcDelta(0, 50, true);
+    expect(classifyDelta(delta, true)).toBe("best");
   });
 
   it("+10 to +8 is NOT an inaccuracy (both positions are completely winning)", () => {
     const delta = wcDelta(1000, 800, true);
     const cls = classifyDelta(delta);
-    expect(["best", "good"]).toContain(cls);
+    expect(["excellent", "good"]).toContain(cls);
   });
 
   it("+1 to -1 is a mistake (significant swing but below blunder threshold)", () => {
@@ -148,9 +159,21 @@ describe("move classification via winning chances delta", () => {
     expect(classifyDelta(delta)).toBe("mistake");
   });
 
-  it("keeping a mate (10000 → 9997) is best", () => {
+  it("keeping a mate (10000 → 9997) is excellent when not engine's best", () => {
     const delta = wcDelta(10000, 9997, true);
-    expect(classifyDelta(delta)).toBe("best");
+    expect(classifyDelta(delta)).toBe("excellent");
+  });
+
+  it("isBestMove with large delta still classifies as blunder", () => {
+    expect(classifyDelta(0.5, true)).toBe("blunder");
+  });
+
+  it("isBestMove with medium delta still classifies as mistake", () => {
+    expect(classifyDelta(0.3, true)).toBe("mistake");
+  });
+
+  it("isBestMove with inaccuracy delta still classifies as inaccuracy", () => {
+    expect(classifyDelta(0.15, true)).toBe("inaccuracy");
   });
 });
 
