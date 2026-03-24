@@ -10,17 +10,17 @@ interface StockfishLevel {
 }
 
 const STOCKFISH_LEVELS: StockfishLevel[] = [
-  { level: 1,  skillLevel: 0,  depth: 1,  label: "Level 1",  rating: "~400" },
-  { level: 2,  skillLevel: 1,  depth: 2,  label: "Level 2",  rating: "~600" },
-  { level: 3,  skillLevel: 2,  depth: 3,  label: "Level 3",  rating: "~800" },
-  { level: 4,  skillLevel: 4,  depth: 4,  label: "Level 4",  rating: "~1000" },
-  { level: 5,  skillLevel: 6,  depth: 5,  label: "Level 5",  rating: "~1200" },
-  { level: 6,  skillLevel: 8,  depth: 7,  label: "Level 6",  rating: "~1400" },
-  { level: 7,  skillLevel: 10, depth: 9,  label: "Level 7",  rating: "~1600" },
-  { level: 8,  skillLevel: 12, depth: 11, label: "Level 8",  rating: "~1800" },
-  { level: 9,  skillLevel: 14, depth: 13, label: "Level 9",  rating: "~2000" },
-  { level: 10, skillLevel: 17, depth: 16, label: "Level 10", rating: "~2400" },
-  { level: 11, skillLevel: 19, depth: 22, label: "Level 11", rating: "~2800" },
+  { level: 1,  skillLevel: 0,  depth: 1,  label: "Level 1",  rating: "~600" },
+  { level: 2,  skillLevel: 1,  depth: 2,  label: "Level 2",  rating: "~850" },
+  { level: 3,  skillLevel: 2,  depth: 3,  label: "Level 3",  rating: "~1050" },
+  { level: 4,  skillLevel: 4,  depth: 4,  label: "Level 4",  rating: "~1250" },
+  { level: 5,  skillLevel: 6,  depth: 5,  label: "Level 5",  rating: "~1400" },
+  { level: 6,  skillLevel: 8,  depth: 7,  label: "Level 6",  rating: "~1600" },
+  { level: 7,  skillLevel: 10, depth: 9,  label: "Level 7",  rating: "~1850" },
+  { level: 8,  skillLevel: 12, depth: 11, label: "Level 8",  rating: "~2050" },
+  { level: 9,  skillLevel: 14, depth: 13, label: "Level 9",  rating: "~2300" },
+  { level: 10, skillLevel: 17, depth: 16, label: "Level 10", rating: "~2500" },
+  { level: 11, skillLevel: 19, depth: 22, label: "Level 11", rating: "~2850" },
   { level: 12, skillLevel: 20, depth: 30, label: "Level 12", rating: "~3200" },
 ];
 

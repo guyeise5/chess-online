@@ -42,7 +42,7 @@
 - **Route:** `/computer/setup` (configuration), `/computer` (game board)
 - **Key files:** `client/src/components/ComputerSetup.tsx`, `client/src/components/ComputerGame.tsx`, `client/src/hooks/useStockfish.ts`
 - Stockfish 18 running client-side via WebAssembly (`/stockfish/stockfish-18-lite-single.js`)
-- 12 difficulty levels (~400 to ~3200 Elo)
+- 12 difficulty levels (~600 to ~3200 Elo), ratings calibrated from CCRL data and Lichess estimates
 - No time limit
 - Material difference display in player bars (shared utility with online play)
 - Instant undo (no opponent approval needed)
