@@ -107,11 +107,18 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
 
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const gameRef = useRef(game);
+  gameRef.current = game;
+  const orientationRef = useRef<"white" | "black">("white");
+
   const orientation = useMemo(() => {
     if (!puzzle) return "white" as const;
     const g = new Chess(puzzle.fen);
     return g.turn() === "w" ? "black" : "white";
   }, [puzzle]);
+  orientationRef.current = orientation;
 
   const fetchPuzzle = useCallback(async (specificId?: string) => {
     setStatus("loading");
@@ -381,14 +388,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
 
   const onPieceDrag = useCallback(
     ({ square }: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => {
-      if (!square || status !== "solving") { setSelectedSquare(null); return; }
-      const piece = game.get(square as Square);
+      if (!square || statusRef.current !== "solving") { setSelectedSquare(null); return; }
+      const piece = gameRef.current.get(square as Square);
       if (!piece) { setSelectedSquare(null); return; }
-      const myColor = orientation === "white" ? "w" : "b";
+      const myColor = orientationRef.current === "white" ? "w" : "b";
       if (piece.color !== myColor) { setSelectedSquare(null); return; }
       setSelectedSquare(square);
     },
-    [game, status, orientation]
+    []
   );
 
   const onPieceClick = useCallback(
@@ -472,6 +479,11 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                 onPieceDrag: onPieceDrag,
                 onPieceClick: onPieceClick,
                 onSquareClick: onSquareClick,
+                canDragPiece: ({ piece }) => {
+                  if (statusRef.current !== "solving") return false;
+                  const myColor = orientationRef.current === "white" ? "w" : "b";
+                  return piece.pieceType[0] === myColor;
+                },
                 squareStyles: highlightStyles,
                 arrows: hintArrow,
                 boardOrientation: orientation,

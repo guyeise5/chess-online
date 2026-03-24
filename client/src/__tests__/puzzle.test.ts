@@ -393,6 +393,52 @@ describe("puzzle solution sequence", () => {
   });
 });
 
+describe("puzzle drag handler with stale closure", () => {
+  it("reads current status via ref, not stale closure", () => {
+    const statusRef = { current: "showing" as string };
+    const game = new Chess("5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27");
+    const gameRef = { current: game };
+    const orientation = "black";
+    const orientationRef = { current: orientation };
+
+    let selectedSquare: string | null = null;
+    const setSelectedSquare = (sq: string | null) => { selectedSquare = sq; };
+
+    const onPieceDrag = ({ square }: { square: string | null }) => {
+      if (!square || statusRef.current !== "solving") { setSelectedSquare(null); return; }
+      const piece = gameRef.current.get(square as any);
+      if (!piece) { setSelectedSquare(null); return; }
+      const myColor = orientationRef.current === "white" ? "w" : "b";
+      if (piece.color !== myColor) { setSelectedSquare(null); return; }
+      setSelectedSquare(square);
+    };
+
+    onPieceDrag({ square: "b6" });
+    expect(selectedSquare).toBeNull();
+
+    statusRef.current = "solving";
+    onPieceDrag({ square: "b6" });
+    expect(selectedSquare).toBe("b6");
+  });
+
+  it("canDragPiece restricts to player pieces during solving", () => {
+    const statusRef = { current: "solving" as string };
+    const orientationRef = { current: "black" as string };
+
+    const canDragPiece = ({ piece }: { piece: { pieceType: string } }) => {
+      if (statusRef.current !== "solving") return false;
+      const myColor = orientationRef.current === "white" ? "w" : "b";
+      return piece.pieceType[0] === myColor;
+    };
+
+    expect(canDragPiece({ piece: { pieceType: "bQ" } })).toBe(true);
+    expect(canDragPiece({ piece: { pieceType: "wR" } })).toBe(false);
+
+    statusRef.current = "showing";
+    expect(canDragPiece({ piece: { pieceType: "bQ" } })).toBe(false);
+  });
+});
+
 describe("puzzle material difference display", () => {
   it("shows no material diff at equal starting position", () => {
     const game = new Chess();
