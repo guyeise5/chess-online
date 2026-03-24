@@ -3,6 +3,16 @@ import { GameManager } from "../game/GameManager";
 import { ColorChoice } from "../models/Room";
 
 const socketPlayers = new Map<string, string>();
+const socketRooms = new Map<string, Set<string>>();
+
+function trackSocketRoom(socketId: string, roomId: string): void {
+  let rooms = socketRooms.get(socketId);
+  if (!rooms) {
+    rooms = new Set();
+    socketRooms.set(socketId, rooms);
+  }
+  rooms.add(roomId);
+}
 
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
   io.on("connection", (socket: Socket) => {
@@ -32,6 +42,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           );
           socket.join(room.roomId);
           socketPlayers.set(socket.id, data.playerName);
+          trackSocketRoom(socket.id, room.roomId);
           callback({ success: true, room: gm.serializeRoom(room) });
           await gm.broadcastRooms();
         } catch (err) {
@@ -53,6 +64,8 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
             callback({ success: false, error: "Room not found" });
             return;
           }
+          socketPlayers.set(socket.id, data.playerName);
+          trackSocketRoom(socket.id, data.roomId);
           callback({ success: true, room: gm.serializeRoom(room) });
         } catch (err) {
           console.error("Error joining room:", err);
@@ -73,6 +86,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
             callback({ success: false, error: "Room not found or not a participant" });
             return;
           }
+          socketPlayers.set(socket.id, data.playerName);
+          trackSocketRoom(socket.id, data.roomId);
+          await gm.handlePlayerReconnect(data.roomId, data.playerName);
           callback({ success: true, room: gm.serializeRoom(room) });
         } catch (err) {
           console.error("Error rejoining room:", err);
@@ -149,12 +165,50 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       }
     );
 
+    socket.on(
+      "game:player-left",
+      async (data: { roomId: string; playerName: string }) => {
+        await gm.handlePlayerDisconnect(data.roomId, data.playerName);
+      }
+    );
+
+    socket.on(
+      "game:claim-disconnect-win",
+      async (
+        data: { roomId: string; playerName: string },
+        callback: (res: any) => void
+      ) => {
+        const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "win");
+        callback(result);
+      }
+    );
+
+    socket.on(
+      "game:claim-disconnect-draw",
+      async (
+        data: { roomId: string; playerName: string },
+        callback: (res: any) => void
+      ) => {
+        const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "draw");
+        callback(result);
+      }
+    );
+
     socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);
       const playerName = socketPlayers.get(socket.id);
+      const rooms = socketRooms.get(socket.id);
+      socketPlayers.delete(socket.id);
+      socketRooms.delete(socket.id);
+
       if (playerName) {
-        socketPlayers.delete(socket.id);
         await gm.closeWaitingRoomsByOwner(playerName);
+
+        if (rooms) {
+          for (const roomId of rooms) {
+            await gm.handlePlayerDisconnect(roomId, playerName);
+          }
+        }
       }
     });
   });

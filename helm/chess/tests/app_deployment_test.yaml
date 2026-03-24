@@ -190,6 +190,24 @@ tests:
             name: FEATURE_BOARD_SETTINGS
             value: "false"
 
+  - it: should have default FEATURE_DISCONNECT_CLAIM as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_DISCONNECT_CLAIM
+            value: "true"
+
+  - it: should allow disabling FEATURE_DISCONNECT_CLAIM
+    set:
+      app.env.FEATURE_DISCONNECT_CLAIM: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_DISCONNECT_CLAIM
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

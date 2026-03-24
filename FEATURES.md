@@ -17,6 +17,9 @@
 - Resign option
 - Reconnection support (roomId + playerName persisted in localStorage)
 - Waiting rooms auto-close if the owner disconnects
+- Disconnect claim: if a player disconnects or navigates away during a game, the opponent is notified and after a 10-second grace period can claim a win or draw; reconnecting within the grace period cancels the claim
+- Navigation lock: players in an active game cannot navigate to other tabs (lobby, computer, puzzles, etc.); nav links are visually disabled and route guard redirects back to the game
+- Feature flag: `FEATURE_DISCONNECT_CLAIM`
 
 ## Play vs Computer
 
@@ -114,3 +117,4 @@
 | `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |
 | `FEATURE_GAME_HISTORY` | `true` | Game history page listing the player's past games for analysis. Set to `false` to disable. |
 | `FEATURE_BOARD_SETTINGS` | `true` | Board and piece customization page (39 piece sets incl. blindfold, 19 board themes). Set to `false` to hide settings. |
+| `FEATURE_DISCONNECT_CLAIM` | `true` | Disconnect claim system: notifies opponent when a player disconnects or navigates away, allows claiming win or draw after 10s grace period. Navigation lock prevents leaving an active game. Set to `false` to disable. |

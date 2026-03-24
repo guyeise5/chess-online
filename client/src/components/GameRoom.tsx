@@ -16,6 +16,7 @@ interface Props {
   playerName: string;
   boardPrefs: BoardPreferences;
   onOpenSettings?: () => void;
+  onActiveGameChange?: (roomId: string | null) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -57,7 +58,7 @@ function findKingSquare(game: Chess): string | null {
   return null;
 }
 
-export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Props) {
+export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onActiveGameChange }: Props) {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
@@ -75,6 +76,9 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [undoRequester, setUndoRequester] = useState<string | null>(null);
   const [undoPending, setUndoPending] = useState(false);
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [disconnectClaimAvailable, setDisconnectClaimAvailable] = useState(false);
+  const [disconnectCountdown, setDisconnectCountdown] = useState(10);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
@@ -247,6 +251,22 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
       setUndoPending(false);
     };
 
+    const handleOpponentDisconnected = () => {
+      setOpponentDisconnected(true);
+      setDisconnectClaimAvailable(false);
+      setDisconnectCountdown(10);
+    };
+
+    const handleOpponentReconnected = () => {
+      setOpponentDisconnected(false);
+      setDisconnectClaimAvailable(false);
+      setDisconnectCountdown(10);
+    };
+
+    const handleDisconnectClaimAvailable = () => {
+      setDisconnectClaimAvailable(true);
+    };
+
     socket.on("game:move", handleMove);
     socket.on("game:over", handleGameOver);
     socket.on("game:timer", handleTimer);
@@ -255,6 +275,9 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
     socket.on("game:undo", handleUndo);
     socket.on("game:undo-declined", handleUndoDeclined);
     socket.on("game:undo-cancelled", handleUndoCancelled);
+    socket.on("game:opponent-disconnected", handleOpponentDisconnected);
+    socket.on("game:opponent-reconnected", handleOpponentReconnected);
+    socket.on("game:disconnect-claim-available", handleDisconnectClaimAvailable);
 
     return () => {
       socket.off("game:move", handleMove);
@@ -265,9 +288,55 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
       socket.off("game:undo", handleUndo);
       socket.off("game:undo-declined", handleUndoDeclined);
       socket.off("game:undo-cancelled", handleUndoCancelled);
+      socket.off("game:opponent-disconnected", handleOpponentDisconnected);
+      socket.off("game:opponent-reconnected", handleOpponentReconnected);
+      socket.off("game:disconnect-claim-available", handleDisconnectClaimAvailable);
       if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
     };
   }, []);
+
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const roomIdRef = useRef(roomId);
+  roomIdRef.current = roomId;
+
+  useEffect(() => {
+    if (status === "playing" && roomId) {
+      onActiveGameChange?.(roomId);
+    } else if (status === "finished") {
+      onActiveGameChange?.(null);
+    }
+  }, [status, roomId, onActiveGameChange]);
+
+  useEffect(() => {
+    return () => {
+      if (statusRef.current === "playing" && roomIdRef.current) {
+        socket.emit("game:player-left", { roomId: roomIdRef.current, playerName });
+        onActiveGameChange?.(null);
+      }
+    };
+  }, [playerName, onActiveGameChange]);
+
+  useEffect(() => {
+    if (!opponentDisconnected || disconnectClaimAvailable) return;
+    const interval = setInterval(() => {
+      setDisconnectCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [opponentDisconnected, disconnectClaimAvailable]);
+
+  useEffect(() => {
+    if (status === "finished") {
+      setOpponentDisconnected(false);
+      setDisconnectClaimAvailable(false);
+    }
+  }, [status]);
 
   useEffect(() => {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -288,6 +357,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
   const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
   const showMaterial =
     (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+  const showDisconnectClaim =
+    (window as any).__ENV__?.FEATURE_DISCONNECT_CLAIM !== "false";
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
     const pm = { from, to, promotion };
@@ -590,7 +661,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
 
   return (
     <div className={styles.container}>
-      <NavBar playerName={playerName} onOpenSettings={onOpenSettings} />
+      <NavBar playerName={playerName} onOpenSettings={onOpenSettings} inActiveGame={status === "playing"} />
 
       <main className={styles.main}>
         <div className={styles.boardArea}>
@@ -742,6 +813,32 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings }: Pro
                   Decline
                 </button>
               </div>
+            </div>
+          )}
+
+          {showDisconnectClaim && opponentDisconnected && isPlayer && status === "playing" && (
+            <div className={styles.disconnectBanner}>
+              {disconnectClaimAvailable ? (
+                <>
+                  <span>Opponent has left the game</span>
+                  <div className={styles.disconnectActions}>
+                    <button
+                      className={styles.claimWinBtn}
+                      onClick={() => socket.emit("game:claim-disconnect-win", { roomId, playerName }, () => {})}
+                    >
+                      Claim win
+                    </button>
+                    <button
+                      className={styles.claimDrawBtn}
+                      onClick={() => socket.emit("game:claim-disconnect-draw", { roomId, playerName }, () => {})}
+                    >
+                      Claim draw
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <span>Opponent disconnected. Reconnecting... ({disconnectCountdown}s)</span>
+              )}
             </div>
           )}
 

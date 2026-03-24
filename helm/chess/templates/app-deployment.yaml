@@ -46,6 +46,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_GAME_HISTORY | quote }}
             - name: FEATURE_BOARD_SETTINGS
               value: {{ .Values.app.env.FEATURE_BOARD_SETTINGS | quote }}
+            - name: FEATURE_DISCONNECT_CLAIM
+              value: {{ .Values.app.env.FEATURE_DISCONNECT_CLAIM | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

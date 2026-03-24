@@ -13,11 +13,21 @@ interface UndoRequest {
   moveCount: number;
 }
 
+interface DisconnectState {
+  playerName: string;
+  timeout: NodeJS.Timeout;
+  disconnectedAt: number;
+  claimAvailable: boolean;
+}
+
+export const DISCONNECT_GRACE_PERIOD_MS = 10_000;
+
 export class GameManager {
   private io: Server;
   private timers: Map<string, TimerState> = new Map();
   private games: Map<string, Chess> = new Map();
   private undoRequests: Map<string, UndoRequest> = new Map();
+  private disconnectTimers: Map<string, DisconnectState> = new Map();
 
   constructor(io: Server) {
     this.io = io;
@@ -317,6 +327,89 @@ export class GameManager {
     this.broadcastRooms();
   }
 
+  async handlePlayerDisconnect(roomId: string, playerName: string): Promise<void> {
+    if (process.env.FEATURE_DISCONNECT_CLAIM === "false") return;
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing") return;
+
+    const isPlayer = room.whitePlayer === playerName || room.blackPlayer === playerName;
+    if (!isPlayer) return;
+
+    if (this.disconnectTimers.has(roomId)) return;
+
+    this.io.to(roomId).emit("game:opponent-disconnected", { playerName });
+
+    const timeout = setTimeout(async () => {
+      const state = this.disconnectTimers.get(roomId);
+      if (state) {
+        state.claimAvailable = true;
+        this.io.to(roomId).emit("game:disconnect-claim-available", { playerName });
+      }
+    }, DISCONNECT_GRACE_PERIOD_MS);
+
+    this.disconnectTimers.set(roomId, {
+      playerName,
+      timeout,
+      disconnectedAt: Date.now(),
+      claimAvailable: false,
+    });
+  }
+
+  async handlePlayerReconnect(roomId: string, playerName: string): Promise<void> {
+    const state = this.disconnectTimers.get(roomId);
+    if (!state || state.playerName !== playerName) return;
+
+    clearTimeout(state.timeout);
+    this.disconnectTimers.delete(roomId);
+
+    this.io.to(roomId).emit("game:opponent-reconnected", { playerName });
+  }
+
+  async claimDisconnectResult(
+    roomId: string,
+    claimerName: string,
+    claimType: "win" | "draw"
+  ): Promise<{ success: boolean; error?: string }> {
+    const state = this.disconnectTimers.get(roomId);
+    if (!state) return { success: false, error: "No pending disconnect" };
+    if (!state.claimAvailable) return { success: false, error: "Grace period not elapsed" };
+    if (state.playerName === claimerName) return { success: false, error: "Cannot claim against yourself" };
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing") return { success: false, error: "Game not active" };
+
+    const isPlayer = room.whitePlayer === claimerName || room.blackPlayer === claimerName;
+    if (!isPlayer) return { success: false, error: "Not a player in this game" };
+
+    clearTimeout(state.timeout);
+    this.disconnectTimers.delete(roomId);
+
+    if (claimType === "draw") {
+      room.result = "1/2-1/2";
+    } else {
+      const claimerIsWhite = room.whitePlayer === claimerName;
+      room.result = claimerIsWhite ? "1-0" : "0-1";
+    }
+    room.status = "finished";
+    await room.save();
+
+    this.stopTimer(roomId);
+    this.games.delete(roomId);
+
+    this.io.to(roomId).emit("game:over", {
+      result: room.result,
+      reason: claimType === "draw" ? "opponent left — draw claimed" : "opponent left",
+    });
+    this.broadcastRooms();
+
+    return { success: true };
+  }
+
+  getDisconnectState(roomId: string): DisconnectState | undefined {
+    return this.disconnectTimers.get(roomId);
+  }
+
   private startTimer(roomId: string): void {
     const timerState: TimerState = {
       interval: null,
@@ -378,6 +471,10 @@ export class GameManager {
     for (const [roomId] of this.timers) {
       this.stopTimer(roomId);
     }
+    for (const [, state] of this.disconnectTimers) {
+      clearTimeout(state.timeout);
+    }
+    this.disconnectTimers.clear();
   }
 
   async broadcastRooms(): Promise<void> {

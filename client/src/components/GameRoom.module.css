@@ -307,3 +307,56 @@
 .analyzeBtn:hover {
   background: var(--accent-hover);
 }
+
+.disconnectBanner {
+  background: var(--bg-card);
+  border: 1px solid #e67e22;
+  border-radius: 7px;
+  padding: 1.05rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  text-align: center;
+  color: #e67e22;
+  font-weight: 500;
+  font-size: 1.49rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.disconnectActions {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.claimWinBtn {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 7px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 1.44rem;
+  border: none;
+  cursor: pointer;
+}
+
+.claimWinBtn:hover {
+  background: var(--accent-hover);
+}
+
+.claimDrawBtn {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 1.44rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.claimDrawBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}

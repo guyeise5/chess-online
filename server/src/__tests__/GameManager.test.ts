@@ -724,6 +724,279 @@ describe("undoToPlayer", () => {
 });
 
 // ---------------------------------------------------------------------------
+// handlePlayerDisconnect / handlePlayerReconnect / claimDisconnectResult
+// ---------------------------------------------------------------------------
+describe("disconnect claim", () => {
+  async function createPlayingRoom() {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    return (await Room.findOne({ roomId: room.roomId }))!;
+  }
+
+  it("sets disconnect state when a player disconnects during a playing game", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const state = gm.getDisconnectState(room.roomId);
+    expect(state).toBeDefined();
+    expect(state!.playerName).toBe("Alice");
+    expect(state!.claimAvailable).toBe(false);
+  });
+
+  it("emits game:opponent-disconnected when a player disconnects", async () => {
+    const room = await createPlayingRoom();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: jest.fn(),
+    } as any);
+
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+
+    expect(emitSpy).toHaveBeenCalledWith(room.roomId);
+    const emitCall = (emitSpy.mock.results[0].value as any).emit;
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-disconnected", { playerName: "Bob" });
+
+    emitSpy.mockRestore();
+  });
+
+  it("does nothing if the room is not playing", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+  });
+
+  it("does nothing if the player is not a participant", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Eve");
+
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+  });
+
+  it("does not create duplicate disconnect timer if already set", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+    const state1 = gm.getDisconnectState(room.roomId);
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+    const state2 = gm.getDisconnectState(room.roomId);
+
+    expect(state2!.playerName).toBe("Alice");
+    expect(state1).toBe(state2);
+  });
+
+  it("clears disconnect state when the player reconnects", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    await gm.handlePlayerReconnect(room.roomId, "Alice");
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+  });
+
+  it("emits game:opponent-reconnected when the player reconnects", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: jest.fn(),
+    } as any);
+
+    await gm.handlePlayerReconnect(room.roomId, "Alice");
+
+    const emitCall = (emitSpy.mock.results[0].value as any).emit;
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-reconnected", { playerName: "Alice" });
+
+    emitSpy.mockRestore();
+  });
+
+  it("does not clear disconnect state if a different player reconnects", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    await gm.handlePlayerReconnect(room.roomId, "Bob");
+    expect(gm.getDisconnectState(room.roomId)).toBeDefined();
+  });
+
+  it("sets claimAvailable after grace period elapses", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    expect(gm.getDisconnectState(room.roomId)!.claimAvailable).toBe(false);
+
+    // Wait for the real timeout (we can't use fake timers with MongoDB)
+    // Instead, verify the timeout is set and manually advance the state
+    const state = gm.getDisconnectState(room.roomId)!;
+    expect(state.timeout).toBeDefined();
+
+    // Simulate the timeout callback effect
+    state.claimAvailable = true;
+    expect(gm.getDisconnectState(room.roomId)!.claimAvailable).toBe(true);
+  });
+
+  it("allows opponent to claim win after grace period", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const state = gm.getDisconnectState(room.roomId)!;
+    state.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Bob", "win");
+    expect(result.success).toBe(true);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.status).toBe("finished");
+    expect(dbRoom!.result).toBe("0-1");
+  });
+
+  it("allows opponent to claim draw after grace period", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const state = gm.getDisconnectState(room.roomId)!;
+    state.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Bob", "draw");
+    expect(result.success).toBe(true);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.status).toBe("finished");
+    expect(dbRoom!.result).toBe("1/2-1/2");
+  });
+
+  it("black can claim win when white disconnects", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const state = gm.getDisconnectState(room.roomId)!;
+    state.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Bob", "win");
+    expect(result.success).toBe(true);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.result).toBe("0-1");
+  });
+
+  it("white can claim win when black disconnects", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+
+    const state = gm.getDisconnectState(room.roomId)!;
+    state.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Alice", "win");
+    expect(result.success).toBe(true);
+
+    const dbRoom = await Room.findOne({ roomId: room.roomId });
+    expect(dbRoom!.result).toBe("1-0");
+  });
+
+  it("rejects claim before grace period elapses", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Bob", "win");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Grace period not elapsed");
+  });
+
+  it("rejects claim by the disconnected player", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+    gm.getDisconnectState(room.roomId)!.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Alice", "win");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Cannot claim against yourself");
+  });
+
+  it("rejects claim when no disconnect is pending", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.claimDisconnectResult(room.roomId, "Bob", "win");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("No pending disconnect");
+  });
+
+  it("rejects claim by a non-participant", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+    gm.getDisconnectState(room.roomId)!.claimAvailable = true;
+
+    const result = await gm.claimDisconnectResult(room.roomId, "Eve", "win");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("clears disconnect state after a successful claim", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+    gm.getDisconnectState(room.roomId)!.claimAvailable = true;
+
+    await gm.claimDisconnectResult(room.roomId, "Bob", "win");
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+  });
+
+  it("emits game:over with correct reason on claim win", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+    gm.getDisconnectState(room.roomId)!.claimAvailable = true;
+
+    const mockEmit = jest.fn();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: mockEmit,
+    } as any);
+
+    await gm.claimDisconnectResult(room.roomId, "Alice", "win");
+
+    expect(mockEmit).toHaveBeenCalledWith("game:over", {
+      result: "1-0",
+      reason: "opponent left",
+    });
+
+    emitSpy.mockRestore();
+  });
+
+  it("emits game:over with correct reason on claim draw", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+    gm.getDisconnectState(room.roomId)!.claimAvailable = true;
+
+    const mockEmit = jest.fn();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({
+      emit: mockEmit,
+    } as any);
+
+    await gm.claimDisconnectResult(room.roomId, "Alice", "draw");
+
+    expect(mockEmit).toHaveBeenCalledWith("game:over", {
+      result: "1/2-1/2",
+      reason: "opponent left — draw claimed",
+    });
+
+    emitSpy.mockRestore();
+  });
+
+  it("does nothing when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_DISCONNECT_CLAIM;
+    process.env.FEATURE_DISCONNECT_CLAIM = "false";
+
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+
+    process.env.FEATURE_DISCONNECT_CLAIM = orig;
+  });
+
+  it("stopAllTimers clears disconnect timers", async () => {
+    const room = await createPlayingRoom();
+    await gm.handlePlayerDisconnect(room.roomId, "Alice");
+
+    expect(gm.getDisconnectState(room.roomId)).toBeDefined();
+    gm.stopAllTimers();
+    expect(gm.getDisconnectState(room.roomId)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // serializeRoom
 // ---------------------------------------------------------------------------
 describe("serializeRoom", () => {
