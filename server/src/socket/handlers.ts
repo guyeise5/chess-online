@@ -159,6 +159,17 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     );
 
     socket.on(
+      "game:give-time",
+      async (
+        data: { roomId: string; playerName: string },
+        callback: (res: any) => void
+      ) => {
+        const result = await gm.giveTime(data.roomId, data.playerName);
+        callback(result);
+      }
+    );
+
+    socket.on(
       "game:resign",
       async (data: { roomId: string; playerName: string }) => {
         await gm.resign(data.roomId, data.playerName);

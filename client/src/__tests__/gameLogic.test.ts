@@ -415,3 +415,34 @@ describe("move list formatting", () => {
     expect(pairs).toEqual([{ num: 1, white: "e4", black: undefined }]);
   });
 });
+
+describe("give time button visibility", () => {
+  function shouldShowGiveTime(
+    isPlayer: boolean,
+    status: string,
+    featureFlag?: string
+  ): boolean {
+    return isPlayer && status === "playing" && featureFlag !== "false";
+  }
+
+  it("shows when player is in an active game with flag enabled", () => {
+    expect(shouldShowGiveTime(true, "playing", "true")).toBe(true);
+  });
+
+  it("shows when flag is undefined (default enabled)", () => {
+    expect(shouldShowGiveTime(true, "playing", undefined)).toBe(true);
+  });
+
+  it("hides when not a player", () => {
+    expect(shouldShowGiveTime(false, "playing", "true")).toBe(false);
+  });
+
+  it("hides when game is not playing", () => {
+    expect(shouldShowGiveTime(true, "waiting", "true")).toBe(false);
+    expect(shouldShowGiveTime(true, "finished", "true")).toBe(false);
+  });
+
+  it("hides when feature flag is disabled", () => {
+    expect(shouldShowGiveTime(true, "playing", "false")).toBe(false);
+  });
+});

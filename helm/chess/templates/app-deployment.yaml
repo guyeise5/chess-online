@@ -48,6 +48,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_BOARD_SETTINGS | quote }}
             - name: FEATURE_DISCONNECT_CLAIM
               value: {{ .Values.app.env.FEATURE_DISCONNECT_CLAIM | quote }}
+            - name: FEATURE_GIVE_TIME
+              value: {{ .Values.app.env.FEATURE_GIVE_TIME | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

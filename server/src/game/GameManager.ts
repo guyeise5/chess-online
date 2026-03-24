@@ -308,6 +308,40 @@ export class GameManager {
     return { success: true, room };
   }
 
+  async giveTime(
+    roomId: string,
+    giverName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (process.env.FEATURE_GIVE_TIME === "false") {
+      return { success: false, error: "Feature disabled" };
+    }
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "playing") {
+      return { success: false, error: "Game not active" };
+    }
+
+    const isWhite = room.whitePlayer === giverName;
+    const isBlack = room.blackPlayer === giverName;
+    if (!isWhite && !isBlack) {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    if (isWhite) {
+      room.blackTime += 15;
+    } else {
+      room.whiteTime += 15;
+    }
+    await room.save();
+
+    this.io.to(roomId).emit("game:timer", {
+      whiteTime: room.whiteTime,
+      blackTime: room.blackTime,
+    });
+
+    return { success: true };
+  }
+
   async resign(roomId: string, playerName: string): Promise<void> {
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return;

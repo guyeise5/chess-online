@@ -686,9 +686,20 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
               <span className={styles.playerBarName}>{topPlayer || "Waiting..."}</span>
               {showMaterial && <MaterialDisplay material={topMaterial} />}
             </div>
-            <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}`}>
-              {formatTime(topTime)}
-            </span>
+            <div className={styles.clockRow}>
+              {isPlayer && status === "playing" && (window as any).__ENV__?.FEATURE_GIVE_TIME !== "false" && (
+                <button
+                  className={styles.giveTimeBtn}
+                  onClick={() => socket.emit("game:give-time", { roomId, playerName }, () => {})}
+                  title="Give 15 seconds"
+                >
+                  +
+                </button>
+              )}
+              <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}`}>
+                {formatTime(topTime)}
+              </span>
+            </div>
           </div>
 
           <div className={styles.board} style={{ position: "relative" }}>

@@ -208,6 +208,24 @@ tests:
             name: FEATURE_DISCONNECT_CLAIM
             value: "false"
 
+  - it: should have default FEATURE_GIVE_TIME as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GIVE_TIME
+            value: "true"
+
+  - it: should allow disabling FEATURE_GIVE_TIME
+    set:
+      app.env.FEATURE_GIVE_TIME: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GIVE_TIME
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

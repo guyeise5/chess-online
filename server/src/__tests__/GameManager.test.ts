@@ -1036,3 +1036,94 @@ describe("serializeRoom", () => {
     expect(keys).not.toContain("updatedAt");
   });
 });
+
+// ---------------------------------------------------------------------------
+// giveTime
+// ---------------------------------------------------------------------------
+describe("giveTime", () => {
+  async function createPlayingRoom(
+    ownerColor: "white" | "black" = "white"
+  ) {
+    const room = await gm.createRoom("Alice", 300, 2, ownerColor);
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    const fresh = await Room.findOne({ roomId: room.roomId });
+    return fresh!;
+  }
+
+  it("adds 15 seconds to opponent's clock when white gives time", async () => {
+    const room = await createPlayingRoom();
+    const blackBefore = room.blackTime;
+    const result = await gm.giveTime(room.roomId, "Alice");
+
+    expect(result.success).toBe(true);
+    const updated = await Room.findOne({ roomId: room.roomId });
+    expect(updated!.blackTime).toBeCloseTo(blackBefore + 15, 0);
+    expect(updated!.whiteTime).toBeCloseTo(room.whiteTime, 0);
+  });
+
+  it("adds 15 seconds to opponent's clock when black gives time", async () => {
+    const room = await createPlayingRoom();
+    const whiteBefore = room.whiteTime;
+    const result = await gm.giveTime(room.roomId, "Bob");
+
+    expect(result.success).toBe(true);
+    const updated = await Room.findOne({ roomId: room.roomId });
+    expect(updated!.whiteTime).toBeCloseTo(whiteBefore + 15, 0);
+    expect(updated!.blackTime).toBeCloseTo(room.blackTime, 0);
+  });
+
+  it("rejects for non-existent room", async () => {
+    const result = await gm.giveTime("nonexistent", "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not active");
+  });
+
+  it("rejects for non-player", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.giveTime(room.roomId, "Charlie");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("rejects for waiting room", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    const result = await gm.giveTime(room.roomId, "Alice");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not active");
+  });
+
+  it("rejects for finished room", async () => {
+    const room = await createPlayingRoom();
+    await gm.resign(room.roomId, "Alice");
+    const result = await gm.giveTime(room.roomId, "Alice");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not active");
+  });
+
+  it("rejects when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_GIVE_TIME;
+    process.env.FEATURE_GIVE_TIME = "false";
+
+    const room = await createPlayingRoom();
+    const result = await gm.giveTime(room.roomId, "Alice");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Feature disabled");
+
+    process.env.FEATURE_GIVE_TIME = orig;
+  });
+
+  it("can be given multiple times", async () => {
+    const room = await createPlayingRoom();
+    const blackBefore = room.blackTime;
+
+    await gm.giveTime(room.roomId, "Alice");
+    await gm.giveTime(room.roomId, "Alice");
+
+    const updated = await Room.findOne({ roomId: room.roomId });
+    expect(updated!.blackTime).toBeCloseTo(blackBefore + 30, 0);
+  });
+});

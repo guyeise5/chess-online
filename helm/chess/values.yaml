@@ -20,6 +20,7 @@ app:
     FEATURE_GAME_HISTORY: "true"
     FEATURE_BOARD_SETTINGS: "true"
     FEATURE_DISCONNECT_CLAIM: "true"
+    FEATURE_GIVE_TIME: "true"
 
 mongodb:
   image:
