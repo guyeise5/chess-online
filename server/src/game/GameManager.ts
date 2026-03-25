@@ -370,6 +370,8 @@ export class GameManager {
       blackTime: room.blackTime,
     });
 
+    this.emitSystemChat(roomId, `${giverName} gave 15 seconds`);
+
     return { success: true };
   }
 
@@ -574,6 +576,45 @@ export class GameManager {
 
   getDisconnectState(roomId: string): DisconnectState | undefined {
     return this.disconnectTimers.get(roomId);
+  }
+
+  async sendChatMessage(
+    roomId: string,
+    playerName: string,
+    text: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (process.env["FEATURE_GAME_CHAT"] === "false") {
+      return { success: false, error: "Feature disabled" };
+    }
+
+    const room = await Room.findOne({ roomId });
+    if (!room) return { success: false, error: "Room not found" };
+
+    const isPlayer =
+      room.whitePlayer === playerName || room.blackPlayer === playerName;
+    if (!isPlayer) return { success: false, error: "Not a player in this game" };
+
+    const trimmed = typeof text === "string" ? text.trim().slice(0, 500) : "";
+    if (!trimmed) return { success: false, error: "Empty message" };
+
+    this.io.to(roomId).emit("game:chat", {
+      type: "player" as const,
+      sender: playerName,
+      text: trimmed,
+      timestamp: Date.now(),
+    });
+
+    return { success: true };
+  }
+
+  emitSystemChat(roomId: string, text: string): void {
+    if (process.env["FEATURE_GAME_CHAT"] === "false") return;
+
+    this.io.to(roomId).emit("game:chat", {
+      type: "system" as const,
+      text,
+      timestamp: Date.now(),
+    });
   }
 
   private startTimer(roomId: string): void {

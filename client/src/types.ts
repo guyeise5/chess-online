@@ -50,6 +50,17 @@ export interface UndoData {
   moves: string[];
 }
 
+export interface ChatMessageData {
+  type: "player" | "system";
+  sender?: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface ChatMessage extends ChatMessageData {
+  id: string;
+}
+
 export interface SocketResult {
   success: boolean;
   error?: string;
@@ -73,6 +84,7 @@ export interface AppEnv {
   FEATURE_MOVE_SOUND?: string;
   FEATURE_INTRODUCTION?: string;
   FEATURE_USER_PREFERENCES?: string;
+  FEATURE_GAME_CHAT?: string;
 }
 
 declare global {

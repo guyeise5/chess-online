@@ -3,12 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
-import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, getEnv } from "../types";
+import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, ChatMessage, ChatMessageData, getEnv } from "../types";
 import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
+import GameChat from "./GameChat";
 import styles from "./GameRoom.module.css";
 import { playMoveSound, playSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
@@ -93,11 +94,22 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const chatIdRef = useRef(0);
   const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
   const resignTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
   const lowTimeFiredRef = useRef<{ w: boolean; b: boolean }>({ w: false, b: false });
+
+  const addChatMessage = useCallback(
+    (data: ChatMessageData) => {
+      chatIdRef.current += 1;
+      const msg: ChatMessage = { ...data, id: String(chatIdRef.current) };
+      setChatMessages((prev) => [...prev, msg]);
+    },
+    []
+  );
 
   const rejoin = useCallback(() => {
     if (!roomId) return;
@@ -223,6 +235,19 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setDrawOfferer(null);
       setDrawOfferPending(false);
       playSound("gameEnd");
+
+      const resultLabel =
+        data.result === "1-0"
+          ? "White wins"
+          : data.result === "0-1"
+          ? "Black wins"
+          : "Draw";
+      const reason = typeof data.reason === "string" ? data.reason : "";
+      addChatMessage({
+        type: "system",
+        text: reason ? `${resultLabel} — ${reason}` : resultLabel,
+        timestamp: Date.now(),
+      });
     };
 
     const handleTimer = (data: TimerData) => {
@@ -247,7 +272,27 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setRoom(roomData);
       setStatus(roomData.status);
       lowTimeFiredRef.current = { w: false, b: false };
-      if (roomData.status === "playing") playSound("gameStart");
+      if (roomData.status === "playing") {
+        playSound("gameStart");
+        addChatMessage({
+          type: "system",
+          text: "Game started — good luck!",
+          timestamp: Date.now(),
+        });
+      }
+    };
+
+    const handleChat = (data: unknown) => {
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("type" in data) ||
+        !("text" in data) ||
+        !("timestamp" in data)
+      )
+        return;
+      const d = data as ChatMessageData;
+      addChatMessage(d);
     };
 
     const handleUndoRequest = (data: { playerName: string }) => {
@@ -339,6 +384,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     socket.on("game:opponent-disconnected", handleOpponentDisconnected);
     socket.on("game:opponent-reconnected", handleOpponentReconnected);
     socket.on("game:disconnect-claim-available", handleDisconnectClaimAvailable);
+    socket.on("game:chat", handleChat);
 
     return () => {
       socket.off("game:move", handleMove);
@@ -355,11 +401,12 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       socket.off("game:opponent-disconnected", handleOpponentDisconnected);
       socket.off("game:opponent-reconnected", handleOpponentReconnected);
       socket.off("game:disconnect-claim-available", handleDisconnectClaimAvailable);
+      socket.off("game:chat", handleChat);
       if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
       if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
       if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
     };
-  }, []);
+  }, [addChatMessage]);
 
   const statusRef = useRef(status);
   statusRef.current = status;
@@ -455,6 +502,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const showMaterial = env.FEATURE_MATERIAL_DIFF !== "false";
   const showDrawOffer = env.FEATURE_DRAW_OFFER !== "false";
   const showDisconnectClaim = env.FEATURE_DISCONNECT_CLAIM !== "false";
+  const showChat = env.FEATURE_GAME_CHAT !== "false";
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
     const pm = { from, to, ...(promotion != null ? { promotion } : {}) };
@@ -1047,6 +1095,22 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           )}
         </div>
       </main>
+
+      {showChat && isPlayer && status !== "waiting" && (
+        <GameChat
+          messages={chatMessages}
+          onSend={(text) => {
+            if (roomId) {
+              socket.emit(
+                "game:chat",
+                { roomId, playerName, text },
+                () => {}
+              );
+            }
+          }}
+          playerName={playerName}
+        />
+      )}
     </div>
   );
 }

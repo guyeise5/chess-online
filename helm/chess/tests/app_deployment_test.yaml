@@ -316,6 +316,24 @@ tests:
             name: FEATURE_USER_PREFERENCES
             value: "false"
 
+  - it: should have default FEATURE_GAME_CHAT as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_CHAT
+            value: "true"
+
+  - it: should allow disabling FEATURE_GAME_CHAT
+    set:
+      app.env.FEATURE_GAME_CHAT: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_GAME_CHAT
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

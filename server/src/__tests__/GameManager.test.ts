@@ -1452,3 +1452,153 @@ describe("private games", () => {
     expect(serialized.isPrivate).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// sendChatMessage
+// ---------------------------------------------------------------------------
+describe("sendChatMessage", () => {
+  async function createPlayingRoom() {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    const fresh = await Room.findOne({ roomId: room.roomId });
+    return fresh!;
+  }
+
+  it("broadcasts a player chat message to the room", async () => {
+    const room = await createPlayingRoom();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    const result = await gm.sendChatMessage(room.roomId, "Alice", "hello");
+
+    expect(result.success).toBe(true);
+    expect(emitSpy).toHaveBeenCalledWith(room.roomId);
+    const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
+    expect(emitCall).toHaveBeenCalledWith(
+      "game:chat",
+      expect.objectContaining({
+        type: "player",
+        sender: "Alice",
+        text: "hello",
+      })
+    );
+
+    emitSpy.mockRestore();
+  });
+
+  it("trims and limits message length to 500 chars", async () => {
+    const room = await createPlayingRoom();
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    const longText = "a".repeat(600);
+    const result = await gm.sendChatMessage(room.roomId, "Alice", "  " + longText + "  ");
+
+    expect(result.success).toBe(true);
+    const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
+    const chatArg = emitCall.mock.calls[0]?.[1];
+    expect(chatArg.text).toHaveLength(500);
+
+    emitSpy.mockRestore();
+  });
+
+  it("rejects empty messages", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.sendChatMessage(room.roomId, "Alice", "   ");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Empty message");
+  });
+
+  it("rejects for non-existent room", async () => {
+    const result = await gm.sendChatMessage("nonexistent", "Alice", "hello");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Room not found");
+  });
+
+  it("rejects for non-player", async () => {
+    const room = await createPlayingRoom();
+    const result = await gm.sendChatMessage(room.roomId, "Charlie", "hi");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("rejects when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_GAME_CHAT;
+    process.env.FEATURE_GAME_CHAT = "false";
+
+    const room = await createPlayingRoom();
+    const result = await gm.sendChatMessage(room.roomId, "Alice", "hello");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Feature disabled");
+
+    process.env.FEATURE_GAME_CHAT = orig;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// emitSystemChat
+// ---------------------------------------------------------------------------
+describe("emitSystemChat", () => {
+  it("emits a system chat message to the room", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    gm.emitSystemChat(room.roomId, "Test system message");
+
+    expect(emitSpy).toHaveBeenCalledWith(room.roomId);
+    const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
+    expect(emitCall).toHaveBeenCalledWith(
+      "game:chat",
+      expect.objectContaining({
+        type: "system",
+        text: "Test system message",
+      })
+    );
+
+    emitSpy.mockRestore();
+  });
+
+  it("does nothing when feature flag is disabled", async () => {
+    const orig = process.env.FEATURE_GAME_CHAT;
+    process.env.FEATURE_GAME_CHAT = "false";
+
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    gm.emitSystemChat(room.roomId, "Test message");
+
+    expect(emitSpy).not.toHaveBeenCalled();
+
+    emitSpy.mockRestore();
+    process.env.FEATURE_GAME_CHAT = orig;
+  });
+
+  it("giveTime emits system chat about time given", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    await gm.giveTime(room.roomId, "Alice");
+
+    const allEmitCalls = emitSpy.mock.results.map(
+      (r) => (r.value as any)?.emit
+    );
+    const chatCall = allEmitCalls.find((fn) =>
+      fn?.mock?.calls?.some(
+        (c: unknown[]) => c[0] === "game:chat"
+      )
+    );
+    expect(chatCall).toBeDefined();
+    const chatArgs = chatCall.mock.calls.find(
+      (c: unknown[]) => c[0] === "game:chat"
+    );
+    expect(chatArgs?.[1]).toMatchObject({
+      type: "system",
+      text: "Alice gave 15 seconds",
+    });
+
+    emitSpy.mockRestore();
+  });
+});

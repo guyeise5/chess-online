@@ -26,6 +26,7 @@ app:
     FEATURE_MOVE_SOUND: "true"
     FEATURE_INTRODUCTION: "true"
     FEATURE_USER_PREFERENCES: "true"
+    FEATURE_GAME_CHAT: "true"
 
 mongodb:
   image:

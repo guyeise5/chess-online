@@ -60,6 +60,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_INTRODUCTION | quote }}
             - name: FEATURE_USER_PREFERENCES
               value: {{ .Values.app.env.FEATURE_USER_PREFERENCES | quote }}
+            - name: FEATURE_GAME_CHAT
+              value: {{ .Values.app.env.FEATURE_GAME_CHAT | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

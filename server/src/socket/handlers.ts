@@ -234,6 +234,30 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     );
 
     socket.on(
+      "game:chat",
+      async (
+        data: { roomId: string; playerName: string; text: string },
+        callback: (res: Record<string, unknown>) => void
+      ) => {
+        if (
+          !isObj(data) ||
+          typeof data.roomId !== "string" ||
+          typeof data.playerName !== "string" ||
+          typeof data.text !== "string"
+        ) {
+          safeCallback(callback, { success: false, error: "Invalid payload" });
+          return;
+        }
+        const result = await gm.sendChatMessage(
+          data.roomId,
+          data.playerName,
+          data.text
+        );
+        safeCallback(callback, result);
+      }
+    );
+
+    socket.on(
       "game:resign",
       async (data: { roomId: string; playerName: string }) => {
         if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") return;

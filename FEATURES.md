@@ -22,7 +22,8 @@
 - Give time: "+" button next to opponent's clock adds 15 seconds instantly (no confirmation)
 - Draw offer: two-click to offer (click ½ icon, confirm ✓ or cancel ✗; auto-cancels after 3s); opponent sees minimal inline accept/decline in the control bar (no banner); making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
 - Lichess-style game control bar: compact icon buttons (↶ takeback, ½ draw, ⚑ resign) with dark background; confirm/cancel (✓/✗) pattern for destructive actions
-- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`
+- In-game chat: floating panel pinned to bottom-left, toggleable open/closed; red notification badge when closed and opponent sends a message; shows player messages and system messages (time given, game over with reason)
+- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`, `FEATURE_GAME_CHAT`
 
 ## Private Games
 
@@ -174,3 +175,4 @@
 | `FEATURE_MOVE_SOUND` | `true` | Move sounds using Lichess standard sound set (move, capture, game start/end, low time). Set to `false` to disable. |
 | `FEATURE_INTRODUCTION` | `true` | First-time user onboarding walkthrough (9 steps covering all features). Set to `false` to disable. |
 | `FEATURE_USER_PREFERENCES` | `true` | Server-side user preferences persistence (MongoDB). Set to `false` to use localStorage only. |
+| `FEATURE_GAME_CHAT` | `true` | In-game chat between players in PvP games. Shows player messages and system events (time given, game over). Set to `false` to disable. |
