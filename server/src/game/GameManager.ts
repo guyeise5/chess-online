@@ -1,6 +1,6 @@
 import { Chess } from "chess.js";
 import { Server, Socket } from "socket.io";
-import Room, { IRoom, deriveTimeFormat, ColorChoice } from "../models/Room";
+import Room, { IRoom, IChatMessage, deriveTimeFormat, ColorChoice } from "../models/Room";
 import { v4 as uuidv4 } from "uuid";
 
 interface TimerState {
@@ -99,6 +99,13 @@ export class GameManager {
     this.assignColors(room);
     room.status = "playing";
     room.lastMoveAt = new Date();
+    if (process.env["FEATURE_GAME_CHAT"] !== "false") {
+      room.chatMessages.push({
+        type: "system",
+        text: "Game started — good luck!",
+        timestamp: Date.now(),
+      });
+    }
     await room.save();
 
     const chess = new Chess();
@@ -206,10 +213,22 @@ export class GameManager {
       room.lastMoveAt = new Date();
 
       let result: string | null = null;
+      let gameOverReason = "";
       if (chess.isCheckmate()) {
         result = room.turn === "w" ? "0-1" : "1-0";
-      } else if (chess.isDraw() || chess.isStalemate() || chess.isThreefoldRepetition() || chess.isInsufficientMaterial()) {
+        gameOverReason = "checkmate";
+      } else if (chess.isStalemate()) {
         result = "1/2-1/2";
+        gameOverReason = "stalemate";
+      } else if (chess.isThreefoldRepetition()) {
+        result = "1/2-1/2";
+        gameOverReason = "threefold repetition";
+      } else if (chess.isInsufficientMaterial()) {
+        result = "1/2-1/2";
+        gameOverReason = "insufficient material";
+      } else if (chess.isDraw()) {
+        result = "1/2-1/2";
+        gameOverReason = "50-move rule";
       }
 
       if (result) {
@@ -219,6 +238,9 @@ export class GameManager {
         this.games.delete(roomId);
         this.drawOffers.delete(roomId);
         this.drawOfferCooldowns.delete(roomId);
+
+        const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
+        await this.emitSystemChat(roomId, `${label} — ${gameOverReason}`);
       }
 
       if (this.undoRequests.has(roomId)) {
@@ -370,7 +392,7 @@ export class GameManager {
       blackTime: room.blackTime,
     });
 
-    this.emitSystemChat(roomId, `${giverName} gave 15 seconds`);
+    await this.emitSystemChat(roomId, `${giverName} gave 15 seconds`);
 
     return { success: true };
   }
@@ -456,6 +478,8 @@ export class GameManager {
       this.stopTimer(roomId);
       this.games.delete(roomId);
 
+      await this.emitSystemChat(roomId, "Draw — mutual agreement");
+
       this.io.to(roomId).emit("game:over", {
         result: "1/2-1/2",
         reason: "mutual agreement",
@@ -487,6 +511,9 @@ export class GameManager {
     this.games.delete(roomId);
     this.drawOffers.delete(roomId);
     this.drawOfferCooldowns.delete(roomId);
+
+    const resignLabel = room.result === "1-0" ? "White wins" : "Black wins";
+    await this.emitSystemChat(roomId, `${resignLabel} — resignation`);
 
     this.io.to(roomId).emit("game:over", {
       result: room.result,
@@ -565,9 +592,13 @@ export class GameManager {
     this.stopTimer(roomId);
     this.games.delete(roomId);
 
+    const claimLabel = room.result === "1-0" ? "White wins" : room.result === "0-1" ? "Black wins" : "Draw";
+    const claimReason = claimType === "draw" ? "opponent left — draw claimed" : "opponent left";
+    await this.emitSystemChat(roomId, `${claimLabel} — ${claimReason}`);
+
     this.io.to(roomId).emit("game:over", {
       result: room.result,
-      reason: claimType === "draw" ? "opponent left — draw claimed" : "opponent left",
+      reason: claimReason,
     });
     this.broadcastRooms();
 
@@ -576,6 +607,16 @@ export class GameManager {
 
   getDisconnectState(roomId: string): DisconnectState | undefined {
     return this.disconnectTimers.get(roomId);
+  }
+
+  private async pushChatMessage(
+    roomId: string,
+    msg: IChatMessage
+  ): Promise<void> {
+    if (process.env["FEATURE_GAME_CHAT"] === "false") return;
+
+    await Room.updateOne({ roomId }, { $push: { chatMessages: msg } });
+    this.io.to(roomId).emit("game:chat", msg);
   }
 
   async sendChatMessage(
@@ -597,8 +638,8 @@ export class GameManager {
     const trimmed = typeof text === "string" ? text.trim().slice(0, 500) : "";
     if (!trimmed) return { success: false, error: "Empty message" };
 
-    this.io.to(roomId).emit("game:chat", {
-      type: "player" as const,
+    await this.pushChatMessage(roomId, {
+      type: "player",
       sender: playerName,
       text: trimmed,
       timestamp: Date.now(),
@@ -607,11 +648,9 @@ export class GameManager {
     return { success: true };
   }
 
-  emitSystemChat(roomId: string, text: string): void {
-    if (process.env["FEATURE_GAME_CHAT"] === "false") return;
-
-    this.io.to(roomId).emit("game:chat", {
-      type: "system" as const,
+  async emitSystemChat(roomId: string, text: string): Promise<void> {
+    await this.pushChatMessage(roomId, {
+      type: "system",
       text,
       timestamp: Date.now(),
     });
@@ -646,6 +685,9 @@ export class GameManager {
         await room.save();
         this.stopTimer(roomId);
         this.games.delete(roomId);
+
+        const timeoutLabel = room.result === "1-0" ? "White wins" : "Black wins";
+        await this.emitSystemChat(roomId, `${timeoutLabel} — timeout`);
 
         this.io.to(roomId).emit("game:over", {
           result: room.result,
@@ -710,6 +752,12 @@ export class GameManager {
       turn: room.turn,
       result: room.result,
       moves: room.moves,
+      chatMessages: (room.chatMessages ?? []).map((m) => ({
+        type: m.type,
+        sender: m.sender,
+        text: m.text,
+        timestamp: m.timestamp,
+      })),
     };
   }
 }

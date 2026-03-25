@@ -1464,53 +1464,47 @@ describe("sendChatMessage", () => {
     return fresh!;
   }
 
-  it("broadcasts a player chat message to the room", async () => {
+  it("broadcasts and persists a player chat message", async () => {
     const room = await createPlayingRoom();
     const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
 
     const result = await gm.sendChatMessage(room.roomId, "Alice", "hello");
 
     expect(result.success).toBe(true);
-    expect(emitSpy).toHaveBeenCalledWith(room.roomId);
     const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
     expect(emitCall).toHaveBeenCalledWith(
       "game:chat",
-      expect.objectContaining({
-        type: "player",
-        sender: "Alice",
-        text: "hello",
-      })
+      expect.objectContaining({ type: "player", sender: "Alice", text: "hello" })
     );
+
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const playerMsgs = updated!.chatMessages.filter(m => m.type === "player");
+    expect(playerMsgs).toHaveLength(1);
+    expect(playerMsgs[0]!.text).toBe("hello");
+    expect(playerMsgs[0]!.sender).toBe("Alice");
 
     emitSpy.mockRestore();
   });
 
   it("trims and limits message length to 500 chars", async () => {
     const room = await createPlayingRoom();
-    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
-
     const longText = "a".repeat(600);
-    const result = await gm.sendChatMessage(room.roomId, "Alice", "  " + longText + "  ");
+    await gm.sendChatMessage(room.roomId, "Alice", "  " + longText + "  ");
 
-    expect(result.success).toBe(true);
-    const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
-    const chatArg = emitCall.mock.calls[0]?.[1];
-    expect(chatArg.text).toHaveLength(500);
-
-    emitSpy.mockRestore();
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const playerMsgs = updated!.chatMessages.filter(m => m.type === "player");
+    expect(playerMsgs[0]!.text).toHaveLength(500);
   });
 
   it("rejects empty messages", async () => {
     const room = await createPlayingRoom();
     const result = await gm.sendChatMessage(room.roomId, "Alice", "   ");
-
     expect(result.success).toBe(false);
     expect(result.error).toBe("Empty message");
   });
 
   it("rejects for non-existent room", async () => {
     const result = await gm.sendChatMessage("nonexistent", "Alice", "hello");
-
     expect(result.success).toBe(false);
     expect(result.error).toBe("Room not found");
   });
@@ -1518,7 +1512,6 @@ describe("sendChatMessage", () => {
   it("rejects for non-player", async () => {
     const room = await createPlayingRoom();
     const result = await gm.sendChatMessage(room.roomId, "Charlie", "hi");
-
     expect(result.success).toBe(false);
     expect(result.error).toBe("Not a player in this game");
   });
@@ -1529,7 +1522,6 @@ describe("sendChatMessage", () => {
 
     const room = await createPlayingRoom();
     const result = await gm.sendChatMessage(room.roomId, "Alice", "hello");
-
     expect(result.success).toBe(false);
     expect(result.error).toBe("Feature disabled");
 
@@ -1538,26 +1530,17 @@ describe("sendChatMessage", () => {
 });
 
 // ---------------------------------------------------------------------------
-// emitSystemChat
+// emitSystemChat & chat persistence
 // ---------------------------------------------------------------------------
 describe("emitSystemChat", () => {
-  it("emits a system chat message to the room", async () => {
+  it("persists a system chat message to the room", async () => {
     const room = await gm.createRoom("Alice", 300, 2, "white");
-    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+    await gm.emitSystemChat(room.roomId, "Test system message");
 
-    gm.emitSystemChat(room.roomId, "Test system message");
-
-    expect(emitSpy).toHaveBeenCalledWith(room.roomId);
-    const emitCall = (emitSpy.mock.results[emitSpy.mock.results.length - 1]?.value as any)?.emit;
-    expect(emitCall).toHaveBeenCalledWith(
-      "game:chat",
-      expect.objectContaining({
-        type: "system",
-        text: "Test system message",
-      })
-    );
-
-    emitSpy.mockRestore();
+    const updated = await Room.findOne({ roomId: room.roomId });
+    expect(updated!.chatMessages).toHaveLength(1);
+    expect(updated!.chatMessages[0]!.type).toBe("system");
+    expect(updated!.chatMessages[0]!.text).toBe("Test system message");
   });
 
   it("does nothing when feature flag is disabled", async () => {
@@ -1565,40 +1548,75 @@ describe("emitSystemChat", () => {
     process.env.FEATURE_GAME_CHAT = "false";
 
     const room = await gm.createRoom("Alice", 300, 2, "white");
-    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+    await gm.emitSystemChat(room.roomId, "Test message");
 
-    gm.emitSystemChat(room.roomId, "Test message");
+    const updated = await Room.findOne({ roomId: room.roomId });
+    expect(updated!.chatMessages).toHaveLength(0);
 
-    expect(emitSpy).not.toHaveBeenCalled();
-
-    emitSpy.mockRestore();
     process.env.FEATURE_GAME_CHAT = orig;
   });
 
-  it("giveTime emits system chat about time given", async () => {
+  it("joinRoom emits 'Game started' system chat", async () => {
     const room = await gm.createRoom("Alice", 300, 2, "white");
     await gm.joinRoom(room.roomId, "Bob", mockSocket());
-    const emitSpy = jest.spyOn(io, "to").mockReturnValue({ emit: jest.fn() } as any);
+
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const startMsg = updated!.chatMessages.find(m => m.text.includes("Game started"));
+    expect(startMsg).toBeDefined();
+    expect(startMsg!.type).toBe("system");
+  });
+
+  it("giveTime persists system chat about time given", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
 
     await gm.giveTime(room.roomId, "Alice");
 
-    const allEmitCalls = emitSpy.mock.results.map(
-      (r) => (r.value as any)?.emit
-    );
-    const chatCall = allEmitCalls.find((fn) =>
-      fn?.mock?.calls?.some(
-        (c: unknown[]) => c[0] === "game:chat"
-      )
-    );
-    expect(chatCall).toBeDefined();
-    const chatArgs = chatCall.mock.calls.find(
-      (c: unknown[]) => c[0] === "game:chat"
-    );
-    expect(chatArgs?.[1]).toMatchObject({
-      type: "system",
-      text: "Alice gave 15 seconds",
-    });
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const timeMsg = updated!.chatMessages.find(m => m.text === "Alice gave 15 seconds");
+    expect(timeMsg).toBeDefined();
+    expect(timeMsg!.type).toBe("system");
+  });
 
-    emitSpy.mockRestore();
+  it("resign persists game-over system chat", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+
+    await gm.resign(room.roomId, "Alice");
+
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const overMsg = updated!.chatMessages.find(m => m.text.includes("resignation"));
+    expect(overMsg).toBeDefined();
+    expect(overMsg!.type).toBe("system");
+  });
+
+  it("serializeRoom includes chatMessages", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    await gm.sendChatMessage(room.roomId, "Alice", "gl hf");
+
+    const updated = await Room.findOne({ roomId: room.roomId });
+    const serialized = gm.serializeRoom(updated!);
+    expect(Array.isArray(serialized.chatMessages)).toBe(true);
+    expect(serialized.chatMessages.length).toBeGreaterThanOrEqual(2);
+    const playerMsg = serialized.chatMessages.find(
+      (m: { type: string }) => m.type === "player"
+    );
+    expect(playerMsg).toBeDefined();
+  });
+
+  it("chat messages survive rejoin", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    await gm.sendChatMessage(room.roomId, "Alice", "hello");
+
+    const rejoined = await gm.rejoinRoom(room.roomId, "Alice", mockSocket("sock-rejoin"));
+    const serialized = gm.serializeRoom(rejoined!);
+
+    expect(serialized.chatMessages.length).toBeGreaterThanOrEqual(2);
+    const playerMsg = serialized.chatMessages.find(
+      (m: { type: string; text: string }) => m.type === "player" && m.text === "hello"
+    );
+    expect(playerMsg).toBeDefined();
   });
 });

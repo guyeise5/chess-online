@@ -20,6 +20,7 @@ export interface RoomData {
   turn: "w" | "b";
   result: string | null;
   moves: string[];
+  chatMessages?: ChatMessageData[];
 }
 
 export interface MoveData {

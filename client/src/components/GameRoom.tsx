@@ -130,10 +130,15 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           setStatus(r.status);
           setResult(r.result);
           setMoves(r.moves || []);
-          lowTimeFiredRef.current = { w: false, b: false };
-          if (r.status === "playing" && !r.moves?.length) {
-            playSound("gameStart");
+          if (Array.isArray(r.chatMessages)) {
+            const loaded: ChatMessage[] = r.chatMessages.map((m, i) => ({
+              ...m,
+              id: String(i + 1),
+            }));
+            setChatMessages(loaded);
+            chatIdRef.current = loaded.length;
           }
+          lowTimeFiredRef.current = { w: false, b: false };
           if (r.moves?.length) {
             const replay = new Chess();
             let last: { from: string; to: string } | null = null;
@@ -235,19 +240,6 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setDrawOfferer(null);
       setDrawOfferPending(false);
       playSound("gameEnd");
-
-      const resultLabel =
-        data.result === "1-0"
-          ? "White wins"
-          : data.result === "0-1"
-          ? "Black wins"
-          : "Draw";
-      const reason = typeof data.reason === "string" ? data.reason : "";
-      addChatMessage({
-        type: "system",
-        text: reason ? `${resultLabel} — ${reason}` : resultLabel,
-        timestamp: Date.now(),
-      });
     };
 
     const handleTimer = (data: TimerData) => {
@@ -272,13 +264,14 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setRoom(roomData);
       setStatus(roomData.status);
       lowTimeFiredRef.current = { w: false, b: false };
-      if (roomData.status === "playing") {
-        playSound("gameStart");
-        addChatMessage({
-          type: "system",
-          text: "Game started — good luck!",
-          timestamp: Date.now(),
-        });
+      if (roomData.status === "playing") playSound("gameStart");
+      if (Array.isArray(roomData.chatMessages)) {
+        const loaded: ChatMessage[] = roomData.chatMessages.map((m, i) => ({
+          ...m,
+          id: String(i + 1),
+        }));
+        setChatMessages(loaded);
+        chatIdRef.current = loaded.length;
       }
     };
 

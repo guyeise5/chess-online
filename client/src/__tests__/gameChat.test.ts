@@ -210,44 +210,57 @@ describe("chat visibility", () => {
   });
 });
 
-describe("game over system messages", () => {
-  it("generates correct message for white checkmate win", () => {
-    const result = "1-0";
-    const reason = "checkmate";
-    const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
-    const text = `${label} — ${reason}`;
-    expect(text).toBe("White wins — checkmate");
+interface ChatMessageData {
+  type: "player" | "system";
+  sender?: string;
+  text: string;
+  timestamp: number;
+}
+
+function loadChatFromRoom(
+  serverMessages: ChatMessageData[] | undefined
+): ChatMessage[] {
+  if (!Array.isArray(serverMessages)) return [];
+  return serverMessages.map((m, i) => ({ ...m, id: String(i + 1) }));
+}
+
+describe("chat persistence (load from room data)", () => {
+  it("loads chat messages from room data on rejoin", () => {
+    const serverData: ChatMessageData[] = [
+      { type: "system", text: "Game started — good luck!", timestamp: 1000 },
+      { type: "player", sender: "Alice", text: "gl", timestamp: 1001 },
+      { type: "player", sender: "Bob", text: "u2", timestamp: 1002 },
+    ];
+
+    const loaded = loadChatFromRoom(serverData);
+
+    expect(loaded).toHaveLength(3);
+    expect(loaded[0]?.id).toBe("1");
+    expect(loaded[0]?.type).toBe("system");
+    expect(loaded[1]?.sender).toBe("Alice");
+    expect(loaded[2]?.text).toBe("u2");
   });
 
-  it("generates correct message for black win by resignation", () => {
-    const result = "0-1";
-    const reason = "resignation";
-    const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
-    const text = `${label} — ${reason}`;
-    expect(text).toBe("Black wins — resignation");
+  it("returns empty array for undefined chatMessages", () => {
+    expect(loadChatFromRoom(undefined)).toEqual([]);
   });
 
-  it("generates correct message for draw by mutual agreement", () => {
-    const result = "1/2-1/2";
-    const reason = "mutual agreement";
-    const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
-    const text = `${label} — ${reason}`;
-    expect(text).toBe("Draw — mutual agreement");
+  it("returns empty array for non-array chatMessages", () => {
+    expect(loadChatFromRoom(null as unknown as undefined)).toEqual([]);
   });
 
-  it("generates correct message for timeout", () => {
-    const result = "0-1";
-    const reason = "timeout";
-    const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
-    const text = `${label} — ${reason}`;
-    expect(text).toBe("Black wins — timeout");
-  });
+  it("new messages after rejoin get sequential IDs", () => {
+    const serverData: ChatMessageData[] = [
+      { type: "system", text: "Game started", timestamp: 1000 },
+    ];
+    let messages = loadChatFromRoom(serverData);
+    let nextIdCounter = messages.length;
 
-  it("handles empty reason", () => {
-    const result = "1-0";
-    const reason = "";
-    const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
-    const text = reason ? `${label} — ${reason}` : label;
-    expect(text).toBe("White wins");
+    nextIdCounter += 1;
+    messages = [...messages, { type: "player" as const, sender: "Alice", text: "hi", timestamp: 2000, id: String(nextIdCounter) }];
+
+    expect(messages).toHaveLength(2);
+    expect(messages[0]?.id).toBe("1");
+    expect(messages[1]?.id).toBe("2");
   });
 });

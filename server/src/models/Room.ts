@@ -4,6 +4,13 @@ export type TimeFormat = "ultrabullet" | "bullet" | "blitz" | "rapid" | "classic
 export type ColorChoice = "white" | "black" | "random";
 export type RoomStatus = "waiting" | "playing" | "finished";
 
+export interface IChatMessage {
+  type: "player" | "system";
+  sender?: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface IRoom extends Document {
   roomId: string;
   owner: string;
@@ -23,6 +30,7 @@ export interface IRoom extends Document {
   turn: "w" | "b";
   result: string | null;
   moves: string[];
+  chatMessages: IChatMessage[];
   lastMoveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +48,16 @@ export function deriveTimeFormat(time: number, increment: number): TimeFormat {
   if (estimated < 1500) return "rapid";
   return "classical";
 }
+
+const ChatMessageSchema = new Schema(
+  {
+    type: { type: String, enum: ["player", "system"], required: true },
+    sender: { type: String },
+    text: { type: String, required: true },
+    timestamp: { type: Number, required: true },
+  },
+  { _id: false }
+);
 
 const RoomSchema = new Schema<IRoom>(
   {
@@ -73,6 +91,7 @@ const RoomSchema = new Schema<IRoom>(
     turn: { type: String, enum: ["w", "b"], default: "w" },
     result: { type: String, default: null },
     moves: { type: [String], default: [] },
+    chatMessages: { type: [ChatMessageSchema], default: [] },
     lastMoveAt: { type: Date, default: null },
   },
   { timestamps: true }
