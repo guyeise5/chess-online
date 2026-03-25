@@ -18,7 +18,9 @@ function setItem(key: string, value: string): void {
 
 function getRating(): number {
   const stored = getItem(PUZZLE_RATING_KEY);
-  return stored ? parseInt(stored, 10) : DEFAULT_RATING;
+  if (!stored) return DEFAULT_RATING;
+  const n = parseInt(stored, 10);
+  return Number.isFinite(n) ? n : DEFAULT_RATING;
 }
 
 function setRating(r: number): void {
@@ -27,7 +29,9 @@ function setRating(r: number): void {
 
 function getPuzzleCount(): number {
   const stored = getItem(PUZZLE_COUNT_KEY);
-  return stored ? parseInt(stored, 10) : 0;
+  if (!stored) return 0;
+  const n = parseInt(stored, 10);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function setPuzzleCount(count: number): void {
@@ -83,6 +87,16 @@ describe("puzzle rating storage", () => {
     expect(getPuzzleCount()).toBe(0);
     setPuzzleCount(5);
     expect(getPuzzleCount()).toBe(5);
+  });
+
+  it("falls back to default rating when stored value is not a finite number", () => {
+    setItem(PUZZLE_RATING_KEY, "not-a-number");
+    expect(getRating()).toBe(DEFAULT_RATING);
+  });
+
+  it("falls back to 0 puzzle count when stored value is not a finite number", () => {
+    setItem(PUZZLE_COUNT_KEY, "x");
+    expect(getPuzzleCount()).toBe(0);
   });
 });
 

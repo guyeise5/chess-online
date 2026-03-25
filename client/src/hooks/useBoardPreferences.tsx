@@ -13,10 +13,12 @@ function loadPrefs(): BoardPrefs {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
-        board: parsed.board ?? DEFAULT_BOARD,
-        pieces: parsed.pieces ?? DEFAULT_PIECES,
-      };
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return {
+          board: typeof parsed.board === "string" ? parsed.board : DEFAULT_BOARD,
+          pieces: typeof parsed.pieces === "string" ? parsed.pieces : DEFAULT_PIECES,
+        };
+      }
     }
   } catch {}
   return { board: DEFAULT_BOARD, pieces: DEFAULT_PIECES };

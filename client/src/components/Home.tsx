@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import NavBar from "./NavBar";
+import { getEnv } from "../types";
 import styles from "./Home.module.css";
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export default function Home({ playerName, onChangeName }: Props) {
-  const flags = (window as any).__ENV__ || {};
+  const flags = getEnv();
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
 
   return (

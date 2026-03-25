@@ -14,8 +14,12 @@ function trackSocketRoom(socketId: string, roomId: string): void {
   rooms.add(roomId);
 }
 
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
-  const safeCallback = (callback: unknown, res: any): void => {
+  const safeCallback = (callback: unknown, res: Record<string, unknown>): void => {
     if (typeof callback === "function") callback(res);
   };
 
@@ -36,9 +40,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           colorChoice: ColorChoice;
           isPrivate?: boolean;
         },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
         try {
+          if (!isObj(data)) { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
           const isPrivate = data.isPrivate === true;
           if (isPrivate && process.env.FEATURE_PRIVATE_GAMES === "false") {
             safeCallback(callback, { success: false, error: "Feature disabled" });
@@ -67,9 +72,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "room:join",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
         try {
+          if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
           const room = await gm.joinRoom(data.roomId, data.playerName, socket);
           if (!room) {
             safeCallback(callback, { success: false, error: "Room not found" });
@@ -89,9 +95,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "room:rejoin",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
         try {
+          if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
           const room = await gm.rejoinRoom(data.roomId, data.playerName, socket);
           if (!room) {
             safeCallback(callback, { success: false, error: "Room not found or not a participant" });
@@ -112,9 +119,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "room:leave",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
         try {
+          if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false }); return; }
           const closed = await gm.closeRoom(data.roomId, data.playerName);
           socket.leave(data.roomId);
           safeCallback(callback, { success: closed });
@@ -129,9 +137,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "room:info",
       async (
         data: { roomId: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
         try {
+          if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
           const room = await gm.getPrivateRoomInfo(data.roomId);
           if (!room) {
             safeCallback(callback, { success: false, error: "Room not found" });
@@ -155,8 +164,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           to: string;
           promotion?: string;
         },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
         const result = await gm.makeMove(
           data.roomId,
           data.playerName,
@@ -171,6 +181,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     socket.on(
       "game:undo-request",
       (data: { roomId: string; playerName: string; moveCount: number }) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") return;
         gm.requestUndo(data.roomId, data.playerName, data.moveCount);
         socket.to(data.roomId).emit("game:undo-request", {
           playerName: data.playerName,
@@ -181,6 +192,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     socket.on(
       "game:undo-response",
       async (data: { roomId: string; accepted: boolean }) => {
+        if (!isObj(data) || typeof data.roomId !== "string") return;
         if (data.accepted) {
           await gm.undoToPlayer(data.roomId);
         } else {
@@ -193,8 +205,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "game:give-time",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
         const result = await gm.giveTime(data.roomId, data.playerName);
         safeCallback(callback, result);
       }
@@ -204,8 +217,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "game:draw-offer",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
         const result = await gm.offerDraw(data.roomId, data.playerName);
         safeCallback(callback, result);
       }
@@ -214,6 +228,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     socket.on(
       "game:draw-response",
       async (data: { roomId: string; playerName: string; accepted: boolean }) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") return;
         await gm.respondDraw(data.roomId, data.playerName, data.accepted);
       }
     );
@@ -221,6 +236,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     socket.on(
       "game:resign",
       async (data: { roomId: string; playerName: string }) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") return;
         await gm.resign(data.roomId, data.playerName);
       }
     );
@@ -228,6 +244,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
     socket.on(
       "game:player-left",
       async (data: { roomId: string; playerName: string }) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") return;
         await gm.handlePlayerDisconnect(data.roomId, data.playerName);
       }
     );
@@ -236,8 +253,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "game:claim-disconnect-win",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
         const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "win");
         safeCallback(callback, result);
       }
@@ -247,8 +265,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       "game:claim-disconnect-draw",
       async (
         data: { roomId: string; playerName: string },
-        callback: (res: any) => void
+        callback: (res: Record<string, unknown>) => void
       ) => {
+        if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
         const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "draw");
         safeCallback(callback, result);
       }

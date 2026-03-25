@@ -7,6 +7,7 @@ import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import { BLINDFOLD_PIECES } from "../boardThemes";
+import { getEnv } from "../types";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import styles from "./PuzzleTrainer.module.css";
 
@@ -28,7 +29,9 @@ type PuzzleStatus = "loading" | "showing" | "solving" | "correct" | "failed";
 
 function getRating(): number {
   const stored = localStorage.getItem(PUZZLE_RATING_KEY);
-  return stored ? parseInt(stored, 10) : DEFAULT_RATING;
+  if (!stored) return DEFAULT_RATING;
+  const n = parseInt(stored, 10);
+  return Number.isFinite(n) ? n : DEFAULT_RATING;
 }
 
 function setRating(r: number): void {
@@ -37,7 +40,9 @@ function setRating(r: number): void {
 
 function getPuzzleCount(): number {
   const stored = localStorage.getItem(PUZZLE_COUNT_KEY);
-  return stored ? parseInt(stored, 10) : 0;
+  if (!stored) return 0;
+  const n = parseInt(stored, 10);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function incrementPuzzleCount(): number {
@@ -138,6 +143,10 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch");
       const data: PuzzleData = await res.json();
+      if (!data || !Array.isArray(data.moves) || data.moves.length === 0 || typeof data.fen !== "string") {
+        console.error("Invalid puzzle data");
+        return;
+      }
       setPuzzle(data);
 
       if (!specificId || specificId !== data.puzzleId) {
@@ -155,11 +164,12 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       setStatus("showing");
 
       setTimeout(() => {
-        g.move({ from, to, promotion });
+        const m = g.move({ from, to, promotion });
+        if (!m) return;
         setGame(g);
         setFen(g.fen());
         setMoveIndex(1);
-        setPlayedMoves([g.history().slice(-1)[0]]);
+        setPlayedMoves([m.san]);
         setLastMove({ from, to });
         setTimeout(() => setStatus("solving"), 500);
       }, 800);
@@ -443,7 +453,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const isPlayerWhite = orientation === "white";
   const topMaterial: SideMaterial = isPlayerWhite ? materialDiff.black : materialDiff.white;
   const bottomMaterial: SideMaterial = isPlayerWhite ? materialDiff.white : materialDiff.black;
-  const showMaterial = (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+  const showMaterial = getEnv().FEATURE_MATERIAL_DIFF !== "false";
 
   if (status === "loading" || !puzzle) {
     return <div className={styles.loading}>Loading puzzle...</div>;

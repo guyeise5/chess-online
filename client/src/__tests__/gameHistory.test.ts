@@ -164,6 +164,12 @@ describe("game history API call", () => {
     expect(data).toEqual([]);
   });
 
+  it("normalizes non-array API payload to an empty list", () => {
+    const data: unknown = { error: "bad" };
+    const games: GameSummary[] = Array.isArray(data) ? data : [];
+    expect(games).toEqual([]);
+  });
+
   it("handles fetch error gracefully", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
 

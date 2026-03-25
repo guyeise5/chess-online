@@ -13,6 +13,12 @@ describe("validateMoves", () => {
     expect(result.truncated).toBe(false);
   });
 
+  it("returns empty with truncated true when startFen is invalid", () => {
+    const result = validateMoves(["e4"], "not-a-fen");
+    expect(result.validMoves).toEqual([]);
+    expect(result.truncated).toBe(true);
+  });
+
   it("truncates at the first invalid move", () => {
     const result = validateMoves(["e4", "e5", "INVALID", "Nf3"]);
     expect(result.validMoves).toEqual(["e4", "e5"]);

@@ -17,6 +17,7 @@ import ScoreGraph from "./ScoreGraph";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
+import { getEnv } from "../types";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import styles from "./AnalysisBoard.module.css";
 
@@ -132,7 +133,9 @@ async function loadAnalysisGame(
   try {
     const res = await fetch(`${API_BASE}/api/games/${gameId}`);
     if (!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    if (!data || typeof data !== "object" || !Array.isArray(data.moves)) return null;
+    return data;
   } catch {
     return null;
   }
@@ -348,7 +351,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
     [displayedGame]
   );
   const showMaterial =
-    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+    getEnv().FEATURE_MATERIAL_DIFF !== "false";
 
   const getLegalMovesForSquare = useCallback(
     (square: string): string[] => {

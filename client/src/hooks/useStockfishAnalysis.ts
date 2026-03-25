@@ -110,12 +110,12 @@ function positionKey(fen: string): string {
   return fen.split(" ").slice(0, 4).join(" ");
 }
 
-const API_BASE = typeof window !== "undefined" && (window as any).__ENV__
+const API_BASE = typeof window !== "undefined" && window.__ENV__
   ? ""
   : "http://localhost:3001";
 
 async function fetchBookFlags(fens: string[]): Promise<boolean[]> {
-  const flags = (window as any).__ENV__ || {};
+  const flags = (typeof window !== "undefined" && window.__ENV__) || {};
   if (flags.FEATURE_OPENING_BOOK === "false") {
     return fens.map(() => false);
   }
@@ -128,7 +128,7 @@ async function fetchBookFlags(fens: string[]): Promise<boolean[]> {
     });
     if (!res.ok) return fens.map(() => false);
     const data = await res.json();
-    return data.book as boolean[];
+    return Array.isArray(data?.book) ? data.book : fens.map(() => false);
   } catch {
     return fens.map(() => false);
   }

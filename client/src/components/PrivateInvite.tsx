@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { socket } from "../socket";
-import { RoomData, ColorChoice } from "../types";
+import { RoomData, ColorChoice, SocketResult, RoomResult } from "../types";
 import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
@@ -57,9 +57,9 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
 
   useEffect(() => {
     if (!roomId) return;
-    socket.emit("room:info", { roomId }, (res: any) => {
+    socket.emit("room:info", { roomId }, (res: RoomResult) => {
       setLoading(false);
-      if (res.success) {
+      if (res?.success && res.room) {
         setRoom(res.room);
       } else {
         setNotFound(true);
@@ -69,7 +69,7 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
 
   useEffect(() => {
     const handleGameStart = (startedRoom: RoomData) => {
-      navigate(`/game/${startedRoom.roomId}`);
+      if (startedRoom?.roomId) navigate(`/game/${startedRoom.roomId}`);
     };
     socket.on("game:start", handleGameStart);
     return () => { socket.off("game:start", handleGameStart); };
@@ -88,12 +88,12 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
   const handleAccept = useCallback(() => {
     if (!roomId || joining) return;
     setJoining(true);
-    socket.emit("room:join", { roomId, playerName }, (res: any) => {
-      if (res.success) {
+    socket.emit("room:join", { roomId, playerName }, (res: SocketResult) => {
+      if (res?.success) {
         navigate(`/game/${roomId}`);
       } else {
         setJoining(false);
-        if (res.error === "Room not found") {
+        if (res?.error === "Room not found") {
           setRoom(null);
           setNotFound(true);
         }

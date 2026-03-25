@@ -91,7 +91,7 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
       })
       .then((data: GameSummary[]) => {
         if (!cancelled) {
-          setGames(data);
+          setGames(Array.isArray(data) ? data : []);
           setLoading(false);
         }
       })

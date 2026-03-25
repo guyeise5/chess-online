@@ -1,19 +1,33 @@
 ---
-description: Defensive coding — always verify types and nullability before use
+description: Defensive coding — type safety, null checks, and input validation
 alwaysApply: true
 ---
 
-# Defensive Coding
+# Defensive Coding & Type Safety
 
-Never call a function, access a property, or index into a value without first verifying its type and existence.
+Never call a function, access a property, or index into a value without first verifying its type and existence. Maximize type safety at compile time and validate at runtime boundaries.
 
-## Rules
+## Null & Undefined
 
 - Check for `null` and `undefined` before accessing properties or calling methods.
 - Verify a value is a function (`typeof fn === "function"`) before invoking it.
 - Use optional chaining (`?.`) for property access on potentially nullable objects.
 - Use nullish coalescing (`??`) to provide defaults instead of trusting values to be defined.
-- Validate external inputs (socket callbacks, API params, parsed JSON, query strings) — never assume the caller sends the expected shape.
+
+## Type Safety
+
+- Avoid `any`. Use specific types, `unknown`, or generics instead. When consuming untyped data, narrow with runtime checks before use.
+- Never use non-null assertions (`!`). If a value can be null, handle it explicitly.
+- Prefer `unknown` over `any` for values from external sources (API responses, `JSON.parse`, socket payloads). Narrow with type guards before accessing properties.
+- Define shared interfaces/types for socket events, API payloads, and localStorage schemas — don't rely on inline `as` casts.
+- Use `as const` for literal arrays/objects that should not widen.
+
+## Input Validation
+
+- Validate external inputs (socket callbacks, API params, parsed JSON, query strings, localStorage) — never assume the caller sends the expected shape.
+- After `JSON.parse`, verify the result is a non-null object before accessing fields.
+- After `parseInt` / `parseFloat`, check `Number.isFinite()` before using the result.
+- Normalize `req.query` values — they can be `string | string[] | undefined`.
 
 ## Examples
 
@@ -26,11 +40,24 @@ if (typeof callback === "function") callback({ success: true });
 ```
 
 ```typescript
-// BAD — crashes if room is null
-const fen = room.fen;
+// BAD — uses non-null assertion
+const db = mongoose.connection.db!;
 
 // GOOD
-const fen = room?.fen;
+const db = mongoose.connection.db;
+if (!db) { res.status(503).json({ error: "DB unavailable" }); return; }
+```
+
+```typescript
+// BAD — any type, trusts external shape
+const data: any = await res.json();
+setItems(data.items);
+
+// GOOD
+const data: unknown = await res.json();
+if (data && typeof data === "object" && "items" in data && Array.isArray((data as any).items)) {
+  setItems((data as { items: Item[] }).items);
+}
 ```
 
 ```typescript

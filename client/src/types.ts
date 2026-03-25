@@ -49,3 +49,35 @@ export interface UndoData {
   blackTime: number;
   moves: string[];
 }
+
+export interface SocketResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface RoomResult extends SocketResult {
+  room?: RoomData;
+}
+
+export interface AppEnv {
+  AUTHOR_URL?: string;
+  FEATURE_GAME_STORAGE?: string;
+  FEATURE_MATERIAL_DIFF?: string;
+  FEATURE_OPENING_BOOK?: string;
+  FEATURE_GAME_HISTORY?: string;
+  FEATURE_BOARD_SETTINGS?: string;
+  FEATURE_DISCONNECT_CLAIM?: string;
+  FEATURE_GIVE_TIME?: string;
+  FEATURE_DRAW_OFFER?: string;
+  FEATURE_PRIVATE_GAMES?: string;
+}
+
+declare global {
+  interface Window {
+    __ENV__?: AppEnv;
+  }
+}
+
+export function getEnv(): AppEnv {
+  return window.__ENV__ ?? {};
+}

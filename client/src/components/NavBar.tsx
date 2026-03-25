@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { getEnv } from "../types";
 import styles from "./NavBar.module.css";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function NavBar({ playerName, onChangeName, onOpenSettings, inActiveGame }: Props) {
-  const flags = (window as any).__ENV__ || {};
+  const flags = getEnv();
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
   const showBoardSettings = flags.FEATURE_BOARD_SETTINGS !== "false";
   const location = useLocation();

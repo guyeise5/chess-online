@@ -9,6 +9,7 @@ import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import styles from "./ComputerGame.module.css";
+import { getEnv } from "../types";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 
 interface Props {
@@ -67,7 +68,16 @@ interface SavedGame {
 function loadGame(): SavedGame | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      typeof parsed.level !== "number" ||
+      !Array.isArray(parsed.moves) ||
+      typeof parsed.fen !== "string"
+    ) return null;
+    return parsed as SavedGame;
   } catch {
     return null;
   }
@@ -531,7 +541,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     ? materialDiff.white
     : materialDiff.black;
   const showMaterial =
-    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
+    getEnv().FEATURE_MATERIAL_DIFF !== "false";
 
   const movePairs: { num: number; white: string; black?: string }[] = [];
   for (let i = 0; i < moves.length; i += 2) {

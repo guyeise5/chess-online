@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
-import { RoomData, MoveData, GameOverData, TimerData, UndoData } from "../types";
+import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, RoomResult, getEnv } from "../types";
 import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
@@ -99,7 +99,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       { roomId, playerName },
       (res: { success: boolean; room?: RoomData }) => {
         setLoading(false);
-        if (res.success && res.room) {
+        if (res?.success && res.room) {
           const r = res.room;
           setRoom(r);
           const g = new Chess(r.fen);
@@ -143,6 +143,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
 
   useEffect(() => {
     const handleMove = (data: MoveData) => {
+      if (!data?.move || typeof data.move.san !== "string") return;
       const newGame = new Chess(data.fen);
       setGame(newGame);
       setFen(data.fen);
@@ -187,8 +188,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   to: currentPm.to,
                   promotion: currentPm.promotion,
                 },
-                (res: any) => {
-                  if (!res.success) console.warn("Premove rejected:", res.error);
+                (res: SocketResult) => {
+                  if (res && !res.success) console.warn("Premove rejected:", res.error);
                 }
               );
               setGame(g);
@@ -225,16 +226,18 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     };
 
     const handleUndo = (data: UndoData) => {
+      if (!data?.fen) return;
+      const moves = Array.isArray(data.moves) ? data.moves : [];
       const newGame = new Chess(data.fen);
       setGame(newGame);
       setFen(data.fen);
       setWhiteTime(data.whiteTime);
       setBlackTime(data.blackTime);
-      setMoves(data.moves);
-      if (data.moves.length) {
+      setMoves(moves);
+      if (moves.length) {
         const replay = new Chess();
         let last: { from: string; to: string } | null = null;
-        for (const san of data.moves) {
+        for (const san of moves) {
           const m = replay.move(san);
           if (m) last = { from: m.from, to: m.to };
         }
@@ -375,7 +378,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const gameSavedRef = useRef(false);
   useEffect(() => {
     if (status !== "finished" || gameSavedRef.current) return;
-    if ((window as any).__ENV__?.FEATURE_GAME_STORAGE === "false") return;
+    if (getEnv().FEATURE_GAME_STORAGE === "false") return;
     if (!moves.length) return;
     gameSavedRef.current = true;
     const id = roomId ?? generateGameId();
@@ -405,12 +408,10 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const premoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
-  const showMaterial =
-    (window as any).__ENV__?.FEATURE_MATERIAL_DIFF !== "false";
-  const showDrawOffer =
-    (window as any).__ENV__?.FEATURE_DRAW_OFFER !== "false";
-  const showDisconnectClaim =
-    (window as any).__ENV__?.FEATURE_DISCONNECT_CLAIM !== "false";
+  const env = getEnv();
+  const showMaterial = env.FEATURE_MATERIAL_DIFF !== "false";
+  const showDrawOffer = env.FEATURE_DRAW_OFFER !== "false";
+  const showDisconnectClaim = env.FEATURE_DISCONNECT_CLAIM !== "false";
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
     const pm = { from, to, promotion };
@@ -496,8 +497,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       socket.emit(
         "game:move",
         { roomId, playerName, from, to, promotion },
-        (res: any) => {
-          if (!res.success) {
+        (res: SocketResult) => {
+          if (res && !res.success) {
             console.warn("Move rejected:", res.error);
           }
         }
@@ -704,8 +705,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const confirmDrawOffer = useCallback(() => {
     cancelDrawConfirm();
     setDrawOfferPending(true);
-    socket.emit("game:draw-offer", { roomId, playerName }, (res: any) => {
-      if (!res.success) setDrawOfferPending(false);
+    socket.emit("game:draw-offer", { roomId, playerName }, (res: SocketResult) => {
+      if (!res?.success) setDrawOfferPending(false);
     });
   }, [roomId, playerName, cancelDrawConfirm]);
 
@@ -756,7 +757,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
               {showMaterial && <MaterialDisplay material={topMaterial} />}
             </div>
             <div className={styles.clockRow}>
-              {isPlayer && status === "playing" && (window as any).__ENV__?.FEATURE_GIVE_TIME !== "false" && (
+              {isPlayer && status === "playing" && getEnv().FEATURE_GIVE_TIME !== "false" && (
                 <button
                   className={styles.giveTimeBtn}
                   onClick={() => socket.emit("game:give-time", { roomId, playerName }, () => {})}

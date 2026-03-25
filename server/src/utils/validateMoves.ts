@@ -10,7 +10,12 @@ export function validateMoves(
   startFen?: string
 ): MoveValidationResult {
   if (moves.length === 0) return { validMoves: [], truncated: false };
-  const g = new Chess(startFen || undefined);
+  let g: Chess;
+  try {
+    g = new Chess(startFen || undefined);
+  } catch {
+    return { validMoves: [], truncated: true };
+  }
   const validMoves: string[] = [];
   for (const san of moves) {
     try {

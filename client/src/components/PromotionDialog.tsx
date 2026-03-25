@@ -17,8 +17,10 @@ const PIECE_KEYS: { key: "q" | "r" | "b" | "n"; suffix: string }[] = [
 ];
 
 export default function PromotionDialog({ color, square, orientation, onSelect, onCancel }: Props) {
+  if (!square || square.length < 2) return null;
   const file = square.charCodeAt(0) - 97;
   const rank = parseInt(square[1], 10);
+  if (!Number.isFinite(rank)) return null;
 
   const col = orientation === "white" ? file : 7 - file;
   const promotesFromTop =

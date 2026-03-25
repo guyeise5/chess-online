@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultPieces } from "react-chessboard";
 import { socket } from "../socket";
-import { RoomData, ColorChoice } from "../types";
+import { RoomData, ColorChoice, SocketResult, RoomResult, getEnv } from "../types";
 import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
@@ -104,7 +104,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const privateRoomIdRef = useRef<string | null>(null);
   privateRoomIdRef.current = privateRoomId;
 
-  const privateGamesEnabled = (window as any).__ENV__?.FEATURE_PRIVATE_GAMES !== "false";
+  const privateGamesEnabled = getEnv().FEATURE_PRIVATE_GAMES !== "false";
 
   waitingRoomIdRef.current = waitingRoomId;
 
@@ -112,8 +112,10 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const customIncrement = INCREMENT_STEPS[customIncIdx] ?? 3;
 
   useEffect(() => {
-    const handleRoomsList = (data: RoomData[]) => setRooms(data);
-    const handleGameStart = (room: RoomData) => navigate(`/game/${room.roomId}`);
+    const handleRoomsList = (data: RoomData[]) => setRooms(Array.isArray(data) ? data : []);
+    const handleGameStart = (room: RoomData) => {
+      if (room?.roomId) navigate(`/game/${room.roomId}`);
+    };
 
     socket.on("rooms:list", handleRoomsList);
     socket.on("game:start", handleGameStart);
@@ -148,9 +150,9 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
         socket.emit(
           "room:create",
           { playerName, timeControl, increment, colorChoice: color },
-          (res: any) => {
+          (res: RoomResult) => {
             busyRef.current = false;
-            if (res.success) {
+            if (res?.success && res.room?.roomId) {
               setWaitingRoomId(res.room.roomId);
               setWaitingPreset(presetKey);
               waitingTimeRef.current = { time: timeControl, increment };
@@ -207,8 +209,8 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
 
   const handleJoin = useCallback(
     (roomId: string) => {
-      socket.emit("room:join", { roomId, playerName }, (res: any) => {
-        if (res.success) navigate(`/game/${roomId}`);
+      socket.emit("room:join", { roomId, playerName }, (res: SocketResult) => {
+        if (res?.success) navigate(`/game/${roomId}`);
       });
     },
     [playerName, navigate]
@@ -237,9 +239,9 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
         socket.emit(
           "room:create",
           { playerName, timeControl, increment, colorChoice: colorChoice, isPrivate: true },
-          (res: any) => {
+          (res: RoomResult) => {
             setPrivateBusy(false);
-            if (res.success) {
+            if (res?.success && res.room?.roomId) {
               setPrivateRoomId(res.room.roomId);
             }
           }

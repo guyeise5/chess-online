@@ -54,7 +54,9 @@ async function main() {
         res.status(503).json({ status: "not ready", mongo: "disconnected" });
         return;
       }
-      await mongoose.connection.db!.admin().ping();
+      const db = mongoose.connection.db;
+      if (!db) { res.status(503).json({ status: "not ready", mongo: "db not available" }); return; }
+      await db.admin().ping();
       res.json({ status: "ready", mongo: "connected" });
     } catch (err) {
       res.status(503).json({ status: "not ready", error: String(err) });
@@ -63,7 +65,9 @@ async function main() {
 
   app.get("/api/puzzles/random", async (req, res) => {
     try {
-      const rating = parseInt(req.query.rating as string, 10) || 1500;
+      const ratingParam = Array.isArray(req.query.rating) ? req.query.rating[0] : req.query.rating;
+      const parsed = parseInt(String(ratingParam ?? ""), 10);
+      const rating = Number.isFinite(parsed) ? parsed : 1500;
       const range = 15;
       const min = rating - range;
       const max = rating + range;
@@ -117,8 +121,9 @@ async function main() {
 
     app.post("/api/openings/check", async (req, res) => {
       try {
+        if (!req.body || typeof req.body !== "object") { res.status(400).json({ error: "Invalid body" }); return; }
         const { fens } = req.body;
-        if (!Array.isArray(fens) || fens.length === 0) {
+        if (!Array.isArray(fens) || fens.length === 0 || !fens.every((f: unknown) => typeof f === "string")) {
           res.status(400).json({ error: "fens array is required" });
           return;
         }
@@ -143,8 +148,9 @@ async function main() {
     app.post("/api/games/:gameId", async (req, res) => {
       try {
         const { gameId } = req.params;
+        if (!req.body || typeof req.body !== "object") { res.status(400).json({ error: "Invalid body" }); return; }
         const { moves, startFen, playerWhite, playerBlack, orientation, result } = req.body;
-        if (!Array.isArray(moves) || moves.length === 0) {
+        if (!Array.isArray(moves) || moves.length === 0 || !moves.every((m: unknown) => typeof m === "string")) {
           res.status(400).json({ error: "moves array is required" });
           return;
         }
@@ -200,7 +206,8 @@ async function main() {
     if (process.env.FEATURE_GAME_HISTORY !== "false") {
       app.get("/api/games", async (req, res) => {
         try {
-          const player = req.query.player as string;
+          const playerParam = Array.isArray(req.query.player) ? req.query.player[0] : req.query.player;
+          const player = typeof playerParam === "string" ? playerParam : "";
           if (!player) {
             res.status(400).json({ error: "player query parameter is required" });
             return;
