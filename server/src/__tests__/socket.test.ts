@@ -577,6 +577,36 @@ describe("room:leave", () => {
     other.disconnect();
   });
 
+  it("does not crash when emitted without a callback", async () => {
+    const owner = connectClient();
+    await waitForEvent(owner, "connect");
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+
+    // Emit room:leave without a callback (fire-and-forget)
+    owner.emit("room:leave", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+
+    // Give the server time to process — it must not crash
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Verify the server is still alive by performing another operation
+    const res = await emitWithAck(owner, "room:rejoin", {
+      roomId: createRes.room.roomId,
+      playerName: "Alice",
+    });
+    expect(res.success).toBe(false);
+
+    owner.disconnect();
+  });
+
   it("returns false for a playing room", async () => {
     const owner = connectClient();
     const joiner = connectClient();

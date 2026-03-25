@@ -1,0 +1,46 @@
+---
+description: Defensive coding — always verify types and nullability before use
+alwaysApply: true
+---
+
+# Defensive Coding
+
+Never call a function, access a property, or index into a value without first verifying its type and existence.
+
+## Rules
+
+- Check for `null` and `undefined` before accessing properties or calling methods.
+- Verify a value is a function (`typeof fn === "function"`) before invoking it.
+- Use optional chaining (`?.`) for property access on potentially nullable objects.
+- Use nullish coalescing (`??`) to provide defaults instead of trusting values to be defined.
+- Validate external inputs (socket callbacks, API params, parsed JSON, query strings) — never assume the caller sends the expected shape.
+
+## Examples
+
+```typescript
+// BAD — crashes if callback is undefined
+callback({ success: true });
+
+// GOOD
+if (typeof callback === "function") callback({ success: true });
+```
+
+```typescript
+// BAD — crashes if room is null
+const fen = room.fen;
+
+// GOOD
+const fen = room?.fen;
+```
+
+```typescript
+// BAD — trusts external input shape
+const name = data.playerName.trim();
+
+// GOOD
+const name = typeof data?.playerName === "string" ? data.playerName.trim() : "";
+```
+
+## Scope
+
+Applies everywhere — server handlers, client components, utility functions, and tests.

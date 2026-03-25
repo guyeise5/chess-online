@@ -123,10 +123,10 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       socket.off("rooms:list", handleRoomsList);
       socket.off("game:start", handleGameStart);
       if (waitingRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: waitingRoomIdRef.current, playerName });
+        socket.emit("room:leave", { roomId: waitingRoomIdRef.current, playerName }, () => {});
       }
       if (privateRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName });
+        socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName }, () => {});
       }
     };
   }, [navigate, playerName]);

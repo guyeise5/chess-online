@@ -15,6 +15,10 @@ function trackSocketRoom(socketId: string, roomId: string): void {
 }
 
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
+  const safeCallback = (callback: unknown, res: any): void => {
+    if (typeof callback === "function") callback(res);
+  };
+
   io.on("connection", (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
 
@@ -37,7 +41,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const isPrivate = data.isPrivate === true;
           if (isPrivate && process.env.FEATURE_PRIVATE_GAMES === "false") {
-            callback({ success: false, error: "Feature disabled" });
+            safeCallback(callback, { success: false, error: "Feature disabled" });
             return;
           }
           const room = await gm.createRoom(
@@ -50,11 +54,11 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           socket.join(room.roomId);
           socketPlayers.set(socket.id, data.playerName);
           trackSocketRoom(socket.id, room.roomId);
-          callback({ success: true, room: gm.serializeRoom(room) });
+          safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
           await gm.broadcastRooms();
         } catch (err) {
           console.error("Error creating room:", err);
-          callback({ success: false, error: "Failed to create room" });
+          safeCallback(callback, { success: false, error: "Failed to create room" });
         }
       }
     );
@@ -68,15 +72,15 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const room = await gm.joinRoom(data.roomId, data.playerName, socket);
           if (!room) {
-            callback({ success: false, error: "Room not found" });
+            safeCallback(callback, { success: false, error: "Room not found" });
             return;
           }
           socketPlayers.set(socket.id, data.playerName);
           trackSocketRoom(socket.id, data.roomId);
-          callback({ success: true, room: gm.serializeRoom(room) });
+          safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
         } catch (err) {
           console.error("Error joining room:", err);
-          callback({ success: false, error: "Failed to join room" });
+          safeCallback(callback, { success: false, error: "Failed to join room" });
         }
       }
     );
@@ -90,16 +94,16 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const room = await gm.rejoinRoom(data.roomId, data.playerName, socket);
           if (!room) {
-            callback({ success: false, error: "Room not found or not a participant" });
+            safeCallback(callback, { success: false, error: "Room not found or not a participant" });
             return;
           }
           socketPlayers.set(socket.id, data.playerName);
           trackSocketRoom(socket.id, data.roomId);
           await gm.handlePlayerReconnect(data.roomId, data.playerName);
-          callback({ success: true, room: gm.serializeRoom(room) });
+          safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
         } catch (err) {
           console.error("Error rejoining room:", err);
-          callback({ success: false, error: "Failed to rejoin room" });
+          safeCallback(callback, { success: false, error: "Failed to rejoin room" });
         }
       }
     );
@@ -113,10 +117,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const closed = await gm.closeRoom(data.roomId, data.playerName);
           socket.leave(data.roomId);
-          callback({ success: closed });
+          safeCallback(callback, { success: closed });
         } catch (err) {
           console.error("Error leaving room:", err);
-          callback({ success: false, error: "Failed to leave room" });
+          safeCallback(callback, { success: false, error: "Failed to leave room" });
         }
       }
     );
@@ -130,13 +134,13 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           const room = await gm.getPrivateRoomInfo(data.roomId);
           if (!room) {
-            callback({ success: false, error: "Room not found" });
+            safeCallback(callback, { success: false, error: "Room not found" });
             return;
           }
-          callback({ success: true, room: gm.serializeRoom(room) });
+          safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
         } catch (err) {
           console.error("Error fetching room info:", err);
-          callback({ success: false, error: "Failed to fetch room info" });
+          safeCallback(callback, { success: false, error: "Failed to fetch room info" });
         }
       }
     );
@@ -160,7 +164,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           data.to,
           data.promotion
         );
-        callback(result);
+        safeCallback(callback, result);
       }
     );
 
@@ -192,7 +196,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         callback: (res: any) => void
       ) => {
         const result = await gm.giveTime(data.roomId, data.playerName);
-        callback(result);
+        safeCallback(callback, result);
       }
     );
 
@@ -203,7 +207,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         callback: (res: any) => void
       ) => {
         const result = await gm.offerDraw(data.roomId, data.playerName);
-        callback(result);
+        safeCallback(callback, result);
       }
     );
 
@@ -235,7 +239,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         callback: (res: any) => void
       ) => {
         const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "win");
-        callback(result);
+        safeCallback(callback, result);
       }
     );
 
@@ -246,7 +250,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         callback: (res: any) => void
       ) => {
         const result = await gm.claimDisconnectResult(data.roomId, data.playerName, "draw");
-        callback(result);
+        safeCallback(callback, result);
       }
     );
 
