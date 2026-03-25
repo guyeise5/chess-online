@@ -45,6 +45,7 @@ services:
       - FEATURE_GIVE_TIME=${FEATURE_GIVE_TIME:-true}
       - FEATURE_DRAW_OFFER=${FEATURE_DRAW_OFFER:-true}
       - FEATURE_PRIVATE_GAMES=${FEATURE_PRIVATE_GAMES:-true}
+      - FEATURE_MOVE_SOUND=${FEATURE_MOVE_SOUND:-true}
     depends_on:
       - mongo
 

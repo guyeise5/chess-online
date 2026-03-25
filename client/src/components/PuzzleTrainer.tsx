@@ -8,6 +8,7 @@ import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import { BLINDFOLD_PIECES } from "../boardThemes";
 import { getEnv } from "../types";
+import { playMoveSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import styles from "./PuzzleTrainer.module.css";
 
@@ -174,6 +175,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
         setMoveIndex(1);
         setPlayedMoves([m.san]);
         setLastMove({ from, to });
+        playMoveSound(m.san);
         setTimeout(() => setStatus("solving"), 500);
       }, 800);
     } catch (err) {
@@ -252,6 +254,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       setLastMove({ from, to });
       setHintLevel(0);
       setPlayedMoves((prev) => [...prev, move.san]);
+      playMoveSound(move.san);
 
       const nextIndex = moveIndex + 1;
 
@@ -290,6 +293,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
           setFen(afterReply.fen());
           setLastMove({ from: replyFrom, to: replyTo });
           setPlayedMoves((prev) => [...prev, replyMove.san]);
+          playMoveSound(replyMove.san);
           setMoveIndex(nextIndex + 1);
         }
       }, 600);
@@ -325,6 +329,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
         setFen(newFen);
         setLastMove({ from, to });
         setPlayedMoves((prev) => [...prev, san]);
+        playMoveSound(san);
       }, delay);
       delay += 600;
     }

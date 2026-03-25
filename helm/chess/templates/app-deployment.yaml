@@ -54,6 +54,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_DRAW_OFFER | quote }}
             - name: FEATURE_PRIVATE_GAMES
               value: {{ .Values.app.env.FEATURE_PRIVATE_GAMES | quote }}
+            - name: FEATURE_MOVE_SOUND
+              value: {{ .Values.app.env.FEATURE_MOVE_SOUND | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

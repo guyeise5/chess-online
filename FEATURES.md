@@ -103,6 +103,17 @@
 - Games fetched from MongoDB `games` collection via `GET /api/games?player=<name>`
 - Up to 100 most recent games, sorted by newest first
 
+## Move Sounds
+
+- **Key files:** `client/src/utils/sounds.ts`, `client/public/sounds/`
+- **Feature flag:** `FEATURE_MOVE_SOUND`
+- Lichess standard sound set (Move, Capture, GenericNotify, LowTime MP3 files bundled locally)
+- Distinct sounds for standard moves, captures, game start, game end, and low time warning (Lichess-style: no separate check sound)
+- Low time warning plays once per player per game when their clock drops to 10 seconds (does not repeat after increment)
+- Applied to all game modes: online play, vs computer, and puzzle trainer
+- Sounds play on every move (player and opponent), game start, and game end
+- Graceful degradation: no errors if audio playback fails
+
 ## UI/UX
 
 - **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
@@ -138,3 +149,4 @@
 | `FEATURE_GIVE_TIME` | `true` | Give time button: "+" next to opponent's clock adds 15 seconds. Set to `false` to disable. |
 | `FEATURE_DRAW_OFFER` | `true` | Draw offer system: players can offer a draw with anti-spam protection (Lichess-style). Set to `false` to disable. |
 | `FEATURE_PRIVATE_GAMES` | `true` | Private game creation with shareable invite links. Rooms are hidden from the lobby. Set to `false` to disable. |
+| `FEATURE_MOVE_SOUND` | `true` | Move sounds using Lichess standard sound set (move, capture, game start/end, low time). Set to `false` to disable. |

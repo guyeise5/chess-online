@@ -23,6 +23,7 @@ app:
     FEATURE_GIVE_TIME: "true"
     FEATURE_DRAW_OFFER: "true"
     FEATURE_PRIVATE_GAMES: "true"
+    FEATURE_MOVE_SOUND: "true"
 
 mongodb:
   image:

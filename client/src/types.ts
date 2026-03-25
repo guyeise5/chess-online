@@ -70,6 +70,7 @@ export interface AppEnv {
   FEATURE_GIVE_TIME?: string;
   FEATURE_DRAW_OFFER?: string;
   FEATURE_PRIVATE_GAMES?: string;
+  FEATURE_MOVE_SOUND?: string;
 }
 
 declare global {

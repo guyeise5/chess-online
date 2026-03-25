@@ -10,6 +10,7 @@ import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import styles from "./ComputerGame.module.css";
 import { getEnv } from "../types";
+import { playMoveSound, playSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 
 interface Props {
@@ -209,7 +210,9 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
         setFen(g.fen());
         setMoves((prev) => [...prev, move.san]);
         setLastMove({ from: move.from, to: move.to });
-        checkGameEnd(g);
+        playMoveSound(move.san);
+        const ended = checkGameEnd(g);
+        if (ended) playSound("gameEnd");
         return newGame;
       } catch {
         return null;
@@ -479,6 +482,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     setResult(loser);
     setStatus("finished");
     setGameOverReason("resignation");
+    playSound("gameEnd");
   }, [isPlayerWhite, stop, cancelResignConfirm]);
 
   const handleUndo = () => {

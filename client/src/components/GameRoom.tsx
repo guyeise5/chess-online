@@ -10,6 +10,7 @@ import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import styles from "./GameRoom.module.css";
+import { playMoveSound, playSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 
 interface Props {
@@ -96,6 +97,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const resignTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movesEndRef = useRef<HTMLDivElement>(null);
+  const lowTimeFiredRef = useRef<{ w: boolean; b: boolean }>({ w: false, b: false });
 
   const rejoin = useCallback(() => {
     if (!roomId) return;
@@ -116,6 +118,10 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           setStatus(r.status);
           setResult(r.result);
           setMoves(r.moves || []);
+          lowTimeFiredRef.current = { w: false, b: false };
+          if (r.status === "playing" && !r.moves?.length) {
+            playSound("gameStart");
+          }
           if (r.moves?.length) {
             const replay = new Chess();
             let last: { from: string; to: string } | null = null;
@@ -159,6 +165,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setStatus(data.status);
       setMoves((prev) => [...prev, data.move.san]);
       setLastMove({ from: data.move.from, to: data.move.to });
+      playMoveSound(data.move.san);
 
       const pm = premoveRef.current;
       if (
@@ -215,16 +222,32 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       setGameOverReason(data.reason);
       setDrawOfferer(null);
       setDrawOfferPending(false);
+      playSound("gameEnd");
     };
 
     const handleTimer = (data: TimerData) => {
       setWhiteTime(data.whiteTime);
       setBlackTime(data.blackTime);
+      const LOW_TIME_SECS = 10;
+      const color = myColorRef.current === "w" ? "w" as const : "b" as const;
+      const myTime = color === "w" ? data.whiteTime : data.blackTime;
+      if (
+        isPlayerRef.current &&
+        typeof myTime === "number" &&
+        myTime > 0 &&
+        myTime <= LOW_TIME_SECS &&
+        !lowTimeFiredRef.current[color]
+      ) {
+        lowTimeFiredRef.current[color] = true;
+        playSound("lowTime");
+      }
     };
 
     const handleStart = (roomData: RoomData) => {
       setRoom(roomData);
       setStatus(roomData.status);
+      lowTimeFiredRef.current = { w: false, b: false };
+      if (roomData.status === "playing") playSound("gameStart");
     };
 
     const handleUndoRequest = (data: { playerName: string }) => {
