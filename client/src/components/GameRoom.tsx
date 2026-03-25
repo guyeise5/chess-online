@@ -22,6 +22,10 @@ interface Props {
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
+  if (seconds < 10) {
+    const tenths = Math.floor((seconds - Math.floor(seconds)) * 10);
+    return `${m}:${s.toString().padStart(2, "0")}.${tenths}`;
+  }
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
@@ -336,6 +340,20 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   statusRef.current = status;
   const roomIdRef = useRef(roomId);
   roomIdRef.current = roomId;
+  const turnRef = useRef<"w" | "b">("w");
+  turnRef.current = game.turn();
+
+  useEffect(() => {
+    if (status !== "playing") return;
+    const interval = setInterval(() => {
+      if (turnRef.current === "w") {
+        setWhiteTime((prev) => Math.max(0, prev - 0.1));
+      } else {
+        setBlackTime((prev) => Math.max(0, prev - 0.1));
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [status]);
 
   useEffect(() => {
     if (status === "playing" && roomId) {
@@ -766,7 +784,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   +
                 </button>
               )}
-              <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}`}>
+              <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}${topTime <= 10 ? ` ${styles.clockLow}` : ""}`}>
                 {formatTime(topTime)}
               </span>
             </div>
@@ -835,7 +853,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
               <span className={styles.playerBarName}>{bottomPlayer || "Waiting..."}</span>
               {showMaterial && <MaterialDisplay material={bottomMaterial} />}
             </div>
-            <span className={`${styles.clock} ${bottomIsActive ? styles.clockActive : ""}`}>
+            <span className={`${styles.clock} ${bottomIsActive ? styles.clockActive : ""}${bottomTime <= 10 ? ` ${styles.clockLow}` : ""}`}>
               {formatTime(bottomTime)}
             </span>
           </div>

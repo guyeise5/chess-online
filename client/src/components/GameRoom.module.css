@@ -118,6 +118,11 @@
   color: #000;
 }
 
+.clockLow {
+  background: #e85656;
+  color: #fff;
+}
+
 .giveTimeBtn {
   width: 30px;
   height: 30px;

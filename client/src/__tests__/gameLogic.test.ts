@@ -268,6 +268,10 @@ describe("time formatting", () => {
   function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
+    if (seconds < 10) {
+      const tenths = Math.floor((seconds - Math.floor(seconds)) * 10);
+      return `${m}:${s.toString().padStart(2, "0")}.${tenths}`;
+    }
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
@@ -279,16 +283,16 @@ describe("time formatting", () => {
     expect(formatTime(60)).toBe("1:00");
   });
 
-  it("formats 0 seconds as 0:00", () => {
-    expect(formatTime(0)).toBe("0:00");
+  it("formats 0 seconds as 0:00.0", () => {
+    expect(formatTime(0)).toBe("0:00.0");
   });
 
   it("formats 90.7 seconds as 1:30", () => {
     expect(formatTime(90.7)).toBe("1:30");
   });
 
-  it("formats 5 seconds as 0:05", () => {
-    expect(formatTime(5)).toBe("0:05");
+  it("formats 5 seconds as 0:05.0", () => {
+    expect(formatTime(5)).toBe("0:05.0");
   });
 
   it("formats 1800 seconds as 30:00", () => {
@@ -297,6 +301,48 @@ describe("time formatting", () => {
 
   it("formats 599 seconds as 9:59", () => {
     expect(formatTime(599)).toBe("9:59");
+  });
+
+  it("formats 9.5 seconds as 0:09.5", () => {
+    expect(formatTime(9.5)).toBe("0:09.5");
+  });
+
+  it("formats 3.7 seconds as 0:03.7", () => {
+    expect(formatTime(3.7)).toBe("0:03.7");
+  });
+
+  it("formats 0.1 seconds as 0:00.1", () => {
+    expect(formatTime(0.1)).toBe("0:00.1");
+  });
+
+  it("formats 10 seconds as 0:10 (boundary)", () => {
+    expect(formatTime(10)).toBe("0:10");
+  });
+
+  it("formats 9.99 seconds as 0:09.9", () => {
+    expect(formatTime(9.99)).toBe("0:09.9");
+  });
+});
+
+describe("clock low-time threshold", () => {
+  const LOW_TIME_THRESHOLD = 10;
+
+  it("flags time as low at exactly 10 seconds", () => {
+    expect(10 <= LOW_TIME_THRESHOLD).toBe(true);
+  });
+
+  it("flags time as low below 10 seconds", () => {
+    expect(5 <= LOW_TIME_THRESHOLD).toBe(true);
+    expect(0 <= LOW_TIME_THRESHOLD).toBe(true);
+    expect(1 <= LOW_TIME_THRESHOLD).toBe(true);
+    expect(9.9 <= LOW_TIME_THRESHOLD).toBe(true);
+  });
+
+  it("does not flag time above 10 seconds", () => {
+    expect(11 <= LOW_TIME_THRESHOLD).toBe(false);
+    expect(60 <= LOW_TIME_THRESHOLD).toBe(false);
+    expect(300 <= LOW_TIME_THRESHOLD).toBe(false);
+    expect(10.1 <= LOW_TIME_THRESHOLD).toBe(false);
   });
 });
 
