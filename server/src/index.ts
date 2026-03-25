@@ -237,6 +237,81 @@ async function main() {
     }
   }
 
+  if (process.env["FEATURE_USER_PREFERENCES"] !== "false") {
+    const UserPreferences = (await import("./models/UserPreferences")).default;
+
+    app.get("/api/preferences/:playerName", async (req, res) => {
+      try {
+        const { playerName } = req.params;
+        if (!playerName || typeof playerName !== "string") {
+          res.status(400).json({ error: "playerName is required" });
+          return;
+        }
+        const doc = await UserPreferences.findOne({ playerName }).lean();
+        if (!doc) {
+          res.status(404).json({ error: "Preferences not found" });
+          return;
+        }
+        res.json({
+          introSeen: doc.introSeen,
+          boardTheme: doc.boardTheme,
+          pieceSet: doc.pieceSet,
+          lobbyColor: doc.lobbyColor,
+          customMinIdx: doc.customMinIdx,
+          customIncIdx: doc.customIncIdx,
+          computerColor: doc.computerColor,
+          puzzleRating: doc.puzzleRating,
+          puzzleCount: doc.puzzleCount,
+        });
+      } catch (err) {
+        console.error("Preferences fetch error:", err);
+        res.status(500).json({ error: "Failed to fetch preferences" });
+      }
+    });
+
+    app.put("/api/preferences/:playerName", async (req, res) => {
+      try {
+        const { playerName } = req.params;
+        if (!playerName || typeof playerName !== "string") {
+          res.status(400).json({ error: "playerName is required" });
+          return;
+        }
+        if (!req.body || typeof req.body !== "object") {
+          res.status(400).json({ error: "Invalid body" });
+          return;
+        }
+
+        const allowed = [
+          "introSeen", "boardTheme", "pieceSet", "lobbyColor",
+          "customMinIdx", "customIncIdx", "computerColor",
+          "puzzleRating", "puzzleCount",
+        ] as const;
+
+        const update: Record<string, unknown> = {};
+        for (const key of allowed) {
+          if (key in req.body) {
+            update[key] = req.body[key];
+          }
+        }
+
+        if (Object.keys(update).length === 0) {
+          res.status(400).json({ error: "No valid fields to update" });
+          return;
+        }
+
+        await UserPreferences.findOneAndUpdate(
+          { playerName },
+          { $set: update },
+          { upsert: true, new: true }
+        );
+        res.json({ ok: true });
+      } catch (err) {
+        console.error("Preferences update error:", err);
+        res.status(500).json({ error: "Failed to update preferences" });
+      }
+    });
+  }
+
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });

@@ -58,6 +58,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_MOVE_SOUND | quote }}
             - name: FEATURE_INTRODUCTION
               value: {{ .Values.app.env.FEATURE_INTRODUCTION | quote }}
+            - name: FEATURE_USER_PREFERENCES
+              value: {{ .Values.app.env.FEATURE_USER_PREFERENCES | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

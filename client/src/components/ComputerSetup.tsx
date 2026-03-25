@@ -4,6 +4,7 @@ import { defaultPieces } from "react-chessboard";
 import { STOCKFISH_LEVELS } from "../hooks/useStockfish";
 import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useUserPrefs } from "../hooks/useUserPreferences";
 import NavBar from "./NavBar";
 import styles from "./ComputerSetup.module.css";
 
@@ -24,9 +25,10 @@ interface Props {
 
 export default function ComputerSetup({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const navigate = useNavigate();
+  const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
   const [color, setColor] = useState<"white" | "black" | "random">(() => {
-    const saved = localStorage.getItem("computer:colorChoice");
+    const saved = userPrefs.computerColor;
     return saved === "white" || saved === "black" || saved === "random" ? saved : "white";
   });
 
@@ -49,14 +51,14 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
           <div className={styles['colorRow']}>
             <button
               className={`${styles['colorOption']} ${color === "white" ? styles['colorOptionActive'] : ""}`}
-              onClick={() => { setColor("white"); localStorage.setItem("computer:colorChoice", "white"); }}
+              onClick={() => { setColor("white"); updatePrefs({ computerColor: "white" }); }}
               title="White"
             >
               <div className={styles['pieceIcon']}><PieceImg piece="wK" piecesName={piecesName} /></div>
             </button>
             <button
               className={`${styles['colorOption']} ${color === "random" ? styles['colorOptionActive'] : ""}`}
-              onClick={() => { setColor("random"); localStorage.setItem("computer:colorChoice", "random"); }}
+              onClick={() => { setColor("random"); updatePrefs({ computerColor: "random" }); }}
               title="Random"
             >
               <div className={styles['pieceIcon']}>
@@ -68,7 +70,7 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
             </button>
             <button
               className={`${styles['colorOption']} ${color === "black" ? styles['colorOptionActive'] : ""}`}
-              onClick={() => { setColor("black"); localStorage.setItem("computer:colorChoice", "black"); }}
+              onClick={() => { setColor("black"); updatePrefs({ computerColor: "black" }); }}
               title="Black"
             >
               <div className={styles['pieceIcon']}><PieceImg piece="bK" piecesName={piecesName} /></div>

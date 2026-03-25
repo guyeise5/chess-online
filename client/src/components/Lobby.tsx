@@ -5,6 +5,7 @@ import { socket } from "../socket";
 import { RoomData, ColorChoice, SocketResult, RoomResult, getEnv } from "../types";
 import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useUserPrefs } from "../hooks/useUserPreferences";
 import NavBar from "./NavBar";
 import styles from "./Lobby.module.css";
 
@@ -75,20 +76,21 @@ function ColorIcon({ choice, piecesName }: { choice: ColorChoice; piecesName: st
 
 export default function Lobby({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const navigate = useNavigate();
+  const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [colorChoice, setColorChoice] = useState<ColorChoice>(() => {
-    const saved = localStorage.getItem("lobby:colorChoice");
+    const saved = userPrefs.lobbyColor;
     return saved === "white" || saved === "black" || saved === "random" ? saved : "random";
   });
   const [showCustom, setShowCustom] = useState(false);
   const [customMinIdx, setCustomMinIdx] = useState(() => {
-    const saved = parseInt(localStorage.getItem("lobby:customMinIdx") ?? "", 10);
-    return !isNaN(saved) && saved >= 0 && saved < MINUTE_STEPS.length ? saved : MINUTE_STEPS.indexOf(5);
+    const saved = userPrefs.customMinIdx;
+    return Number.isFinite(saved) && saved >= 0 && saved < MINUTE_STEPS.length ? saved : MINUTE_STEPS.indexOf(5);
   });
   const [customIncIdx, setCustomIncIdx] = useState(() => {
-    const saved = parseInt(localStorage.getItem("lobby:customIncIdx") ?? "", 10);
-    return !isNaN(saved) && saved >= 0 && saved < INCREMENT_STEPS.length ? saved : INCREMENT_STEPS.indexOf(3);
+    const saved = userPrefs.customIncIdx;
+    return Number.isFinite(saved) && saved >= 0 && saved < INCREMENT_STEPS.length ? saved : INCREMENT_STEPS.indexOf(3);
   });
 
   const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
@@ -198,7 +200,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const handleColorChange = useCallback(
     (newColor: ColorChoice) => {
       setColorChoice(newColor);
-      localStorage.setItem("lobby:colorChoice", newColor);
+      updatePrefs({ lobbyColor: newColor });
       if (waitingPreset && waitingTimeRef.current) {
         const { time, increment } = waitingTimeRef.current;
         openRoom(time, increment, waitingPreset, newColor);
@@ -510,7 +512,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   setCustomMinIdx(v);
-                  localStorage.setItem("lobby:customMinIdx", String(v));
+                  updatePrefs({ customMinIdx: v });
                 }}
               />
             </div>
@@ -528,7 +530,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   setCustomIncIdx(v);
-                  localStorage.setItem("lobby:customIncIdx", String(v));
+                  updatePrefs({ customIncIdx: v });
                 }}
               />
             </div>

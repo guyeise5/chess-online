@@ -298,6 +298,24 @@ tests:
             name: FEATURE_INTRODUCTION
             value: "false"
 
+  - it: should have default FEATURE_USER_PREFERENCES as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_USER_PREFERENCES
+            value: "true"
+
+  - it: should allow disabling FEATURE_USER_PREFERENCES
+    set:
+      app.env.FEATURE_USER_PREFERENCES: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_USER_PREFERENCES
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

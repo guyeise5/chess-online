@@ -72,6 +72,7 @@ export interface AppEnv {
   FEATURE_PRIVATE_GAMES?: string;
   FEATURE_MOVE_SOUND?: string;
   FEATURE_INTRODUCTION?: string;
+  FEATURE_USER_PREFERENCES?: string;
 }
 
 declare global {

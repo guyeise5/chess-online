@@ -13,11 +13,11 @@ import Introduction from "./components/Introduction";
 import NamePrompt from "./components/NamePrompt";
 import Footer from "./components/Footer";
 import useBoardPreferences from "./hooks/useBoardPreferences";
+import { UserPrefsProvider, useUserPrefs } from "./hooks/useUserPreferences";
 import { getEnv } from "./types";
 
 const PLAYER_NAME_KEY = "chess-player-name";
 const ACTIVE_GAME_KEY = "chess-active-room";
-const INTRO_SEEN_KEY = "chess-intro-seen";
 
 function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: string | null; children: React.ReactNode }) {
   const location = useLocation();
@@ -27,12 +27,12 @@ function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: str
   return <>{children}</>;
 }
 
-export default function App() {
-  const [playerName, setPlayerName] = useState<string>(() => {
-    return localStorage.getItem(PLAYER_NAME_KEY) || "";
-  });
+function AppInner({ playerName, onChangeName }: { playerName: string; onChangeName: () => void }) {
+  const { prefs, update } = useUserPrefs();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [showIntro, setShowIntro] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    return getEnv().FEATURE_INTRODUCTION !== "false" && !prefs.introSeen;
+  });
   const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(() => {
     return localStorage.getItem(ACTIVE_GAME_KEY);
   });
@@ -48,38 +48,13 @@ export default function App() {
     }
   }, []);
 
-  const handleSetName = (name: string) => {
-    setPlayerName(name);
-    localStorage.setItem(PLAYER_NAME_KEY, name);
-    if (
-      getEnv().FEATURE_INTRODUCTION !== "false" &&
-      !localStorage.getItem(INTRO_SEEN_KEY)
-    ) {
-      setShowIntro(true);
-    }
-  };
-
   const handleIntroDone = useCallback(() => {
     setShowIntro(false);
-    localStorage.setItem(INTRO_SEEN_KEY, "1");
-  }, []);
-
-  const handleChangeName = () => {
-    setPlayerName("");
-    localStorage.removeItem(PLAYER_NAME_KEY);
-  };
+    update({ introSeen: true });
+  }, [update]);
 
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-
-  if (!playerName) {
-    return (
-      <>
-        <NamePrompt onSubmit={handleSetName} />
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
@@ -88,7 +63,7 @@ export default function App() {
           <Route
             path="/"
             element={
-              <Lobby playerName={playerName} onChangeName={handleChangeName} onOpenSettings={openSettings} boardPrefs={boardPrefs} />
+              <Lobby playerName={playerName} onChangeName={onChangeName} onOpenSettings={openSettings} boardPrefs={boardPrefs} />
             }
           />
           <Route
@@ -96,7 +71,7 @@ export default function App() {
             element={
               <ComputerSetup
                 playerName={playerName}
-                onChangeName={handleChangeName}
+                onChangeName={onChangeName}
                 onOpenSettings={openSettings}
                 boardPrefs={boardPrefs}
               />
@@ -123,7 +98,7 @@ export default function App() {
             element={
               <GameHistory
                 playerName={playerName}
-                onChangeName={handleChangeName}
+                onChangeName={onChangeName}
                 onOpenSettings={openSettings}
               />
             }
@@ -133,7 +108,7 @@ export default function App() {
             element={
               <PrivateInvite
                 playerName={playerName}
-                onChangeName={handleChangeName}
+                onChangeName={onChangeName}
                 onOpenSettings={openSettings}
                 boardPrefs={boardPrefs}
               />
@@ -150,5 +125,36 @@ export default function App() {
       {showIntro && <Introduction onComplete={handleIntroDone} />}
       <Footer />
     </>
+  );
+}
+
+export default function App() {
+  const [playerName, setPlayerName] = useState<string>(() => {
+    return localStorage.getItem(PLAYER_NAME_KEY) || "";
+  });
+
+  const handleSetName = (name: string) => {
+    setPlayerName(name);
+    localStorage.setItem(PLAYER_NAME_KEY, name);
+  };
+
+  const handleChangeName = useCallback(() => {
+    setPlayerName("");
+    localStorage.removeItem(PLAYER_NAME_KEY);
+  }, []);
+
+  if (!playerName) {
+    return (
+      <>
+        <NamePrompt onSubmit={handleSetName} />
+        <Footer />
+      </>
+    );
+  }
+
+  return (
+    <UserPrefsProvider playerName={playerName}>
+      <AppInner playerName={playerName} onChangeName={handleChangeName} />
+    </UserPrefsProvider>
   );
 }

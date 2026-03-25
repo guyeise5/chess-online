@@ -10,10 +10,9 @@ import { BLINDFOLD_PIECES } from "../boardThemes";
 import { getEnv } from "../types";
 import { playMoveSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useUserPrefs } from "../hooks/useUserPreferences";
 import styles from "./PuzzleTrainer.module.css";
 
-const PUZZLE_RATING_KEY = "chess-puzzle-rating";
-const PUZZLE_COUNT_KEY = "chess-puzzle-count";
 const DEFAULT_RATING = 1500;
 const MIN_RATING = 100;
 const API_BASE = import.meta.env.PROD ? "" : "http://localhost:3001";
@@ -27,30 +26,6 @@ interface PuzzleData {
 }
 
 type PuzzleStatus = "loading" | "showing" | "solving" | "correct" | "failed";
-
-function getRating(): number {
-  const stored = localStorage.getItem(PUZZLE_RATING_KEY);
-  if (!stored) return DEFAULT_RATING;
-  const n = parseInt(stored, 10);
-  return Number.isFinite(n) ? n : DEFAULT_RATING;
-}
-
-function setRating(r: number): void {
-  localStorage.setItem(PUZZLE_RATING_KEY, String(r));
-}
-
-function getPuzzleCount(): number {
-  const stored = localStorage.getItem(PUZZLE_COUNT_KEY);
-  if (!stored) return 0;
-  const n = parseInt(stored, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function incrementPuzzleCount(): number {
-  const count = getPuzzleCount() + 1;
-  localStorage.setItem(PUZZLE_COUNT_KEY, String(count));
-  return count;
-}
 
 function getKFactor(puzzlesPlayed: number): number {
   if (puzzlesPlayed < 10) return 40;
@@ -99,12 +74,17 @@ interface PuzzleTrainerProps {
 export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrainerProps) {
   const navigate = useNavigate();
   const { puzzleId: urlPuzzleId } = useParams<{ puzzleId?: string }>();
+  const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
   const [game, setGame] = useState<Chess>(new Chess());
   const [fen, setFen] = useState("start");
   const [status, setStatus] = useState<PuzzleStatus>("loading");
-  const [playerRating, setPlayerRating] = useState(getRating);
-  const [, setPuzzleCount] = useState(getPuzzleCount);
+  const [playerRating, setPlayerRating] = useState(() =>
+    Number.isFinite(userPrefs.puzzleRating) ? userPrefs.puzzleRating : DEFAULT_RATING
+  );
+  const [, setPuzzleCount] = useState(() =>
+    Number.isFinite(userPrefs.puzzleCount) ? userPrefs.puzzleCount : 0
+  );
   const [moveIndex, setMoveIndex] = useState(0);
   const [playedMoves, setPlayedMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -142,7 +122,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
     try {
       const url = specificId
         ? `${API_BASE}/api/puzzles/${specificId}`
-        : `${API_BASE}/api/puzzles/random?rating=${getRating()}`;
+        : `${API_BASE}/api/puzzles/random?rating=${playerRating}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch");
       const data: PuzzleData = await res.json();
@@ -229,12 +209,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
 
       if (from !== expectedFrom || to !== expectedTo || (expectedPromo && promotion !== expectedPromo)) {
         if (!hasFailed) {
-          const count = incrementPuzzleCount();
-          setPuzzleCount(count);
-          const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
-          const newRating = Math.max(MIN_RATING, playerRating + delta);
-          setPlayerRating(newRating);
-          setRating(newRating);
+          setPuzzleCount((prev) => {
+            const count = prev + 1;
+            const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
+            const newRating = Math.max(MIN_RATING, playerRating + delta);
+            setPlayerRating(newRating);
+            updatePrefs({ puzzleRating: newRating, puzzleCount: count });
+            return count;
+          });
           setHasFailed(true);
         }
         setWrongFlash(true);
@@ -260,12 +242,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
 
       if (nextIndex >= puzzle.moves.length) {
         if (!hasFailed) {
-          const count = incrementPuzzleCount();
-          setPuzzleCount(count);
-          const delta = computeRatingChange(playerRating, puzzle.rating, true, count);
-          const newRating = Math.max(MIN_RATING, playerRating + delta);
-          setPlayerRating(newRating);
-          setRating(newRating);
+          setPuzzleCount((prev) => {
+            const count = prev + 1;
+            const delta = computeRatingChange(playerRating, puzzle.rating, true, count);
+            const newRating = Math.max(MIN_RATING, playerRating + delta);
+            setPlayerRating(newRating);
+            updatePrefs({ puzzleRating: newRating, puzzleCount: count });
+            return count;
+          });
         }
         setStatus("correct");
         setMoveIndex(nextIndex);
@@ -638,12 +622,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                   className={styles['hintBtn']}
                   onClick={() => {
                     if (!hasFailed && puzzle) {
-                      const count = incrementPuzzleCount();
-                      setPuzzleCount(count);
-                      const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
-                      const newRating = Math.max(MIN_RATING, playerRating + delta);
-                      setPlayerRating(newRating);
-                      setRating(newRating);
+                      setPuzzleCount((prev) => {
+                        const count = prev + 1;
+                        const delta = computeRatingChange(playerRating, puzzle.rating, false, count);
+                        const newRating = Math.max(MIN_RATING, playerRating + delta);
+                        setPlayerRating(newRating);
+                        updatePrefs({ puzzleRating: newRating, puzzleCount: count });
+                        return count;
+                      });
                       setHasFailed(true);
                     }
                     setHintLevel((prev) => prev + 1);

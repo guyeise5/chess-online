@@ -25,6 +25,7 @@ app:
     FEATURE_PRIVATE_GAMES: "true"
     FEATURE_MOVE_SOUND: "true"
     FEATURE_INTRODUCTION: "true"
+    FEATURE_USER_PREFERENCES: "true"
 
 mongodb:
   image:

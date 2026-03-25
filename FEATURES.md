@@ -54,7 +54,7 @@
 - **Key files:** `client/src/components/BoardSettings.tsx`, `client/src/hooks/useBoardPreferences.tsx`, `client/src/boardThemes.ts`
 - 19 board color themes from Lichess (brown, blue, green, wood, maple, etc.)
 - 39 piece sets: 38 from Lichess (cburnett, merida, alpha, california, horsey, etc.) plus a "blindfold" mode (invisible pieces; menu icons stay default)
-- Settings stored in localStorage, persist across sessions
+- Settings stored in MongoDB via user preferences (with localStorage cache), persist across sessions and devices
 - Applied to all board views: online play, computer play, puzzles, analysis
 - Selected piece set also used for color picker icons in lobby and computer setup menus
 - Accessible via gear icon in the navigation bar
@@ -121,8 +121,20 @@
 - Multi-step onboarding walkthrough shown to first-time users after entering their name
 - 9 steps covering: welcome, online play, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
 - Dot navigation to jump between steps, skip button on every step, "Get Started" on the final step
-- Completion persisted in localStorage (`chess-intro-seen`); never shown again once dismissed
+- Completion persisted via user preferences (`introSeen` field); never shown again once dismissed
 - Cursor rule (`.cursor/rules/introduction.mdc`) ensures new UI features are added as steps
+
+## User Preferences (Server-Persisted)
+
+- **Key files:** `server/src/models/UserPreferences.ts`, `server/src/index.ts` (API endpoints), `client/src/hooks/useUserPreferences.ts`
+- **Feature flag:** `FEATURE_USER_PREFERENCES`
+- User preferences (board theme, piece set, lobby color, custom time control indices, computer color, puzzle rating/count, intro seen) stored in MongoDB
+- REST API: `GET /api/preferences/:playerName` (load), `PUT /api/preferences/:playerName` (partial update with upsert)
+- Client-side `useUserPreferences` hook fetches from server on login, merges server data over local cache (server wins)
+- `UserPrefsProvider` context shares preferences across all components
+- localStorage used as write-through cache for instant reads; server is source of truth
+- Graceful offline fallback: if server is unavailable, preferences are read/written to localStorage only
+- Replaces direct localStorage usage in: `useBoardPreferences`, `Lobby`, `ComputerSetup`, `PuzzleTrainer`, `App` (intro seen)
 
 ## UI/UX
 
@@ -161,3 +173,4 @@
 | `FEATURE_PRIVATE_GAMES` | `true` | Private game creation with shareable invite links. Rooms are hidden from the lobby. Set to `false` to disable. |
 | `FEATURE_MOVE_SOUND` | `true` | Move sounds using Lichess standard sound set (move, capture, game start/end, low time). Set to `false` to disable. |
 | `FEATURE_INTRODUCTION` | `true` | First-time user onboarding walkthrough (9 steps covering all features). Set to `false` to disable. |
+| `FEATURE_USER_PREFERENCES` | `true` | Server-side user preferences persistence (MongoDB). Set to `false` to use localStorage only. |

@@ -1,44 +1,42 @@
 import { describe, it, expect } from "vitest";
 
-const INTRO_SEEN_KEY = "chess-intro-seen";
 const TOTAL_STEPS = 9;
 
-describe("Introduction - localStorage tracking", () => {
-  it("new user has no intro-seen key", () => {
-    const store = new Map<string, string>();
-    expect(store.has(INTRO_SEEN_KEY)).toBe(false);
+describe("Introduction - introSeen preference tracking", () => {
+  it("new user has introSeen = false", () => {
+    const introSeen = false;
+    expect(introSeen).toBe(false);
   });
 
-  it("returning user has intro-seen key", () => {
-    const store = new Map<string, string>();
-    store.set(INTRO_SEEN_KEY, "1");
-    expect(store.get(INTRO_SEEN_KEY)).toBe("1");
+  it("returning user has introSeen = true", () => {
+    const introSeen = true;
+    expect(introSeen).toBe(true);
   });
 
-  it("should show intro when flag is enabled and key is absent", () => {
+  it("should show intro when flag is enabled and introSeen is false", () => {
     const featureFlag = "true";
-    const introSeen = undefined;
+    const introSeen = false;
     const shouldShow = featureFlag !== "false" && !introSeen;
     expect(shouldShow).toBe(true);
   });
 
   it("should not show intro when flag is disabled", () => {
     const featureFlag = "false";
-    const introSeen = undefined;
+    const introSeen = false;
     const shouldShow = featureFlag !== "false" && !introSeen;
     expect(shouldShow).toBe(false);
   });
 
   it("should not show intro when already seen", () => {
     const featureFlag = "true";
-    const introSeen = "1";
+    const introSeen = true;
     const shouldShow = featureFlag !== "false" && !introSeen;
     expect(shouldShow).toBe(false);
   });
 
   it("should show intro when flag is undefined (default enabled)", () => {
     const featureFlag = undefined;
-    const introSeen = undefined;
+    const introSeen = false;
     const shouldShow = featureFlag !== "false" && !introSeen;
     expect(shouldShow).toBe(true);
   });
