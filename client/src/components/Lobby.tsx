@@ -335,7 +335,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
               </button>
             </div>
 
-            <div className={styles['presetGrid']}>
+            <div data-tour="time-grid" className={styles['presetGrid']}>
               {PRESETS.map((p) => (
                 <button
                   key={p.label}
@@ -356,6 +356,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
 
             {privateGamesEnabled && (
               <button
+                data-tour="private-game"
                 className={styles['privateBtn']}
                 onClick={() => setShowPrivate(true)}
               >
@@ -365,7 +366,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
           </div>
 
           {/* Right: Room list table */}
-          <div className={styles['tablePanel']}>
+          <div data-tour="rooms-table" className={styles['tablePanel']}>
             <div className={styles['tableHeader']}>
               <span className={styles['thPlayer']}>Player</span>
               <span className={styles['thTime']}>Time</span>

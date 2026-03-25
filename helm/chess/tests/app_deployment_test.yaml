@@ -280,6 +280,24 @@ tests:
             name: FEATURE_MOVE_SOUND
             value: "false"
 
+  - it: should have default FEATURE_INTRODUCTION as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_INTRODUCTION
+            value: "true"
+
+  - it: should allow disabling FEATURE_INTRODUCTION
+    set:
+      app.env.FEATURE_INTRODUCTION: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_INTRODUCTION
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

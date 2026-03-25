@@ -114,6 +114,16 @@
 - Sounds play on every move (player and opponent), game start, and game end
 - Graceful degradation: no errors if audio playback fails
 
+## Introduction
+
+- **Key files:** `client/src/components/Introduction.tsx`, `client/src/components/Introduction.module.css`
+- **Feature flag:** `FEATURE_INTRODUCTION`
+- Multi-step onboarding walkthrough shown to first-time users after entering their name
+- 9 steps covering: welcome, online play, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
+- Dot navigation to jump between steps, skip button on every step, "Get Started" on the final step
+- Completion persisted in localStorage (`chess-intro-seen`); never shown again once dismissed
+- Cursor rule (`.cursor/rules/introduction.mdc`) ensures new UI features are added as steps
+
 ## UI/UX
 
 - **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
@@ -150,3 +160,4 @@
 | `FEATURE_DRAW_OFFER` | `true` | Draw offer system: players can offer a draw with anti-spam protection (Lichess-style). Set to `false` to disable. |
 | `FEATURE_PRIVATE_GAMES` | `true` | Private game creation with shareable invite links. Rooms are hidden from the lobby. Set to `false` to disable. |
 | `FEATURE_MOVE_SOUND` | `true` | Move sounds using Lichess standard sound set (move, capture, game start/end, low time). Set to `false` to disable. |
+| `FEATURE_INTRODUCTION` | `true` | First-time user onboarding walkthrough (9 steps covering all features). Set to `false` to disable. |

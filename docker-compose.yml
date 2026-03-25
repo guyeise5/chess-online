@@ -46,6 +46,7 @@ services:
       - FEATURE_DRAW_OFFER=${FEATURE_DRAW_OFFER:-true}
       - FEATURE_PRIVATE_GAMES=${FEATURE_PRIVATE_GAMES:-true}
       - FEATURE_MOVE_SOUND=${FEATURE_MOVE_SOUND:-true}
+      - FEATURE_INTRODUCTION=${FEATURE_INTRODUCTION:-true}
     depends_on:
       - mongo
 

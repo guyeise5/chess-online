@@ -1,0 +1,141 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.spotlightSvg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.highlight {
+  position: fixed;
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px var(--accent), 0 0 12px 2px rgba(98, 153, 36, 0.35);
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+
+.tooltip {
+  z-index: 10000;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.1rem 1.25rem 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  transition: top 0.25s ease, left 0.25s ease, bottom 0.25s ease, right 0.25s ease;
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.tooltipTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stepCount {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tooltipBody {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.tooltipBody p {
+  margin: 0 0 0.5rem;
+}
+
+.tooltipBody p:last-child {
+  margin-bottom: 0;
+}
+
+.tooltipBody strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.dots {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin: 0.9rem 0 0.75rem;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dot:hover {
+  background: var(--text-muted);
+}
+
+.dotActive {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+
+.dotActive:hover {
+  background: var(--accent);
+}
+
+.dotDone {
+  background: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.skipBtn,
+.backBtn {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skipBtn:hover,
+.backBtn:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.nextBtn {
+  flex: 1.5;
+  padding: 0.45rem 0.75rem;
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+.nextBtn:hover {
+  background: var(--accent-hover);
+}

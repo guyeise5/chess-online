@@ -9,12 +9,15 @@ import AnalysisBoard from "./components/AnalysisBoard";
 import GameHistory from "./components/GameHistory";
 import PrivateInvite from "./components/PrivateInvite";
 import BoardSettings from "./components/BoardSettings";
+import Introduction from "./components/Introduction";
 import NamePrompt from "./components/NamePrompt";
 import Footer from "./components/Footer";
 import useBoardPreferences from "./hooks/useBoardPreferences";
+import { getEnv } from "./types";
 
 const PLAYER_NAME_KEY = "chess-player-name";
 const ACTIVE_GAME_KEY = "chess-active-room";
+const INTRO_SEEN_KEY = "chess-intro-seen";
 
 function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: string | null; children: React.ReactNode }) {
   const location = useLocation();
@@ -29,6 +32,7 @@ export default function App() {
     return localStorage.getItem(PLAYER_NAME_KEY) || "";
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(() => {
     return localStorage.getItem(ACTIVE_GAME_KEY);
   });
@@ -47,7 +51,18 @@ export default function App() {
   const handleSetName = (name: string) => {
     setPlayerName(name);
     localStorage.setItem(PLAYER_NAME_KEY, name);
+    if (
+      getEnv().FEATURE_INTRODUCTION !== "false" &&
+      !localStorage.getItem(INTRO_SEEN_KEY)
+    ) {
+      setShowIntro(true);
+    }
   };
+
+  const handleIntroDone = useCallback(() => {
+    setShowIntro(false);
+    localStorage.setItem(INTRO_SEEN_KEY, "1");
+  }, []);
 
   const handleChangeName = () => {
     setPlayerName("");
@@ -132,6 +147,7 @@ export default function App() {
       {settingsOpen && (
         <BoardSettings boardPrefs={boardPrefs} onClose={closeSettings} />
       )}
+      {showIntro && <Introduction onComplete={handleIntroDone} />}
       <Footer />
     </>
   );

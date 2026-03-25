@@ -1,0 +1,37 @@
+---
+description: Keep the Introduction tour in sync when adding or modifying UI features
+alwaysApply: true
+---
+
+# Introduction Tour
+
+The Introduction component (`client/src/components/Introduction.tsx`) is a spotlight-style guided tour shown to first-time users. It highlights actual UI elements and positions tooltips next to them. It must stay in sync with the application's feature set.
+
+## When to update
+
+- **New UI feature or page**: Add a `data-tour="<name>"` attribute to the key element in the component's JSX, then add a step to the `STEPS` array in `Introduction.tsx` with a `selector` pointing to that attribute.
+- **Renamed or removed feature**: Update or remove the corresponding step and `data-tour` attribute.
+- **Changed navigation or layout**: Update step `position` values if the element moved to a different area of the screen.
+
+## Step format
+
+Each step in the `STEPS` array has:
+- `title`: Short feature name (e.g. "Play Online", "Puzzle Trainer")
+- `selector`: CSS selector targeting a `data-tour` attribute on the element to highlight (e.g. `[data-tour='nav-play']`). Omit for centered modal steps (welcome/intro).
+- `position`: Where the tooltip appears relative to the highlighted element: `"bottom"`, `"top"`, `"left"`, or `"right"`
+- `content`: JSX with `<p>` tags explaining the feature. Use `<strong>` for UI element names.
+
+## Data-tour attributes
+
+Add `data-tour="<name>"` to the outermost DOM element of any feature that should be highlighted. Existing attributes:
+- `nav-play`, `nav-computer`, `nav-puzzles`, `nav-games` — NavBar links
+- `settings-btn` — Board settings gear icon in NavBar
+- `time-grid` — Time control preset grid in Lobby
+- `rooms-table` — Open games table in Lobby
+- `private-game` — "Create Private Game" button in Lobby
+
+## Rules
+
+- Keep the step order logical: welcome → core gameplay features visible on lobby → nav links for other pages → customization.
+- First step (welcome) has no `selector` — it renders as a centered modal.
+- After adding/removing a step, update `TOTAL_STEPS` and `stepTitles`/`stepSelectors`/`topics` in `client/src/__tests__/introduction.test.ts`.

@@ -24,6 +24,7 @@ app:
     FEATURE_DRAW_OFFER: "true"
     FEATURE_PRIVATE_GAMES: "true"
     FEATURE_MOVE_SOUND: "true"
+    FEATURE_INTRODUCTION: "true"
 
 mongodb:
   image:
