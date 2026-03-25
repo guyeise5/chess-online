@@ -17,16 +17,16 @@ export default function NamePrompt({ onSubmit }: Props) {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.logoRow}>
-          <img src="/favicon.png" alt="" className={styles.logoIcon} />
-          <span className={styles.logoText}>Chess</span>
+    <div className={styles['container']}>
+      <div className={styles['card']}>
+        <div className={styles['logoRow']}>
+          <img src="/favicon.png" alt="" className={styles['logoIcon']} />
+          <span className={styles['logoText']}>Chess</span>
         </div>
-        <p className={styles.subtitle}>Choose a username to play</p>
-        <form onSubmit={handleSubmit} className={styles.form}>
+        <p className={styles['subtitle']}>Choose a username to play</p>
+        <form onSubmit={handleSubmit} className={styles['form']}>
           <input
-            className={styles.input}
+            className={styles['input']}
             type="text"
             placeholder="Username"
             value={name}
@@ -35,7 +35,7 @@ export default function NamePrompt({ onSubmit }: Props) {
             maxLength={20}
           />
           <button
-            className={styles.button}
+            className={styles['button']}
             type="submit"
             disabled={name.trim().length < 2}
           >

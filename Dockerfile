@@ -3,6 +3,7 @@ FROM node:20-alpine AS client-build
 WORKDIR /app/client
 COPY client/package.json client/package-lock.json* ./
 RUN npm install
+COPY tsconfig.base.json /app/
 COPY client/ ./
 RUN npm run build
 
@@ -11,6 +12,7 @@ FROM node:20-alpine AS server-build
 WORKDIR /app/server
 COPY server/package.json server/package-lock.json* ./
 RUN npm install
+COPY tsconfig.base.json /app/
 COPY server/ ./
 RUN npm run build
 

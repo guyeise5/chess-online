@@ -19,7 +19,7 @@ const PIECE_KEYS: { key: "q" | "r" | "b" | "n"; suffix: string }[] = [
 export default function PromotionDialog({ color, square, orientation, onSelect, onCancel }: Props) {
   if (!square || square.length < 2) return null;
   const file = square.charCodeAt(0) - 97;
-  const rank = parseInt(square[1], 10);
+  const rank = parseInt(square.charAt(1), 10);
   if (!Number.isFinite(rank)) return null;
 
   const col = orientation === "white" ? file : 7 - file;
@@ -31,14 +31,14 @@ export default function PromotionDialog({ color, square, orientation, onSelect, 
   const prefix = color === "white" ? "w" : "b";
 
   return (
-    <div className={styles.overlay} onClick={onCancel}>
+    <div className={styles['overlay']} onClick={onCancel}>
       {PIECE_KEYS.map((p, i) => {
         const PieceComponent = defaultPieces[`${prefix}${p.suffix}`];
         const topPct = promotesFromTop ? i * sqSize : (7 - i) * sqSize;
         return (
           <div
             key={p.key}
-            className={styles.cell}
+            className={styles['cell']}
             style={{
               left: `${col * sqSize}%`,
               top: `${topPct}%`,
@@ -47,8 +47,8 @@ export default function PromotionDialog({ color, square, orientation, onSelect, 
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button className={styles.pieceBtn} onClick={() => onSelect(p.key)}>
-              <div className={styles.pieceImg}>
+            <button className={styles['pieceBtn']} onClick={() => onSelect(p.key)}>
+              <div className={styles['pieceImg']}>
                 {PieceComponent && <PieceComponent />}
               </div>
             </button>

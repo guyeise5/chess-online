@@ -26,7 +26,9 @@ function uciToSan(
       const from = uci.slice(0, 2);
       const to = uci.slice(2, 4);
       const promo = uci.length > 4 ? uci[4] : undefined;
-      const move = g.move({ from, to, promotion: promo });
+      const move = g.move(
+        promo ? { from, to, promotion: promo } : { from, to }
+      );
       if (!move) break;
       if (san.length === 0) firstMove = { from: move.from, to: move.to };
       san.push(move.san);
@@ -116,7 +118,9 @@ export default function useMultiPV(fen: string | null) {
 
           const depth = Number(depthMatch[1]);
           const rank = Number(pvIdx[1]);
-          const uciMoves = pvMoves[1].trim().split(/\s+/);
+          const pvCap = pvMoves[1];
+          if (pvCap === undefined) continue;
+          const uciMoves = pvCap.trim().split(/\s+/);
 
           let score = 0;
           let mate: number | null = null;

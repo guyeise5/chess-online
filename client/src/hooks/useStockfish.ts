@@ -24,7 +24,12 @@ export const STOCKFISH_LEVELS: StockfishLevel[] = [
 ];
 
 export function getLevelConfig(level: number): StockfishLevel {
-  return STOCKFISH_LEVELS[Math.max(0, Math.min(level - 1, 11))];
+  const idx = Math.max(0, Math.min(level - 1, 11));
+  const cfg = STOCKFISH_LEVELS[idx];
+  if (cfg) return cfg;
+  const first = STOCKFISH_LEVELS[0];
+  if (first) return first;
+  throw new Error("STOCKFISH_LEVELS must not be empty");
 }
 
 export default function useStockfish(level: number) {

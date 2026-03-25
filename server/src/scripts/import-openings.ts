@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 import { Chess } from "chess.js";
 import BookPosition from "../models/BookPosition";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chess-online";
-const TSV_DIR = process.env.TSV_DIR || "/app/bundled/openings";
+const MONGO_URI = process.env["MONGO_URI"] || "mongodb://localhost:27017/chess-online";
+const TSV_DIR = process.env["TSV_DIR"] || "/app/bundled/openings";
 const BATCH_SIZE = 5000;
 const TSV_FILES = ["a.tsv", "b.tsv", "c.tsv", "d.tsv", "e.tsv"];
 
@@ -59,6 +59,7 @@ async function importOpenings() {
       if (parts.length < 3) continue;
 
       const pgn = parts[2];
+      if (pgn === undefined) continue;
       const sans = parsePgn(pgn);
       if (sans.length === 0) continue;
 

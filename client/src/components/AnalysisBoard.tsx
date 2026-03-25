@@ -149,8 +149,10 @@ function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
   const board = game.board();
   for (let r = 0; r < 8; r++) {
+    const row = board[r];
+    if (!row) continue;
     for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
+      const piece = row[c];
       if (piece && piece.type === "k" && piece.color === turn) {
         return piece.square;
       }
@@ -217,7 +219,9 @@ export function navLastMove(
   if (nav.on === "main") {
     if (nav.index === 0) return null;
     prevMoves = gameMoves.slice(0, nav.index - 1);
-    san = gameMoves[nav.index - 1];
+    const w = gameMoves[nav.index - 1];
+    if (w === undefined) return null;
+    san = w;
   } else {
     const v = variations[nav.vi];
     if (!v) return null;
@@ -226,7 +230,9 @@ export function navLastMove(
     } else {
       prevMoves = [...gameMoves.slice(0, v.from), ...v.moves.slice(0, nav.mi)];
     }
-    san = v.moves[nav.mi];
+    const bm = v.moves[nav.mi];
+    if (bm === undefined) return null;
+    san = bm;
   }
   try {
     const g = new Chess(startFen);
@@ -318,21 +324,6 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
     to: string;
   } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
-
-  const mainPositions = useMemo(() => {
-    const g = new Chess(startFen);
-    const fens = [g.fen()];
-    for (const san of gameMoves) {
-      try {
-        const m = g.move(san);
-        if (!m) break;
-        fens.push(g.fen());
-      } catch {
-        break;
-      }
-    }
-    return fens;
-  }, [gameMoves, startFen]);
 
   const currentFen = useMemo(
     () => navFen(startFen, gameMoves, variations, nav),
@@ -483,10 +474,15 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
                 ? { ...vv, moves: varMoves }
                 : vv
             );
+            const atExisting = updated[existing];
+            const mi =
+              atExisting !== undefined
+                ? Math.min(varMoves.length, atExisting.moves.length) - 1
+                : 0;
             setNav({
               on: "var",
               vi: existing,
-              mi: Math.min(varMoves.length, updated[existing].moves.length) - 1,
+              mi,
             });
             return updated;
           });
@@ -554,11 +550,11 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
           const game = new Chess(currentFen);
           const isPawn = game.get(selectedSquare as Square)?.type === "p";
           const isPromoRank = square[1] === "8" || square[1] === "1";
-          const move = game.move({
-            from: selectedSquare,
-            to: square,
-            promotion: isPawn && isPromoRank ? "q" : undefined,
-          });
+          const move = game.move(
+            isPawn && isPromoRank
+              ? { from: selectedSquare, to: square, promotion: "q" }
+              : { from: selectedSquare, to: square }
+          );
           if (move) {
             playMove(move.san);
             setSelectedSquare(null);
@@ -587,11 +583,11 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
         const game = new Chess(currentFen);
         const isPawn = game.get(selectedSquare as Square)?.type === "p";
         const isPromoRank = square[1] === "8" || square[1] === "1";
-        const move = game.move({
-          from: selectedSquare,
-          to: square,
-          promotion: isPawn && isPromoRank ? "q" : undefined,
-        });
+        const move = game.move(
+          isPawn && isPromoRank
+            ? { from: selectedSquare, to: square, promotion: "q" }
+            : { from: selectedSquare, to: square }
+        );
         if (move) {
           playMove(move.san);
           setSelectedSquare(null);
@@ -618,11 +614,11 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
         const game = new Chess(currentFen);
         const isPawn = piece.pieceType.toLowerCase().endsWith("p");
         const isPromoRank = targetSquare[1] === "8" || targetSquare[1] === "1";
-        const move = game.move({
-          from: sourceSquare,
-          to: targetSquare,
-          promotion: isPawn && isPromoRank ? "q" : undefined,
-        });
+        const move = game.move(
+          isPawn && isPromoRank
+            ? { from: sourceSquare, to: targetSquare, promotion: "q" }
+            : { from: sourceSquare, to: targetSquare }
+        );
         if (!move) return false;
         setSelectedSquare(null);
         playMove(move.san);
@@ -720,7 +716,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
 
   const gameEval =
     nav.on === "main" ? evals[nav.index] : undefined;
-  const pvScore = pvLines.length > 0 ? pvLines[0].score : undefined;
+  const pvScore = pvLines[0]?.score;
   const currentScore = gameEval?.score ?? pvScore ?? 0;
 
   /* ---- board annotation glyph ---- */
@@ -741,7 +737,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
         <div style={{ width: "100%", height: "100%", position: "relative", ...highlightStyles[square] }}>
           {children}
           <div
-            className={styles.boardGlyph}
+            className={styles["boardGlyph"]}
             style={{ backgroundColor: boardAnnotation.color }}
           >
             <AnnotationContent classification={boardAnnotation.classification} iconSize={22} />
@@ -774,7 +770,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
 
   if (loading) {
     return (
-      <div className={styles.empty}>
+      <div className={styles["empty"]}>
         <p>Loading game...</p>
       </div>
     );
@@ -782,7 +778,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
 
   if (!gameData || gameMoves.length === 0) {
     return (
-      <div className={styles.empty}>
+      <div className={styles["empty"]}>
         <p>No game to analyze.</p>
         <button onClick={() => navigate("/")}>Back to Home</button>
       </div>
@@ -804,23 +800,28 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
     const whiteIdx = i + 1;
     const blackIdx = i + 2;
     const whiteSan = gameMoves[i];
+    if (whiteSan === undefined) break;
     const blackSan = gameMoves[i + 1];
     const whiteEntry = evals[whiteIdx];
     const blackEntry = blackSan ? evals[blackIdx] : undefined;
 
     moveListElements.push(
-      <div key={`m${i}`} className={styles.movePair}>
-        <span className={styles.moveNum}>{moveNum}.</span>
+      <div key={`m${i}`} className={styles["movePair"]}>
+        <span className={styles["moveNum"]}>{moveNum}.</span>
         <MainMoveCell
           san={whiteSan}
-          classification={whiteEntry?.classification}
+          {...(whiteEntry?.classification !== undefined
+            ? { classification: whiteEntry.classification }
+            : {})}
           active={isMainActive(whiteIdx)}
           onClick={() => goToMain(whiteIdx)}
         />
         {blackSan ? (
           <MainMoveCell
             san={blackSan}
-            classification={blackEntry?.classification}
+            {...(blackEntry?.classification !== undefined
+              ? { classification: blackEntry.classification }
+              : {})}
             active={isMainActive(blackIdx)}
             onClick={() => goToMain(blackIdx)}
           />
@@ -882,28 +883,30 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
   }
 
   return (
-    <div className={styles.container}>
-      <NavBar onOpenSettings={onOpenSettings} />
+    <div className={styles["container"]}>
+      <NavBar {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.boardSection}>
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{topPlayer}</span>
+      <main className={styles["main"]}>
+        <div className={styles["boardSection"]}>
+          <div className={styles["playerBar"]}>
+            <span className={styles["playerBarName"]}>{topPlayer}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
 
-          <div className={styles.boardRow}>
-            <div className={styles.evalColumn}>
+          <div className={styles["boardRow"]}>
+            <div className={styles["evalColumn"]}>
               <EvalBar score={currentScore} orientation={orientation} />
-              <span className={styles.evalScore}>
+              <span className={styles["evalScore"]}>
                 {currentScore >= 0 ? "+" : "\u2212"}
                 {formatEvalLabel(currentScore)}
               </span>
             </div>
-            <div className={styles.board}>
+            <div className={styles["board"]}>
               <Chessboard
                 options={{
-                  pieces: boardPrefs.customPieces,
+                  ...(boardPrefs.customPieces
+                    ? { pieces: boardPrefs.customPieces }
+                    : {}),
                   position: currentFen,
                   boardOrientation: orientation,
                   squareStyles: highlightStyles,
@@ -956,12 +959,12 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
             </div>
           </div>
 
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{bottomPlayer}</span>
+          <div className={styles["playerBar"]}>
+            <span className={styles["playerBarName"]}>{bottomPlayer}</span>
             {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
 
-          <div className={styles.graphArea}>
+          <div className={styles["graphArea"]}>
             <ScoreGraph
               evals={evals}
               currentIndex={
@@ -974,14 +977,14 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
           </div>
 
           <div
-            className={styles.fenBar}
+            className={styles["fenBar"]}
             onClick={() => navigator.clipboard?.writeText(currentFen)}
             title="Click to copy FEN"
           >
             {currentFen}
           </div>
 
-          <div className={styles.navButtons}>
+          <div className={styles["navButtons"]}>
             <button onClick={goToStart} title="First">
               &laquo;
             </button>
@@ -997,56 +1000,59 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
           </div>
         </div>
 
-        <div className={styles.sidebar}>
+        <div className={styles["sidebar"]}>
           {analyzing && (
-            <div className={styles.progressBar}>
-              <div className={styles.progressLabel}>
+            <div className={styles["progressBar"]}>
+              <div className={styles["progressLabel"]}>
                 Analyzing... {progress}%
               </div>
-              <div className={styles.progressTrack}>
+              <div className={styles["progressTrack"]}>
                 <div
-                  className={styles.progressFill}
+                  className={styles["progressFill"]}
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
           )}
 
-          <div className={styles.engineLines}>
-            <h3 className={styles.engineLinesTitle}>
+          <div className={styles["engineLines"]}>
+            <h3 className={styles["engineLinesTitle"]}>
               Engine Lines
               {pvLines.length > 0 && (
-                <span className={styles.engineDepth}>
-                  d{pvLines[0].depth}
+                <span className={styles["engineDepth"]}>
+                  d{pvLines[0]?.depth}
                 </span>
               )}
-              {pvComputing && <span className={styles.engineSpinner} />}
+              {pvComputing && <span className={styles["engineSpinner"]} />}
             </h3>
             {pvLines.length > 0 ? (
-              <div className={styles.engineLinesList}>
+              <div className={styles["engineLinesList"]}>
                 {pvLines.map((pv) => (
                   <div
                     key={pv.rank}
-                    className={styles.engineLine}
+                    className={styles["engineLine"]}
                     onMouseLeave={() => setHoverArrow(null)}
                   >
                     <span
-                      className={`${styles.engineLineScore} ${pv.score >= 0 ? styles.engineLineWhite : styles.engineLineBlack}`}
+                      className={`${styles["engineLineScore"]} ${pv.score >= 0 ? styles["engineLineWhite"] : styles["engineLineBlack"]}`}
                     >
                       {pv.mate !== null
                         ? `${pv.mate > 0 ? "+" : "\u2212"}M${Math.abs(pv.mate)}`
                         : `${pv.score >= 0 ? "+" : "\u2212"}${(Math.abs(pv.score) / 100).toFixed(1)}`}
                     </span>
-                    <span className={styles.engineLineMoves}>
+                    <span className={styles["engineLineMoves"]}>
                       {pv.san.map((move, mi) => (
                         <span
                           key={mi}
-                          className={styles.pvMove}
-                          onMouseEnter={
-                            mi === 0 && pv.firstMove
-                              ? () => setHoverArrow(pv.firstMove)
-                              : undefined
-                          }
+                          className={styles["pvMove"]}
+                          {...(mi === 0 && pv.firstMove
+                            ? {
+                                onMouseEnter: () => {
+                                  const fm = pv.firstMove;
+                                  if (fm) setHoverArrow(fm);
+                                },
+                              }
+                            : {})}
                           onClick={() => playMoves(pv.san.slice(0, mi + 1))}
                         >
                           {move}
@@ -1057,22 +1063,22 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
                 ))}
               </div>
             ) : (
-              <div className={styles.engineLinesEmpty}>
+              <div className={styles["engineLinesEmpty"]}>
                 {pvComputing ? "Calculating..." : "No lines"}
               </div>
             )}
           </div>
 
           {movesTruncated && (
-            <div className={styles.truncationWarning}>
+            <div className={styles["truncationWarning"]}>
               Some moves could not be loaded — the game data appears corrupted.
               Only the first {gameMoves.length} valid move{gameMoves.length !== 1 ? "s are" : " is"} shown.
             </div>
           )}
 
-          <div className={styles.movesPanel}>
-            <h3 className={styles.movesTitle}>Moves</h3>
-            <div className={styles.movesList}>{moveListElements}</div>
+          <div className={styles["movesPanel"]}>
+            <h3 className={styles["movesTitle"]}>Moves</h3>
+            <div className={styles["movesList"]}>{moveListElements}</div>
           </div>
         </div>
       </main>
@@ -1099,13 +1105,13 @@ function MainMoveCell({
 
   return (
     <span
-      className={`${styles.moveCell} ${active ? styles.moveCellActive : ""}`}
+      className={`${styles["moveCell"]} ${active ? styles["moveCellActive"] : ""}`}
       onClick={onClick}
     >
       {san}
       {classification && color && (
         <span
-          className={styles.annotationGlyph}
+          className={styles["annotationGlyph"]}
           style={{ backgroundColor: color }}
         >
           <AnnotationContent classification={classification} iconSize={16} />
@@ -1118,7 +1124,7 @@ function MainMoveCell({
 function VariationLine({
   variation,
   vi,
-  nav,
+  nav: _nav,
   isVarMoveActive,
   goToVar,
 }: {
@@ -1129,12 +1135,11 @@ function VariationLine({
   goToVar: (vi: number, mi: number) => void;
 }) {
   const startPly = variation.from;
-  const moveNumBase = Math.floor(startPly / 2) + 1;
   const isBlackFirst = startPly % 2 === 1;
 
   return (
-    <div className={styles.variationRow}>
-      <span className={styles.variationMoves}>
+    <div className={styles["variationRow"]}>
+      <span className={styles["variationMoves"]}>
         {variation.moves.map((san, mi) => {
           const ply = startPly + mi;
           const isBlack = ply % 2 === 1;
@@ -1145,12 +1150,12 @@ function VariationLine({
           return (
             <span key={mi}>
               {showNum && (
-                <span className={styles.varMoveNum}>
+                <span className={styles["varMoveNum"]}>
                   {moveNum}.{mi === 0 && isBlackFirst ? ".." : ""}
                 </span>
               )}
               <span
-                className={`${styles.varMove} ${active ? styles.varMoveActive : ""}`}
+                className={`${styles["varMove"]} ${active ? styles["varMoveActive"] : ""}`}
                 onClick={() => goToVar(vi, mi)}
               >
                 {san}

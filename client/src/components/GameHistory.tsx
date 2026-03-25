@@ -51,13 +51,13 @@ function resultLabel(outcome: "win" | "loss" | "draw" | "unknown"): string {
 function resultClass(outcome: "win" | "loss" | "draw" | "unknown"): string {
   switch (outcome) {
     case "win":
-      return styles.resultWin;
+      return styles['resultWin'] ?? "";
     case "loss":
-      return styles.resultLoss;
+      return styles['resultLoss'] ?? "";
     case "draw":
-      return styles.resultDraw;
+      return styles['resultDraw'] ?? "";
     default:
-      return styles.resultUnknown;
+      return styles['resultUnknown'] ?? "";
   }
 }
 
@@ -107,29 +107,29 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
   }, [playerName]);
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.panel}>
-          <h2 className={styles.panelTitle}>
+      <main className={styles['main']}>
+        <div className={styles['panel']}>
+          <h2 className={styles['panelTitle']}>
             My Games
             {!loading && !error && (
-              <span className={styles.gameCount}>{games.length}</span>
+              <span className={styles['gameCount']}>{games.length}</span>
             )}
           </h2>
 
-          {loading && <div className={styles.status}>Loading games...</div>}
-          {error && <div className={styles.status}>Failed to load games.</div>}
+          {loading && <div className={styles['status']}>Loading games...</div>}
+          {error && <div className={styles['status']}>Failed to load games.</div>}
 
           {!loading && !error && games.length === 0 && (
-            <div className={styles.status}>
+            <div className={styles['status']}>
               No games found. Play a game and it will appear here!
             </div>
           )}
 
           {!loading && !error && games.length > 0 && (
-            <div className={styles.gameList}>
+            <div className={styles['gameList']}>
               {games.map((game) => {
                 const outcome = resultForPlayer(game, playerName);
                 const opponent =
@@ -140,7 +140,7 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
                 return (
                   <div
                     key={game.gameId}
-                    className={styles.gameRow}
+                    className={styles['gameRow']}
                     onClick={() => navigate(`/analysis/${game.gameId}`)}
                     role="link"
                     tabIndex={0}
@@ -150,22 +150,22 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
                     }}
                   >
                     <span
-                      className={`${styles.resultDot} ${resultClass(outcome)}`}
+                      className={`${styles['resultDot']} ${resultClass(outcome)}`}
                     />
-                    <div className={styles.gameInfo}>
-                      <span className={styles.players}>
-                        <span className={styles.currentPlayer}>
+                    <div className={styles['gameInfo']}>
+                      <span className={styles['players']}>
+                        <span className={styles['currentPlayer']}>
                           {playerName}
                         </span>{" "}
                         vs {opponent}
                       </span>
-                      <span className={styles.gameMeta}>
+                      <span className={styles['gameMeta']}>
                         {game.moves.length} moves
                         {game.createdAt && ` · ${formatDate(game.createdAt)}`}
                       </span>
                     </div>
                     <span
-                      className={`${styles.resultBadge} ${resultClass(outcome)}`}
+                      className={`${styles['resultBadge']} ${resultClass(outcome)}`}
                     >
                       {resultLabel(outcome)}
                     </span>

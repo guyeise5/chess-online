@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
-import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, RoomResult, getEnv } from "../types";
+import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, getEnv } from "../types";
 import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
@@ -52,8 +52,10 @@ function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
   const board = game.board();
   for (let r = 0; r < 8; r++) {
+    const row = board[r];
+    if (!row) continue;
     for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
+      const piece = row[c];
       if (piece && piece.type === "k" && piece.color === turn) {
         return piece.square;
       }
@@ -190,7 +192,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   playerName,
                   from: currentPm.from,
                   to: currentPm.to,
-                  promotion: currentPm.promotion,
+                  ...(currentPm.promotion != null ? { promotion: currentPm.promotion } : {}),
                 },
                 (res: SocketResult) => {
                   if (res && !res.success) console.warn("Premove rejected:", res.error);
@@ -405,7 +407,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       playerWhite: room?.whitePlayer ?? "White",
       playerBlack: room?.blackPlayer ?? "Black",
       orientation: isBlack ? "black" : "white",
-      result: result ?? undefined,
+      ...(result != null ? { result } : {}),
     });
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -432,7 +434,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const showDisconnectClaim = env.FEATURE_DISCONNECT_CLAIM !== "false";
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
-    const pm = { from, to, promotion };
+    const pm = { from, to, ...(promotion != null ? { promotion } : {}) };
     setPremove(pm);
     premoveRef.current = pm;
     setPremoveSelectedSquare(null);
@@ -514,7 +516,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
 
       socket.emit(
         "game:move",
-        { roomId, playerName, from, to, promotion },
+        { roomId, playerName, from, to, ...(promotion != null ? { promotion } : {}) },
         (res: SocketResult) => {
           if (res && !res.success) {
             console.warn("Move rejected:", res.error);
@@ -524,7 +526,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
 
       try {
         const gameCopy = new Chess(fen);
-        const move = gameCopy.move({ from, to, promotion: promotion || "q" });
+        const move = gameCopy.move({ from, to, ...(promotion != null ? { promotion } : { promotion: "q" }) });
         if (move) {
           setGame(gameCopy);
           setFen(gameCopy.fen());
@@ -676,13 +678,6 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     [selectedSquare, premoveSelectedSquare, isMyTurn, myColor, status, isPlayer, game, getLegalMovesForSquare, tryMove, setPremoveData]
   );
 
-  const handleLeave = useCallback(() => {
-    if (status === "waiting" && room?.owner === playerName) {
-      socket.emit("room:leave", { roomId, playerName }, () => {});
-    }
-    navigate("/");
-  }, [status, room, roomId, playerName, navigate]);
-
   useEffect(() => {
     const onClosed = () => navigate("/", { replace: true });
     socket.on("room:closed", onClosed);
@@ -758,39 +753,39 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   for (let i = 0; i < moves.length; i += 2) {
     movePairs.push({
       num: Math.floor(i / 2) + 1,
-      white: moves[i],
-      black: moves[i + 1],
+      white: moves[i] ?? "",
+      ...(moves[i + 1] !== undefined ? { black: moves[i + 1] } : {}),
     });
   }
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onOpenSettings={onOpenSettings} inActiveGame={status === "playing"} />
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} {...(onOpenSettings ? { onOpenSettings } : {})} inActiveGame={status === "playing"} />
 
-      <main className={styles.main}>
-        <div className={styles.boardArea}>
-          <div className={styles.playerBar}>
-            <div className={styles.playerInfo}>
-              <span className={styles.playerBarName}>{topPlayer || "Waiting..."}</span>
+      <main className={styles['main']}>
+        <div className={styles['boardArea']}>
+          <div className={styles['playerBar']}>
+            <div className={styles['playerInfo']}>
+              <span className={styles['playerBarName']}>{topPlayer || "Waiting..."}</span>
               {showMaterial && <MaterialDisplay material={topMaterial} />}
             </div>
-            <div className={styles.clockRow}>
+            <div className={styles['clockRow']}>
               {isPlayer && status === "playing" && getEnv().FEATURE_GIVE_TIME !== "false" && (
                 <button
-                  className={styles.giveTimeBtn}
+                  className={styles['giveTimeBtn']}
                   onClick={() => socket.emit("game:give-time", { roomId, playerName }, () => {})}
                   title="Give 15 seconds"
                 >
                   +
                 </button>
               )}
-              <span className={`${styles.clock} ${topIsActive ? styles.clockActive : ""}${topTime <= 10 ? ` ${styles.clockLow}` : ""}`}>
+              <span className={`${styles['clock']} ${topIsActive ? styles['clockActive'] : ""}${topTime <= 10 ? ` ${styles['clockLow']}` : ""}`}>
                 {formatTime(topTime)}
               </span>
             </div>
           </div>
 
-          <div className={styles.board} style={{ position: "relative" }}>
+          <div className={styles['board']} style={{ position: "relative" }}>
             {pendingPromotion && (
               <PromotionDialog
                 color={isWhite ? "white" : "black"}
@@ -802,7 +797,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             )}
             <Chessboard
               options={{
-                pieces: boardPrefs.customPieces,
+                ...(boardPrefs.customPieces ? { pieces: boardPrefs.customPieces } : {}),
                 position: fen,
                 onPieceDrop: onDrop,
                 onPieceDrag: onPieceDrag,
@@ -848,26 +843,26 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             />
           </div>
 
-          <div className={styles.playerBar}>
-            <div className={styles.playerInfo}>
-              <span className={styles.playerBarName}>{bottomPlayer || "Waiting..."}</span>
+          <div className={styles['playerBar']}>
+            <div className={styles['playerInfo']}>
+              <span className={styles['playerBarName']}>{bottomPlayer || "Waiting..."}</span>
               {showMaterial && <MaterialDisplay material={bottomMaterial} />}
             </div>
-            <span className={`${styles.clock} ${bottomIsActive ? styles.clockActive : ""}${bottomTime <= 10 ? ` ${styles.clockLow}` : ""}`}>
+            <span className={`${styles['clock']} ${bottomIsActive ? styles['clockActive'] : ""}${bottomTime <= 10 ? ` ${styles['clockLow']}` : ""}`}>
               {formatTime(bottomTime)}
             </span>
           </div>
         </div>
 
-        <div className={styles.sidebar}>
+        <div className={styles['sidebar']}>
           {status === "waiting" && (
-            <div className={styles.waitingBanner}>
+            <div className={styles['waitingBanner']}>
               Waiting for opponent to join...
             </div>
           )}
 
           {status === "finished" && (
-            <div className={styles.resultBanner}>
+            <div className={styles['resultBanner']}>
               <strong>
                 {result === "1-0"
                   ? "White wins!"
@@ -876,10 +871,10 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   : "Draw!"}
               </strong>
               {gameOverReason && (
-                <span className={styles.reason}>by {gameOverReason}</span>
+                <span className={styles['reason']}>by {gameOverReason}</span>
               )}
               <button
-                className={styles.analyzeBtn}
+                className={styles['analyzeBtn']}
                 onClick={() => {
                   const id = roomId ?? generateGameId();
                   saveAnalysisGame(id, {
@@ -887,7 +882,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                     playerWhite: room?.whitePlayer ?? "White",
                     playerBlack: room?.blackPlayer ?? "Black",
                     orientation,
-                    result: result ?? undefined,
+                    ...(result != null ? { result } : {}),
                   });
                   navigate(`/analysis/${id}`);
                 }}
@@ -897,14 +892,14 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             </div>
           )}
 
-          <div className={styles.movesPanel}>
-            <h3 className={styles.movesTitle}>Moves</h3>
-            <div className={styles.movesList}>
+          <div className={styles['movesPanel']}>
+            <h3 className={styles['movesTitle']}>Moves</h3>
+            <div className={styles['movesList']}>
               {movePairs.map((mp) => (
-                <div key={mp.num} className={styles.movePair}>
-                  <span className={styles.moveNum}>{mp.num}.</span>
-                  <span className={styles.moveWhite}>{mp.white}</span>
-                  <span className={styles.moveBlack}>{mp.black || ""}</span>
+                <div key={mp.num} className={styles['movePair']}>
+                  <span className={styles['moveNum']}>{mp.num}.</span>
+                  <span className={styles['moveWhite']}>{mp.white}</span>
+                  <span className={styles['moveBlack']}>{mp.black || ""}</span>
                 </div>
               ))}
               <div ref={movesEndRef} />
@@ -912,19 +907,19 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           </div>
 
           {showDisconnectClaim && opponentDisconnected && isPlayer && status === "playing" && (
-            <div className={styles.disconnectBanner}>
+            <div className={styles['disconnectBanner']}>
               {disconnectClaimAvailable ? (
                 <>
                   <span>Opponent has left the game</span>
-                  <div className={styles.disconnectActions}>
+                  <div className={styles['disconnectActions']}>
                     <button
-                      className={styles.claimWinBtn}
+                      className={styles['claimWinBtn']}
                       onClick={() => socket.emit("game:claim-disconnect-win", { roomId, playerName }, () => {})}
                     >
                       Claim win
                     </button>
                     <button
-                      className={styles.claimDrawBtn}
+                      className={styles['claimDrawBtn']}
                       onClick={() => socket.emit("game:claim-disconnect-draw", { roomId, playerName }, () => {})}
                     >
                       Claim draw
@@ -940,23 +935,23 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           {isPlayer && status === "playing" && (
             <>
               {undoRequester && undoRequester !== playerName && (
-                <div className={styles.requestLabel}>Takeback requested</div>
+                <div className={styles['requestLabel']}>Takeback requested</div>
               )}
               {showDrawOffer && drawOfferer && drawOfferer !== playerName && (
-                <div className={styles.requestLabel}>Draw offered</div>
+                <div className={styles['requestLabel']}>Draw offered</div>
               )}
-              <div className={styles.gameActions}>
+              <div className={styles['gameActions']}>
                 {undoRequester && undoRequester !== playerName ? (
                   <>
                     <button
-                      className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                      className={`${styles['actionBtn']} ${styles['actionConfirm']}`}
                       onClick={() => socket.emit("game:undo-response", { roomId, accepted: true })}
                       title="Accept takeback"
                     >
                       ✓
                     </button>
                     <button
-                      className={`${styles.actionBtn} ${styles.actionCancel}`}
+                      className={`${styles['actionBtn']} ${styles['actionCancel']}`}
                       onClick={() => socket.emit("game:undo-response", { roomId, accepted: false })}
                       title="Decline takeback"
                     >
@@ -965,7 +960,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   </>
                 ) : (
                   <button
-                    className={styles.actionBtn}
+                    className={styles['actionBtn']}
                     disabled={moves.length === 0 || undoPending}
                     onClick={() => {
                       setUndoPending(true);
@@ -982,14 +977,14 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                     {drawOfferer && drawOfferer !== playerName ? (
                       <>
                         <button
-                          className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                          className={`${styles['actionBtn']} ${styles['actionConfirm']}`}
                           onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: true })}
                           title="Accept draw"
                         >
                           ✓
                         </button>
                         <button
-                          className={`${styles.actionBtn} ${styles.actionCancel}`}
+                          className={`${styles['actionBtn']} ${styles['actionCancel']}`}
                           onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: false })}
                           title="Decline draw"
                         >
@@ -998,7 +993,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                       </>
                     ) : drawConfirm ? (
                       <button
-                        className={`${styles.actionBtn} ${styles.actionDrawArmed}`}
+                        className={`${styles['actionBtn']} ${styles['actionDrawArmed']}`}
                         onClick={confirmDrawOffer}
                         title="Click again to confirm draw offer"
                       >
@@ -1006,7 +1001,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                       </button>
                     ) : (
                       <button
-                        className={styles.actionBtn}
+                        className={styles['actionBtn']}
                         disabled={drawOfferPending}
                         onClick={startDrawConfirm}
                         title={drawOfferPending ? "Draw offered" : "Offer draw"}
@@ -1018,7 +1013,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                 )}
 
                 <button
-                  className={`${styles.actionBtn} ${resignConfirm ? styles.actionResignArmed : ""}`}
+                  className={`${styles['actionBtn']} ${resignConfirm ? styles['actionResignArmed'] : ""}`}
                   onClick={resignConfirm ? confirmResign : startResignConfirm}
                   title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
                 >

@@ -182,16 +182,23 @@ export default function ScoreGraph({
       const ys = clamped.map((s) => evalY(s, h));
 
       for (let i = 0; i < n - 1; i++) {
-        drawSegmentFill(
-          ctx,
-          xs[i],
-          ys[i],
-          xs[i + 1],
-          ys[i + 1],
-          clamped[i],
-          clamped[i + 1],
-          midY
-        );
+        const x0 = xs[i];
+        const y0 = ys[i];
+        const x1 = xs[i + 1];
+        const y1 = ys[i + 1];
+        const c0 = clamped[i];
+        const c1 = clamped[i + 1];
+        if (
+          x0 === undefined ||
+          y0 === undefined ||
+          x1 === undefined ||
+          y1 === undefined ||
+          c0 === undefined ||
+          c1 === undefined
+        ) {
+          continue;
+        }
+        drawSegmentFill(ctx, x0, y0, x1, y1, c0, c1, midY);
       }
 
       ctx.strokeStyle = LINE_EVAL;
@@ -199,9 +206,16 @@ export default function ScoreGraph({
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(xs[0], ys[0]);
-      for (let i = 1; i < n; i++) {
-        ctx.lineTo(xs[i], ys[i]);
+      const xStart = xs[0];
+      const yStart = ys[0];
+      if (xStart !== undefined && yStart !== undefined) {
+        ctx.moveTo(xStart, yStart);
+        for (let i = 1; i < n; i++) {
+          const xi = xs[i];
+          const yi = ys[i];
+          if (xi === undefined || yi === undefined) continue;
+          ctx.lineTo(xi, yi);
+        }
       }
       ctx.stroke();
 
@@ -238,10 +252,10 @@ export default function ScoreGraph({
   );
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div ref={containerRef} className={styles['container']}>
       <canvas
         ref={canvasRef}
-        className={styles.canvas}
+        className={styles['canvas']}
         onClick={handleClick}
       />
     </div>

@@ -387,8 +387,15 @@ export function useStockfishAnalysis(
             const delta = whiteToMoveBefore
               ? wcBefore - wcAfter
               : wcAfter - wcBefore;
-            const playedUci = sanToUci(fens[i - 1]!, sanMoves[i - 1]);
-            const isBest = !!prev.bestMove && playedUci === prev.bestMove;
+            const prevSan = sanMoves[i - 1];
+            const playedUci =
+              typeof prevSan === "string"
+                ? sanToUci(fens[i - 1]!, prevSan)
+                : "";
+            const isBest =
+              !!prev.bestMove &&
+              playedUci !== "" &&
+              playedUci === prev.bestMove;
             entry.classification = classifyMove(Math.max(0, delta), isBest);
           }
         }

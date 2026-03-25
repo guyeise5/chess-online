@@ -3,8 +3,8 @@ import readline from "readline";
 import mongoose from "mongoose";
 import Puzzle from "../models/Puzzle";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chess-online";
-const CSV_PATH = process.env.CSV_PATH || "/tmp/lichess_db_puzzle.csv";
+const MONGO_URI = process.env["MONGO_URI"] || "mongodb://localhost:27017/chess-online";
+const CSV_PATH = process.env["CSV_PATH"] || "/tmp/lichess_db_puzzle.csv";
 const BATCH_SIZE = 5000;
 const MIN_POPULARITY = 0;
 
@@ -42,22 +42,42 @@ async function importPuzzles() {
     const fields = line.split(",");
     if (fields.length < 8) continue;
 
-    const popularity = parseInt(fields[5], 10);
+    const puzzleId = fields[0];
+    const fen = fields[1];
+    const movesStr = fields[2];
+    const ratingStr = fields[3];
+    const rdStr = fields[4];
+    const popStr = fields[5];
+    const nbPlaysStr = fields[6];
+    const themesStr = fields[7];
+    if (
+      puzzleId === undefined ||
+      fen === undefined ||
+      movesStr === undefined ||
+      ratingStr === undefined ||
+      rdStr === undefined ||
+      popStr === undefined ||
+      nbPlaysStr === undefined
+    ) {
+      continue;
+    }
+
+    const popularity = parseInt(popStr, 10);
     if (popularity < MIN_POPULARITY) {
       skipped++;
       continue;
     }
 
     batch.push({
-      puzzleId: fields[0],
-      fen: fields[1],
-      moves: fields[2].split(" "),
-      rating: parseInt(fields[3], 10),
-      ratingDeviation: parseInt(fields[4], 10),
+      puzzleId,
+      fen,
+      moves: movesStr.split(" "),
+      rating: parseInt(ratingStr, 10),
+      ratingDeviation: parseInt(rdStr, 10),
       popularity: popularity,
-      nbPlays: parseInt(fields[6], 10),
-      themes: fields[7] ? fields[7].split(" ") : [],
-      gameUrl: fields[8] || "",
+      nbPlays: parseInt(nbPlaysStr, 10),
+      themes: themesStr ? themesStr.split(" ") : [],
+      gameUrl: fields[8] ?? "",
       openingTags: fields[9] ? fields[9].split(" ") : [],
     });
 

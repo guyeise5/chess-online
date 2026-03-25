@@ -10,8 +10,8 @@ import { registerSocketHandlers } from "./socket/handlers";
 
 dotenv.config();
 
-const PORT = parseInt(process.env.PORT || "3001", 10);
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chess-online";
+const PORT = parseInt(process.env["PORT"] || "3001", 10);
+const MONGO_URI = process.env["MONGO_URI"] || "mongodb://localhost:27017/chess-online";
 
 const app = express();
 app.use(cors());
@@ -24,7 +24,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || "*",
+    origin: process.env["CLIENT_ORIGIN"] || "*",
     methods: ["GET", "POST"],
   },
 });
@@ -65,7 +65,7 @@ async function main() {
 
   app.get("/api/puzzles/random", async (req, res) => {
     try {
-      const ratingParam = Array.isArray(req.query.rating) ? req.query.rating[0] : req.query.rating;
+      const ratingParam = Array.isArray(req.query["rating"]) ? req.query["rating"][0] : req.query["rating"];
       const parsed = parseInt(String(ratingParam ?? ""), 10);
       const rating = Number.isFinite(parsed) ? parsed : 1500;
       const range = 15;
@@ -116,7 +116,7 @@ async function main() {
     }
   });
 
-  if (process.env.FEATURE_OPENING_BOOK !== "false") {
+  if (process.env["FEATURE_OPENING_BOOK"] !== "false") {
     const BookPosition = (await import("./models/BookPosition")).default;
 
     app.post("/api/openings/check", async (req, res) => {
@@ -142,7 +142,7 @@ async function main() {
     });
   }
 
-  if (process.env.FEATURE_GAME_STORAGE !== "false") {
+  if (process.env["FEATURE_GAME_STORAGE"] !== "false") {
     const Game = (await import("./models/Game")).default;
 
     app.post("/api/games/:gameId", async (req, res) => {
@@ -203,10 +203,10 @@ async function main() {
       }
     });
 
-    if (process.env.FEATURE_GAME_HISTORY !== "false") {
+    if (process.env["FEATURE_GAME_HISTORY"] !== "false") {
       app.get("/api/games", async (req, res) => {
         try {
-          const playerParam = Array.isArray(req.query.player) ? req.query.player[0] : req.query.player;
+          const playerParam = Array.isArray(req.query["player"]) ? req.query["player"][0] : req.query["player"];
           const player = typeof playerParam === "string" ? playerParam : "";
           if (!player) {
             res.status(400).json({ error: "player query parameter is required" });

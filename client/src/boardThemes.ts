@@ -74,5 +74,9 @@ export const DEFAULT_BOARD = "brown";
 export const DEFAULT_PIECES = "cburnett";
 
 export function getBoardTheme(name: string): BoardTheme {
-  return BOARD_THEMES.find((t) => t.name === name) ?? BOARD_THEMES[0];
+  const found = BOARD_THEMES.find((t) => t.name === name);
+  if (found) return found;
+  const first = BOARD_THEMES[0];
+  if (first) return first;
+  throw new Error("BOARD_THEMES must not be empty");
 }

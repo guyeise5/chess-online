@@ -41,49 +41,49 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
   };
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.setupPanel}>
-          <div className={styles.colorRow}>
+      <main className={styles['main']}>
+        <div className={styles['setupPanel']}>
+          <div className={styles['colorRow']}>
             <button
-              className={`${styles.colorOption} ${color === "white" ? styles.colorOptionActive : ""}`}
+              className={`${styles['colorOption']} ${color === "white" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("white"); localStorage.setItem("computer:colorChoice", "white"); }}
               title="White"
             >
-              <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
+              <div className={styles['pieceIcon']}><PieceImg piece="wK" piecesName={piecesName} /></div>
             </button>
             <button
-              className={`${styles.colorOption} ${color === "random" ? styles.colorOptionActive : ""}`}
+              className={`${styles['colorOption']} ${color === "random" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("random"); localStorage.setItem("computer:colorChoice", "random"); }}
               title="Random"
             >
-              <div className={styles.pieceIcon}>
-                <div className={styles.halfPieceWrap}>
-                  <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
-                  <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+              <div className={styles['pieceIcon']}>
+                <div className={styles['halfPieceWrap']}>
+                  <div className={styles['halfLeft']}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                  <div className={styles['halfRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                 </div>
               </div>
             </button>
             <button
-              className={`${styles.colorOption} ${color === "black" ? styles.colorOptionActive : ""}`}
+              className={`${styles['colorOption']} ${color === "black" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("black"); localStorage.setItem("computer:colorChoice", "black"); }}
               title="Black"
             >
-              <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
+              <div className={styles['pieceIcon']}><PieceImg piece="bK" piecesName={piecesName} /></div>
             </button>
           </div>
 
-          <div className={styles.levelGrid}>
+          <div className={styles['levelGrid']}>
             {STOCKFISH_LEVELS.map((l) => (
               <button
                 key={l.level}
-                className={styles.levelBtn}
+                className={styles['levelBtn']}
                 onClick={() => handlePlay(l.level)}
               >
-                <span className={styles.levelNum}>{l.level}</span>
-                <span className={styles.levelRating}>{l.rating}</span>
+                <span className={styles['levelNum']}>{l.level}</span>
+                <span className={styles['levelRating']}>{l.rating}</span>
               </button>
             ))}
           </div>

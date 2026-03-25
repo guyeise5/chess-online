@@ -41,8 +41,10 @@ function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
   const board = game.board();
   for (let r = 0; r < 8; r++) {
+    const row = board[r];
+    if (!row) continue;
     for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
+      const piece = row[c];
       if (piece && piece.type === "k" && piece.color === turn) {
         return piece.square;
       }
@@ -133,7 +135,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
       level, color,
       fen, status, result, gameOverReason,
       moves, lastMove,
-      analysisId: analysisId ?? undefined,
+      ...(analysisId != null ? { analysisId } : {}),
     });
   }, [level, color, fen, status, result, gameOverReason, moves, lastMove, analysisId]);
 
@@ -199,7 +201,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
       promotion?: string
     ): Chess | null => {
       try {
-        const move = g.move({ from, to, promotion });
+        const move = g.move({ from, to, ...(promotion != null ? { promotion } : {}) });
         if (!move) return null;
         const newGame = new Chess(g.fen());
         gameRef.current = newGame;
@@ -265,7 +267,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
       playerWhite: isPlayerWhite ? playerName : `Stockfish ${levelConfig.label}`,
       playerBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : playerName,
       orientation: color,
-      result: result ?? undefined,
+      ...(result != null ? { result } : {}),
     });
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -512,7 +514,9 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     const history = g.history({ verbose: true });
     if (history.length > 0) {
       const last = history[history.length - 1];
-      setLastMove({ from: last.from, to: last.to });
+      if (last) {
+        setLastMove({ from: last.from, to: last.to });
+      }
     } else {
       setLastMove(null);
     }
@@ -547,23 +551,23 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
   for (let i = 0; i < moves.length; i += 2) {
     movePairs.push({
       num: Math.floor(i / 2) + 1,
-      white: moves[i],
-      black: moves[i + 1],
+      white: moves[i] ?? "",
+      ...(moves[i + 1] !== undefined ? { black: moves[i + 1] } : {}),
     });
   }
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onOpenSettings={onOpenSettings} />
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.boardArea}>
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{topPlayerName}</span>
+      <main className={styles['main']}>
+        <div className={styles['boardArea']}>
+          <div className={styles['playerBar']}>
+            <span className={styles['playerBarName']}>{topPlayerName}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
 
-          <div className={styles.board} style={{ position: "relative" }}>
+          <div className={styles['board']} style={{ position: "relative" }}>
             {pendingPromotion && (
               <PromotionDialog
                 color={color}
@@ -581,7 +585,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
             )}
             <Chessboard
               options={{
-                pieces: boardPrefs.customPieces,
+                ...(boardPrefs.customPieces ? { pieces: boardPrefs.customPieces } : {}),
                 position: fen,
                 onPieceDrop: onDrop,
                 onPieceDrag: onPieceDrag,
@@ -623,19 +627,19 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
             />
           </div>
 
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{bottomPlayerName}</span>
+          <div className={styles['playerBar']}>
+            <span className={styles['playerBarName']}>{bottomPlayerName}</span>
             {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
         </div>
 
-        <div className={styles.sidebar}>
+        <div className={styles['sidebar']}>
           {computerThinking && status === "playing" && (
-            <div className={styles.thinkingBanner}>Stockfish is thinking...</div>
+            <div className={styles['thinkingBanner']}>Stockfish is thinking...</div>
           )}
 
           {status === "finished" && (
-            <div className={styles.resultBanner}>
+            <div className={styles['resultBanner']}>
               <strong>
                 {result === "1-0"
                   ? "White wins!"
@@ -644,10 +648,10 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
                     : "Draw!"}
               </strong>
               {gameOverReason && (
-                <span className={styles.reason}>by {gameOverReason}</span>
+                <span className={styles['reason']}>by {gameOverReason}</span>
               )}
               <button
-                className={styles.newGameBtn}
+                className={styles['newGameBtn']}
                 onClick={() => {
                   let id = analysisId;
                   if (!id) {
@@ -662,7 +666,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
                         ? `Stockfish ${levelConfig.label}`
                         : playerName,
                       orientation: color,
-                      result: result ?? undefined,
+                      ...(result != null ? { result } : {}),
                     });
                   }
                   navigate(`/analysis/${id}`);
@@ -670,20 +674,20 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
               >
                 Analyze
               </button>
-              <button className={styles.newGameBtn} onClick={handleNewGame}>
+              <button className={styles['newGameBtn']} onClick={handleNewGame}>
                 New Game
               </button>
             </div>
           )}
 
-          <div className={styles.movesPanel}>
-            <h3 className={styles.movesTitle}>Moves</h3>
-            <div className={styles.movesList}>
+          <div className={styles['movesPanel']}>
+            <h3 className={styles['movesTitle']}>Moves</h3>
+            <div className={styles['movesList']}>
               {movePairs.map((mp) => (
-                <div key={mp.num} className={styles.movePair}>
-                  <span className={styles.moveNum}>{mp.num}.</span>
-                  <span className={styles.moveWhite}>{mp.white}</span>
-                  <span className={styles.moveBlack}>{mp.black || ""}</span>
+                <div key={mp.num} className={styles['movePair']}>
+                  <span className={styles['moveNum']}>{mp.num}.</span>
+                  <span className={styles['moveWhite']}>{mp.white}</span>
+                  <span className={styles['moveBlack']}>{mp.black || ""}</span>
                 </div>
               ))}
               <div ref={movesEndRef} />
@@ -691,9 +695,9 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
           </div>
 
           {status === "playing" && (
-            <div className={styles.gameActions}>
+            <div className={styles['gameActions']}>
               <button
-                className={styles.actionBtn}
+                className={styles['actionBtn']}
                 disabled={moves.length === 0}
                 onClick={handleUndo}
                 title="Takeback"
@@ -701,7 +705,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
                 ↶
               </button>
               <button
-                className={`${styles.actionBtn} ${resignConfirm ? styles.actionResignArmed : ""}`}
+                className={`${styles['actionBtn']} ${resignConfirm ? styles['actionResignArmed'] : ""}`}
                 onClick={resignConfirm ? confirmResign : startResignConfirm}
                 title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
               >

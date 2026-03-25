@@ -71,7 +71,7 @@ export class GameManager {
   }
 
   async getPrivateRoomInfo(roomId: string): Promise<IRoom | null> {
-    if (process.env.FEATURE_PRIVATE_GAMES === "false") return null;
+    if (process.env["FEATURE_PRIVATE_GAMES"] === "false") return null;
     const room = await Room.findOne({ roomId, isPrivate: true });
     if (!room) return null;
     return room;
@@ -343,7 +343,7 @@ export class GameManager {
     roomId: string,
     giverName: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (process.env.FEATURE_GIVE_TIME === "false") {
+    if (process.env["FEATURE_GIVE_TIME"] === "false") {
       return { success: false, error: "Feature disabled" };
     }
 
@@ -377,7 +377,7 @@ export class GameManager {
     roomId: string,
     playerName: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (process.env.FEATURE_DRAW_OFFER === "false") {
+    if (process.env["FEATURE_DRAW_OFFER"] === "false") {
       return { success: false, error: "Feature disabled" };
     }
 
@@ -494,7 +494,7 @@ export class GameManager {
   }
 
   async handlePlayerDisconnect(roomId: string, playerName: string): Promise<void> {
-    if (process.env.FEATURE_DISCONNECT_CLAIM === "false") return;
+    if (process.env["FEATURE_DISCONNECT_CLAIM"] === "false") return;
 
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return;

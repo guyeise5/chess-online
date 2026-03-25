@@ -26,21 +26,20 @@ export function formatEvalLabel(score: number): string {
 export default function EvalBar({ score, orientation }: Props) {
   const whitePercent = evalWhitePercent(score);
   const label = formatEvalLabel(score);
-  const whiteAdv = score >= 0;
 
   const bottomIsWhite = orientation === "white";
-  const labelClass = [styles.label, styles.labelBottom];
+  const labelClass = [styles['label'], styles['labelBottom']];
   const labelStyle: CSSProperties = {
     color: bottomIsWhite ? "#403d39" : "#e8e6e1",
   };
 
   return (
     <div
-      className={`${styles.container} ${orientation === "black" ? styles.containerFlipped : ""}`}
+      className={`${styles['container']} ${orientation === "black" ? styles['containerFlipped'] : ""}`}
       aria-label={`Evaluation ${label}`}
     >
       <div
-        className={styles.whiteSide}
+        className={styles['whiteSide']}
         style={{ height: `${whitePercent}%` }}
       />
       <div className={labelClass.join(" ")} style={labelStyle}>

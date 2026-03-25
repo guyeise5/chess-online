@@ -3,9 +3,9 @@ import styles from "./Footer.module.css";
 
 export default function Footer() {
   return (
-    <footer className={styles.watermark}>
+    <footer className={styles['watermark']}>
       {getEnv().AUTHOR_URL ? (
-        <a href={getEnv().AUTHOR_URL} target="_blank" rel="noopener noreferrer" className={styles.watermarkLink}>
+        <a href={getEnv().AUTHOR_URL} target="_blank" rel="noopener noreferrer" className={styles['watermarkLink']}>
           &copy; Guy Eisenbach
         </a>
       ) : (

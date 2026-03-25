@@ -78,8 +78,10 @@ function findKingSquare(game: Chess): string | null {
   const turn = game.turn();
   const board = game.board();
   for (let r = 0; r < 8; r++) {
+    const row = board[r];
+    if (!row) continue;
     for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
+      const piece = row[c];
       if (piece && piece.type === "k" && piece.color === turn) {
         return piece.square;
       }
@@ -101,7 +103,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const [fen, setFen] = useState("start");
   const [status, setStatus] = useState<PuzzleStatus>("loading");
   const [playerRating, setPlayerRating] = useState(getRating);
-  const [puzzleCount, setPuzzleCount] = useState(getPuzzleCount);
+  const [, setPuzzleCount] = useState(getPuzzleCount);
   const [moveIndex, setMoveIndex] = useState(0);
   const [playedMoves, setPlayedMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -155,6 +157,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
 
       const g = new Chess(data.fen);
       const opponentMove = data.moves[0];
+      if (!opponentMove) return;
       const from = opponentMove.slice(0, 2);
       const to = opponentMove.slice(2, 4);
       const promotion = opponentMove.length > 4 ? opponentMove[4] : undefined;
@@ -164,7 +167,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       setStatus("showing");
 
       setTimeout(() => {
-        const m = g.move({ from, to, promotion });
+        const m = g.move({ from, to, ...(promotion ? { promotion } : {}) });
         if (!m) return;
         setGame(g);
         setFen(g.fen());
@@ -239,7 +242,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       }
 
       const gameCopy = new Chess(game.fen());
-      const move = gameCopy.move({ from, to, promotion });
+      const move = gameCopy.move({ from, to, ...(promotion ? { promotion } : {}) });
       if (!move) return false;
 
       setGame(gameCopy);
@@ -267,13 +270,21 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       }
 
       const replyUci = puzzle.moves[nextIndex];
+      if (!replyUci) {
+        setMoveIndex(nextIndex);
+        return true;
+      }
       const replyFrom = replyUci.slice(0, 2);
       const replyTo = replyUci.slice(2, 4);
       const replyPromo = replyUci.length > 4 ? replyUci[4] : undefined;
 
       setTimeout(() => {
         const afterReply = new Chess(gameCopy.fen());
-        const replyMove = afterReply.move({ from: replyFrom, to: replyTo, promotion: replyPromo });
+        const replyMove = afterReply.move({
+          from: replyFrom,
+          to: replyTo,
+          ...(replyPromo ? { promotion: replyPromo } : {}),
+        });
         if (replyMove) {
           setGame(afterReply);
           setFen(afterReply.fen());
@@ -303,7 +314,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       const to = uci.slice(2, 4);
       const promo = uci.length > 4 ? uci[4] : undefined;
       const snapshot = new Chess(g.fen());
-      const move = snapshot.move({ from, to, promotion: promo });
+      const move = snapshot.move({ from, to, ...(promo ? { promotion: promo } : {}) });
       if (!move) break;
       const newFen = snapshot.fen();
       const san = move.san;
@@ -456,29 +467,30 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const showMaterial = getEnv().FEATURE_MATERIAL_DIFF !== "false";
 
   if (status === "loading" || !puzzle) {
-    return <div className={styles.loading}>Loading puzzle...</div>;
+    return <div className={styles['loading']}>Loading puzzle...</div>;
   }
 
   const movePairs: { num: number; white: string; black?: string }[] = [];
   for (let i = 0; i < playedMoves.length; i += 2) {
+    const black = playedMoves[i + 1];
     movePairs.push({
       num: Math.floor(i / 2) + 1,
-      white: playedMoves[i],
-      black: playedMoves[i + 1],
+      white: playedMoves[i] ?? "",
+      ...(black !== undefined ? { black } : {}),
     });
   }
 
   return (
-    <div className={styles.container}>
-      <NavBar onOpenSettings={onOpenSettings} />
+    <div className={styles['container']}>
+      <NavBar {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.boardArea}>
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{isPlayerWhite ? "Black" : "White"}</span>
+      <main className={styles['main']}>
+        <div className={styles['boardArea']}>
+          <div className={styles['playerBar']}>
+            <span className={styles['playerBarName']}>{isPlayerWhite ? "Black" : "White"}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
-          <div className={styles.board} style={{ position: "relative" }}>
+          <div className={styles['board']} style={{ position: "relative" }}>
             {pendingPromotion && (
               <PromotionDialog
                 color={orientation}
@@ -490,7 +502,11 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
             )}
             <Chessboard
               options={{
-                pieces: boardPrefs.piecesName === BLINDFOLD_PIECES ? undefined : boardPrefs.customPieces,
+                ...(boardPrefs.piecesName === BLINDFOLD_PIECES
+                  ? {}
+                  : boardPrefs.customPieces
+                    ? { pieces: boardPrefs.customPieces }
+                    : {}),
                 position: fen,
                 onPieceDrop: onDrop,
                 onPieceDrag: onPieceDrag,
@@ -537,31 +553,31 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
               }}
             />
           </div>
-          <div className={styles.playerBar}>
-            <span className={styles.playerBarName}>{isPlayerWhite ? "White" : "Black"}</span>
+          <div className={styles['playerBar']}>
+            <span className={styles['playerBarName']}>{isPlayerWhite ? "White" : "Black"}</span>
             {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
         </div>
 
-        <div className={styles.sidebar}>
-          <div className={styles.playerRating}>
-            <span className={styles.label}>Your Puzzle Rating</span>
-            <span className={styles.value}>{playerRating}</span>
+        <div className={styles['sidebar']}>
+          <div className={styles['playerRating']}>
+            <span className={styles['label']}>Your Puzzle Rating</span>
+            <span className={styles['value']}>{playerRating}</span>
           </div>
 
           <div
-            className={`${styles.statusBanner} ${
+            className={`${styles['statusBanner']} ${
               status === "showing" || status === "solving"
                 ? wrongFlash
-                  ? styles.statusWrong
+                  ? styles['statusWrong']
                   : hasFailed
-                  ? styles.statusRetry
-                  : styles.statusSolving
+                  ? styles['statusRetry']
+                  : styles['statusSolving']
                 : status === "correct"
                 ? hasFailed
-                  ? styles.statusRetry
-                  : styles.statusCorrect
-                : styles.statusFailed
+                  ? styles['statusRetry']
+                  : styles['statusCorrect']
+                : styles['statusFailed']
             }`}
           >
             {status === "showing" && "Opponent is playing..."}
@@ -579,15 +595,15 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
           </div>
 
           {(status === "correct" || status === "failed") && (
-            <div className={styles.puzzleInfo}>
-              <div className={styles.puzzleRating}>
+            <div className={styles['puzzleInfo']}>
+              <div className={styles['puzzleRating']}>
                 <span>Puzzle Rating</span>
                 <span>{puzzle.rating}</span>
               </div>
               {puzzle.themes.length > 0 && (
-                <div className={styles.themes}>
+                <div className={styles['themes']}>
                   {puzzle.themes.map((t) => (
-                    <span key={t} className={styles.theme}>
+                    <span key={t} className={styles['theme']}>
                       {t}
                     </span>
                   ))}
@@ -596,14 +612,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
             </div>
           )}
 
-          <div className={styles.movesPanel}>
-            <h3 className={styles.movesTitle}>Moves</h3>
-            <div className={styles.movesList}>
+          <div className={styles['movesPanel']}>
+            <h3 className={styles['movesTitle']}>Moves</h3>
+            <div className={styles['movesList']}>
               {movePairs.map((mp) => (
-                <div key={mp.num} className={styles.movePair}>
-                  <span className={styles.moveNum}>{mp.num}.</span>
-                  <span className={styles.moveWhite}>{mp.white}</span>
-                  <span className={styles.moveBlack}>{mp.black || ""}</span>
+                <div key={mp.num} className={styles['movePair']}>
+                  <span className={styles['moveNum']}>{mp.num}.</span>
+                  <span className={styles['moveWhite']}>{mp.white}</span>
+                  <span className={styles['moveBlack']}>{mp.black || ""}</span>
                 </div>
               ))}
               <div ref={movesEndRef} />
@@ -611,10 +627,10 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
           </div>
 
           {status === "solving" && (
-            <div className={styles.hintRow}>
+            <div className={styles['hintRow']}>
               {hintLevel < 2 && (
                 <button
-                  className={styles.hintBtn}
+                  className={styles['hintBtn']}
                   onClick={() => {
                     if (!hasFailed && puzzle) {
                       const count = incrementPuzzleCount();
@@ -632,7 +648,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                 </button>
               )}
               {hasFailed && (
-                <button className={styles.showSolutionBtn} onClick={showSolution}>
+                <button className={styles['showSolutionBtn']} onClick={showSolution}>
                   Show Solution
                 </button>
               )}
@@ -640,7 +656,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
           )}
 
           {(status === "correct" || status === "failed") && (
-            <button className={styles.nextBtn} onClick={() => fetchPuzzle()}>
+            <button className={styles['nextBtn']} onClick={() => fetchPuzzle()}>
               Next Puzzle
             </button>
           )}

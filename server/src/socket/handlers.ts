@@ -45,7 +45,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         try {
           if (!isObj(data)) { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
           const isPrivate = data.isPrivate === true;
-          if (isPrivate && process.env.FEATURE_PRIVATE_GAMES === "false") {
+          if (isPrivate && process.env["FEATURE_PRIVATE_GAMES"] === "false") {
             safeCallback(callback, { success: false, error: "Feature disabled" });
             return;
           }

@@ -47,7 +47,7 @@ function PieceIcon({ type }: { type: PieceType }) {
   const { viewBox, d } = PIECE_PATHS[type];
   return (
     <svg
-      className={styles.pieceIcon}
+      className={styles['pieceIcon']}
       xmlns="http://www.w3.org/2000/svg"
       viewBox={viewBox}
     >
@@ -66,14 +66,14 @@ export default function MaterialDisplay({ material }: Props) {
   if (material.pieces.length === 0 && material.points === 0) return null;
 
   return (
-    <span className={styles.container}>
+    <span className={styles['container']}>
       {material.pieces.map(({ type, count }) =>
         Array.from({ length: count }, (_, i) => (
           <PieceIcon key={`${type}${i}`} type={type} />
         ))
       )}
       {material.points > 0 && (
-        <span className={styles.points}>+{material.points}</span>
+        <span className={styles['points']}>+{material.points}</span>
       )}
     </span>
   );

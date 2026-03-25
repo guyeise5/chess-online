@@ -61,13 +61,13 @@ function classifyTime(minutes: number, increment: number): string {
 }
 
 function ColorIcon({ choice, piecesName }: { choice: ColorChoice; piecesName: string }) {
-  if (choice === "white") return <div className={styles.colorIconWrap}><PieceImg piece="wK" piecesName={piecesName} /></div>;
-  if (choice === "black") return <div className={styles.colorIconWrap}><PieceImg piece="bK" piecesName={piecesName} /></div>;
+  if (choice === "white") return <div className={styles['colorIconWrap']}><PieceImg piece="wK" piecesName={piecesName} /></div>;
+  if (choice === "black") return <div className={styles['colorIconWrap']}><PieceImg piece="bK" piecesName={piecesName} /></div>;
   return (
-    <div className={styles.colorIconWrap}>
-      <div className={styles.halfPieceSmall}>
-        <div className={styles.halfSmallLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
-        <div className={styles.halfSmallRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+    <div className={styles['colorIconWrap']}>
+      <div className={styles['halfPieceSmall']}>
+        <div className={styles['halfSmallLeft']}><PieceImg piece="wK" piecesName={piecesName} /></div>
+        <div className={styles['halfSmallRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
       </div>
     </div>
   );
@@ -299,64 +299,64 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
   const isCustomWaiting = waitingPreset?.startsWith("custom:");
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
-      <main className={styles.main}>
-        <div className={styles.layout}>
+      <main className={styles['main']}>
+        <div className={styles['layout']}>
           {/* Left: Game setup */}
-          <div className={styles.setupPanel}>
-            <div className={styles.colorRow}>
+          <div className={styles['setupPanel']}>
+            <div className={styles['colorRow']}>
               <button
-                className={`${styles.colorOption} ${colorChoice === "white" ? styles.colorOptionActive : ""}`}
+                className={`${styles['colorOption']} ${colorChoice === "white" ? styles['colorOptionActive'] : ""}`}
                 onClick={() => handleColorChange("white")}
                 title="White"
               >
-                <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                <div className={styles['pieceIcon']}><PieceImg piece="wK" piecesName={piecesName} /></div>
               </button>
               <button
-                className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
+                className={`${styles['colorOption']} ${colorChoice === "random" ? styles['colorOptionActive'] : ""}`}
                 onClick={() => handleColorChange("random")}
                 title="Random"
               >
-                <div className={styles.pieceIcon}>
-                  <div className={styles.halfPieceWrap}>
-                    <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
-                    <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                <div className={styles['pieceIcon']}>
+                  <div className={styles['halfPieceWrap']}>
+                    <div className={styles['halfLeft']}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                    <div className={styles['halfRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                   </div>
                 </div>
               </button>
               <button
-                className={`${styles.colorOption} ${colorChoice === "black" ? styles.colorOptionActive : ""}`}
+                className={`${styles['colorOption']} ${colorChoice === "black" ? styles['colorOptionActive'] : ""}`}
                 onClick={() => handleColorChange("black")}
                 title="Black"
               >
-                <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                <div className={styles['pieceIcon']}><PieceImg piece="bK" piecesName={piecesName} /></div>
               </button>
             </div>
 
-            <div className={styles.presetGrid}>
+            <div className={styles['presetGrid']}>
               {PRESETS.map((p) => (
                 <button
                   key={p.label}
-                  className={`${styles.presetBtn} ${waitingPreset === p.label ? styles.presetBtnWaiting : ""}`}
+                  className={`${styles['presetBtn']} ${waitingPreset === p.label ? styles['presetBtnWaiting'] : ""}`}
                   onClick={() => handlePresetClick(p)}
                 >
-                  <span className={styles.presetTime}>{p.label}</span>
-                  <span className={styles.presetCategory}>{classifyTime(p.time / 60, p.increment)}</span>
+                  <span className={styles['presetTime']}>{p.label}</span>
+                  <span className={styles['presetCategory']}>{classifyTime(p.time / 60, p.increment)}</span>
                 </button>
               ))}
               <button
-                className={`${styles.presetBtn} ${showCustom ? styles.presetBtnActive : ""} ${isCustomWaiting ? styles.presetBtnWaiting : ""}`}
+                className={`${styles['presetBtn']} ${showCustom ? styles['presetBtnActive'] : ""} ${isCustomWaiting ? styles['presetBtnWaiting'] : ""}`}
                 onClick={() => setShowCustom(!showCustom)}
               >
-                <span className={styles.presetTime}>Custom</span>
+                <span className={styles['presetTime']}>Custom</span>
               </button>
             </div>
 
             {privateGamesEnabled && (
               <button
-                className={styles.privateBtn}
+                className={styles['privateBtn']}
                 onClick={() => setShowPrivate(true)}
               >
                 Create Private Game
@@ -365,23 +365,23 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
           </div>
 
           {/* Right: Room list table */}
-          <div className={styles.tablePanel}>
-            <div className={styles.tableHeader}>
-              <span className={styles.thPlayer}>Player</span>
-              <span className={styles.thTime}>Time</span>
-              <span className={styles.thMode}>Mode</span>
+          <div className={styles['tablePanel']}>
+            <div className={styles['tableHeader']}>
+              <span className={styles['thPlayer']}>Player</span>
+              <span className={styles['thTime']}>Time</span>
+              <span className={styles['thMode']}>Mode</span>
             </div>
 
             {rooms.length === 0 ? (
-              <div className={styles.empty}>No open games right now</div>
+              <div className={styles['empty']}>No open games right now</div>
             ) : (
-              <div className={styles.tableBody}>
+              <div className={styles['tableBody']}>
                 {rooms.map((room) => {
                   const isOwn = room.owner === playerName;
                   return (
                     <div
                       key={room.roomId}
-                      className={`${styles.tableRow} ${isOwn ? styles.tableRowOwn : ""}`}
+                      className={`${styles['tableRow']} ${isOwn ? styles['tableRowOwn'] : ""}`}
                       onClick={() => !isOwn && handleJoin(room.roomId)}
                       role={!isOwn ? "button" : undefined}
                       tabIndex={!isOwn ? 0 : undefined}
@@ -389,15 +389,15 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                         if (e.key === "Enter" && !isOwn) handleJoin(room.roomId);
                       }}
                     >
-                      <span className={styles.tdPlayer}>
+                      <span className={styles['tdPlayer']}>
                         <ColorIcon choice={room.colorChoice} piecesName={piecesName} />
                         {room.owner}
-                        {isOwn && <span className={styles.youTag}>you</span>}
+                        {isOwn && <span className={styles['youTag']}>you</span>}
                       </span>
-                      <span className={styles.tdTime}>
+                      <span className={styles['tdTime']}>
                         {formatTimeLabel(room.timeControl, room.increment)}
                       </span>
-                      <span className={styles.tdMode}>{room.timeFormat}</span>
+                      <span className={styles['tdMode']}>{room.timeFormat}</span>
                     </div>
                   );
                 })}
@@ -408,69 +408,69 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       </main>
 
       {showPrivate && privateGamesEnabled && (
-        <div className={styles.customOverlay} onClick={handleClosePrivateModal}>
-          <div className={styles.customModal} onClick={(e) => e.stopPropagation()} style={{ width: 400 }}>
-            <div className={styles.customModalHeader}>
-              <span className={styles.customModalTitle}>Create private game</span>
-              <button className={styles.customCloseBtn} onClick={handleClosePrivateModal}>✕</button>
+        <div className={styles['customOverlay']} onClick={handleClosePrivateModal}>
+          <div className={styles['customModal']} onClick={(e) => e.stopPropagation()} style={{ width: 400 }}>
+            <div className={styles['customModalHeader']}>
+              <span className={styles['customModalTitle']}>Create private game</span>
+              <button className={styles['customCloseBtn']} onClick={handleClosePrivateModal}>✕</button>
             </div>
 
             {!privateRoomId ? (
               <>
-                <div className={styles.colorRow}>
+                <div className={styles['colorRow']}>
                   <button
-                    className={`${styles.colorOption} ${colorChoice === "white" ? styles.colorOptionActive : ""}`}
+                    className={`${styles['colorOption']} ${colorChoice === "white" ? styles['colorOptionActive'] : ""}`}
                     onClick={() => handleColorChange("white")}
                     title="White"
                   >
-                    <div className={styles.pieceIcon}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                    <div className={styles['pieceIcon']}><PieceImg piece="wK" piecesName={piecesName} /></div>
                   </button>
                   <button
-                    className={`${styles.colorOption} ${colorChoice === "random" ? styles.colorOptionActive : ""}`}
+                    className={`${styles['colorOption']} ${colorChoice === "random" ? styles['colorOptionActive'] : ""}`}
                     onClick={() => handleColorChange("random")}
                     title="Random"
                   >
-                    <div className={styles.pieceIcon}>
-                      <div className={styles.halfPieceWrap}>
-                        <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
-                        <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                    <div className={styles['pieceIcon']}>
+                      <div className={styles['halfPieceWrap']}>
+                        <div className={styles['halfLeft']}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                        <div className={styles['halfRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                       </div>
                     </div>
                   </button>
                   <button
-                    className={`${styles.colorOption} ${colorChoice === "black" ? styles.colorOptionActive : ""}`}
+                    className={`${styles['colorOption']} ${colorChoice === "black" ? styles['colorOptionActive'] : ""}`}
                     onClick={() => handleColorChange("black")}
                     title="Black"
                   >
-                    <div className={styles.pieceIcon}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                    <div className={styles['pieceIcon']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                   </button>
                 </div>
 
-                <div className={styles.privatePresetGrid}>
+                <div className={styles['privatePresetGrid']}>
                   {PRESETS.map((p) => (
                     <button
                       key={p.label}
-                      className={styles.privatePresetBtn}
+                      className={styles['privatePresetBtn']}
                       onClick={() => handleCreatePrivate(p.time, p.increment)}
                       disabled={privateBusy}
                     >
-                      <span className={styles.presetTime}>{p.label}</span>
-                      <span className={styles.presetCategory}>{classifyTime(p.time / 60, p.increment)}</span>
+                      <span className={styles['presetTime']}>{p.label}</span>
+                      <span className={styles['presetCategory']}>{classifyTime(p.time / 60, p.increment)}</span>
                     </button>
                   ))}
                 </div>
               </>
             ) : (
-              <div className={styles.privateLinkSection}>
-                <div className={styles.privateLinkLabel}>Share this link with your opponent:</div>
-                <div className={styles.privateLinkRow}>
+              <div className={styles['privateLinkSection']}>
+                <div className={styles['privateLinkLabel']}>Share this link with your opponent:</div>
+                <div className={styles['privateLinkRow']}>
                   <input
-                    className={styles.privateLinkInput}
+                    className={styles['privateLinkInput']}
                     value={privateInviteUrl}
                     readOnly
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                   />
-                  <button className={styles.privateCopyBtn} onClick={handleCopyLink} title={copied ? "Copied!" : "Copy link"}>
+                  <button className={styles['privateCopyBtn']} onClick={handleCopyLink} title={copied ? "Copied!" : "Copy link"}>
                     {copied ? (
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     ) : (
@@ -478,8 +478,8 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                     )}
                   </button>
                 </div>
-                <div className={styles.privateWaiting}>Waiting for opponent…</div>
-                <button className={styles.privateCancelBtn} onClick={handleClosePrivateModal}>
+                <div className={styles['privateWaiting']}>Waiting for opponent…</div>
+                <button className={styles['privateCancelBtn']} onClick={handleClosePrivateModal}>
                   Cancel
                 </button>
               </div>
@@ -489,20 +489,20 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       )}
 
       {showCustom && (
-        <div className={styles.customOverlay} onClick={() => setShowCustom(false)}>
-          <div className={styles.customModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.customModalHeader}>
-              <span className={styles.customModalTitle}>Custom time control</span>
-              <button className={styles.customCloseBtn} onClick={() => setShowCustom(false)}>✕</button>
+        <div className={styles['customOverlay']} onClick={() => setShowCustom(false)}>
+          <div className={styles['customModal']} onClick={(e) => e.stopPropagation()}>
+            <div className={styles['customModalHeader']}>
+              <span className={styles['customModalTitle']}>Custom time control</span>
+              <button className={styles['customCloseBtn']} onClick={() => setShowCustom(false)}>✕</button>
             </div>
-            <div className={styles.sliderGroup}>
-              <div className={styles.sliderHeader}>
-                <span className={styles.sliderLabel}>Minutes</span>
-                <span className={styles.sliderValue}>{formatMinutes(customMinutes)}</span>
+            <div className={styles['sliderGroup']}>
+              <div className={styles['sliderHeader']}>
+                <span className={styles['sliderLabel']}>Minutes</span>
+                <span className={styles['sliderValue']}>{formatMinutes(customMinutes)}</span>
               </div>
               <input
                 type="range"
-                className={styles.slider}
+                className={styles['slider']}
                 min={0}
                 max={MINUTE_STEPS.length - 1}
                 value={customMinIdx}
@@ -513,14 +513,14 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                 }}
               />
             </div>
-            <div className={styles.sliderGroup}>
-              <div className={styles.sliderHeader}>
-                <span className={styles.sliderLabel}>Increment</span>
-                <span className={styles.sliderValue}>{customIncrement}s</span>
+            <div className={styles['sliderGroup']}>
+              <div className={styles['sliderHeader']}>
+                <span className={styles['sliderLabel']}>Increment</span>
+                <span className={styles['sliderValue']}>{customIncrement}s</span>
               </div>
               <input
                 type="range"
-                className={styles.slider}
+                className={styles['slider']}
                 min={0}
                 max={INCREMENT_STEPS.length - 1}
                 value={customIncIdx}
@@ -532,7 +532,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
               />
             </div>
             <button
-              className={`${styles.customCreateBtn} ${isCustomWaiting ? styles.customCreateBtnWaiting : ""}`}
+              className={`${styles['customCreateBtn']} ${isCustomWaiting ? styles['customCreateBtnWaiting'] : ""}`}
               onClick={handleCustomCreate}
               disabled={customMinutes === 0 && customIncrement === 0}
             >

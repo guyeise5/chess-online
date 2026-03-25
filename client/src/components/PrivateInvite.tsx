@@ -107,60 +107,60 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
   const isFinished = room?.status === "finished";
 
   return (
-    <div className={styles.container}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} onOpenSettings={onOpenSettings} />
-      <div className={styles.main}>
+    <div className={styles['container']}>
+      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <div className={styles['main']}>
         {loading ? (
-          <div className={styles.card}>
-            <span className={styles.loading}>Loading game info…</span>
+          <div className={styles['card']}>
+            <span className={styles['loading']}>Loading game info…</span>
           </div>
         ) : notFound ? (
-          <div className={styles.card}>
-            <div className={styles.notFound}>
-              <span className={styles.notFoundIcon}>♔</span>
-              <span className={styles.title}>Game not found</span>
-              <span className={styles.notFoundText}>
+          <div className={styles['card']}>
+            <div className={styles['notFound']}>
+              <span className={styles['notFoundIcon']}>♔</span>
+              <span className={styles['title']}>Game not found</span>
+              <span className={styles['notFoundText']}>
                 This private game no longer exists. The host may have left or the game has already started.
               </span>
-              <Link to="/" className={styles.lobbyLink}>Go to Lobby</Link>
+              <Link to="/" className={styles['lobbyLink']}>Go to Lobby</Link>
             </div>
           </div>
         ) : room ? (
-          <div className={styles.card}>
-            <span className={styles.title}>Private Game Invite</span>
-            <span className={styles.owner}>
-              Hosted by <span className={styles.ownerName}>{room.owner}</span>
+          <div className={styles['card']}>
+            <span className={styles['title']}>Private Game Invite</span>
+            <span className={styles['owner']}>
+              Hosted by <span className={styles['ownerName']}>{room.owner}</span>
             </span>
 
-            <div className={styles.details}>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Time</span>
-                <span className={styles.detailValue}>
+            <div className={styles['details']}>
+              <div className={styles['detailRow']}>
+                <span className={styles['detailLabel']}>Time</span>
+                <span className={styles['detailValue']}>
                   {formatTimeLabel(room.timeControl, room.increment)}
                 </span>
               </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Mode</span>
-                <span className={styles.detailValue} style={{ fontFamily: "inherit", textTransform: "capitalize" }}>
+              <div className={styles['detailRow']}>
+                <span className={styles['detailLabel']}>Mode</span>
+                <span className={styles['detailValue']} style={{ fontFamily: "inherit", textTransform: "capitalize" }}>
                   {classifyTime(room.timeControl, room.increment)}
                 </span>
               </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Color</span>
-                <span className={styles.colorValue}>
+              <div className={styles['detailRow']}>
+                <span className={styles['detailLabel']}>Color</span>
+                <span className={styles['colorValue']}>
                   {room.colorChoice === "random" ? (
                     <>
-                      <div className={styles.colorIcon}>
-                        <div className={styles.halfPiece}>
-                          <div className={styles.halfLeft}><PieceImg piece="wK" piecesName={piecesName} /></div>
-                          <div className={styles.halfRight}><PieceImg piece="bK" piecesName={piecesName} /></div>
+                      <div className={styles['colorIcon']}>
+                        <div className={styles['halfPiece']}>
+                          <div className={styles['halfLeft']}><PieceImg piece="wK" piecesName={piecesName} /></div>
+                          <div className={styles['halfRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                         </div>
                       </div>
                       Random
                     </>
                   ) : (
                     <>
-                      <div className={styles.colorIcon}>
+                      <div className={styles['colorIcon']}>
                         <PieceImg
                           piece={colorLabel(room.colorChoice, room.owner, playerName) === "White" ? "wK" : "bK"}
                           piecesName={piecesName}
@@ -175,7 +175,7 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
 
             {canAccept && (
               <button
-                className={styles.acceptBtn}
+                className={styles['acceptBtn']}
                 onClick={handleAccept}
                 disabled={joining}
               >
@@ -184,15 +184,15 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
             )}
 
             {isOwner && room.status === "waiting" && (
-              <span className={styles.statusTag}>Waiting for opponent…</span>
+              <span className={styles['statusTag']}>Waiting for opponent…</span>
             )}
 
             {isPlaying && (
-              <span className={`${styles.statusTag} ${styles.statusPlaying}`}>Game in progress</span>
+              <span className={`${styles['statusTag']} ${styles['statusPlaying']}`}>Game in progress</span>
             )}
 
             {isFinished && (
-              <span className={`${styles.statusTag} ${styles.statusFinished}`}>Game finished</span>
+              <span className={`${styles['statusTag']} ${styles['statusFinished']}`}>Game finished</span>
             )}
           </div>
         ) : null}
