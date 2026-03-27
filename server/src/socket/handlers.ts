@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager";
 import { ColorChoice } from "../models/Room";
+import { emitOnlinePlayerCount } from "./onlinePlayerCount";
 
 const socketPlayers = new Map<string, string>();
 const socketRooms = new Map<string, Set<string>>();
@@ -313,6 +314,12 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
           }
         }
       }
+
+      setImmediate(() => {
+        emitOnlinePlayerCount(io);
+      });
     });
+
+    emitOnlinePlayerCount(io);
   });
 }

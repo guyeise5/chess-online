@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 
-const TOTAL_STEPS = 9;
+/** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT` is not `"false"`. */
+const TOTAL_STEPS_WITH_ONLINE = 10;
+
+/** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT === "false"`. */
+const TOTAL_STEPS_WITHOUT_ONLINE = 9;
 
 describe("Introduction - introSeen preference tracking", () => {
   it("new user has introSeen = false", () => {
@@ -63,18 +67,18 @@ describe("Introduction - step navigation", () => {
   it("can navigate to any step via dot click", () => {
     const step = 5;
     expect(step).toBeGreaterThanOrEqual(0);
-    expect(step).toBeLessThan(TOTAL_STEPS);
+    expect(step).toBeLessThan(TOTAL_STEPS_WITH_ONLINE);
   });
 
-  it("last step index is TOTAL_STEPS - 1", () => {
-    const lastStep = TOTAL_STEPS - 1;
-    expect(lastStep).toBe(8);
+  it("last step index is TOTAL_STEPS_WITH_ONLINE - 1", () => {
+    const lastStep = TOTAL_STEPS_WITH_ONLINE - 1;
+    expect(lastStep).toBe(9);
   });
 
   it("isLast is true only on final step", () => {
-    for (let i = 0; i < TOTAL_STEPS; i++) {
-      const isLast = i === TOTAL_STEPS - 1;
-      if (i === TOTAL_STEPS - 1) {
+    for (let i = 0; i < TOTAL_STEPS_WITH_ONLINE; i++) {
+      const isLast = i === TOTAL_STEPS_WITH_ONLINE - 1;
+      if (i === TOTAL_STEPS_WITH_ONLINE - 1) {
         expect(isLast).toBe(true);
       } else {
         expect(isLast).toBe(false);
@@ -95,6 +99,7 @@ describe("Introduction - step content and selectors", () => {
   const stepTitleKeys = [
     "intro.welcome.title",
     "intro.playOnline.title",
+    "intro.onlineCount.title",
     "intro.time.title",
     "intro.rooms.title",
     "intro.private.title",
@@ -107,6 +112,7 @@ describe("Introduction - step content and selectors", () => {
   const stepSelectors: (string | undefined)[] = [
     undefined,
     "[data-tour='nav-play']",
+    "[data-tour='online-count']",
     "[data-tour='time-grid']",
     "[data-tour='rooms-table']",
     "[data-tour='private-game']",
@@ -116,9 +122,9 @@ describe("Introduction - step content and selectors", () => {
     "[data-tour='settings-btn']",
   ];
 
-  it("has the correct number of steps", () => {
-    expect(stepTitleKeys).toHaveLength(TOTAL_STEPS);
-    expect(stepSelectors).toHaveLength(TOTAL_STEPS);
+  it("has the correct number of steps when online indicator is enabled", () => {
+    expect(stepTitleKeys).toHaveLength(TOTAL_STEPS_WITH_ONLINE);
+    expect(stepSelectors).toHaveLength(TOTAL_STEPS_WITH_ONLINE);
   });
 
   it("first step is the welcome (no target element)", () => {
@@ -150,5 +156,36 @@ describe("Introduction - step content and selectors", () => {
         expect(sel).toMatch(/^\[data-tour=/);
       }
     }
+  });
+});
+
+describe("Introduction - step list when online player count feature is off", () => {
+  const stepTitleKeysNoOnline = [
+    "intro.welcome.title",
+    "intro.playOnline.title",
+    "intro.time.title",
+    "intro.rooms.title",
+    "intro.private.title",
+    "intro.computer.title",
+    "intro.puzzles.title",
+    "intro.history.title",
+    "intro.board.title",
+  ];
+
+  const stepSelectorsNoOnline: (string | undefined)[] = [
+    undefined,
+    "[data-tour='nav-play']",
+    "[data-tour='time-grid']",
+    "[data-tour='rooms-table']",
+    "[data-tour='private-game']",
+    "[data-tour='nav-computer']",
+    "[data-tour='nav-puzzles']",
+    "[data-tour='nav-games']",
+    "[data-tour='settings-btn']",
+  ];
+
+  it("matches Introduction.tsx without the online-count step", () => {
+    expect(stepTitleKeysNoOnline).toHaveLength(TOTAL_STEPS_WITHOUT_ONLINE);
+    expect(stepSelectorsNoOnline).toHaveLength(TOTAL_STEPS_WITHOUT_ONLINE);
   });
 });

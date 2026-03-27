@@ -25,6 +25,7 @@ Each step in the `STEPS` array has:
 
 Add `data-tour="<name>"` to the outermost DOM element of any feature that should be highlighted. Existing attributes:
 - `nav-play`, `nav-computer`, `nav-puzzles`, `nav-games` — NavBar links
+- `online-count` — Live Socket.IO connection count in NavBar (next to settings; appears after first count; intro step omitted when `FEATURE_ONLINE_PLAYER_COUNT=false`)
 - `settings-btn` — Board settings gear icon in NavBar
 - `time-grid` — Time control preset grid in Lobby
 - `rooms-table` — Open games table in Lobby
@@ -34,4 +35,4 @@ Add `data-tour="<name>"` to the outermost DOM element of any feature that should
 
 - Keep the step order logical: welcome → core gameplay features visible on lobby → nav links for other pages → customization.
 - First step (welcome) has no `selector` — it renders as a centered modal.
-- After adding/removing a step, update `TOTAL_STEPS` and `stepTitles`/`stepSelectors`/`topics` in `client/src/__tests__/introduction.test.ts`.
+- After adding/removing a step, update `introduction.test.ts` (default 10 steps with online count; 9 when that feature is off).

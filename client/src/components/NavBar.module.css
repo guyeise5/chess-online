@@ -30,6 +30,35 @@
   width: auto;
 }
 
+.onlineIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3dad2e;
+  box-shadow: 0 0 0 2px rgba(61, 173, 46, 0.35);
+  flex-shrink: 0;
+}
+
+.onlineCount {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  min-width: 1.25ch;
+  text-align: center;
+}
+
 .nav {
   display: flex;
   align-items: center;

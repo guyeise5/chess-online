@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { getEnv } from "../types";
 import { useI18n } from "../i18n/I18nProvider";
+import { useOnlinePlayerCount } from "../hooks/useOnlinePlayerCount";
 import styles from "./NavBar.module.css";
 
 interface Props {
@@ -15,6 +16,8 @@ export default function NavBar({ playerName, onChangeName, onOpenSettings, inAct
   const flags = getEnv();
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
   const showBoardSettings = flags.FEATURE_BOARD_SETTINGS !== "false";
+  const showOnlinePlayerCount = flags.FEATURE_ONLINE_PLAYER_COUNT !== "false";
+  const onlinePlayerCount = useOnlinePlayerCount();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
@@ -48,6 +51,17 @@ export default function NavBar({ playerName, onChangeName, onOpenSettings, inAct
         </nav>
       </div>
       <div className={styles['headerRight']}>
+        {showOnlinePlayerCount && onlinePlayerCount !== null && (
+          <div
+            data-tour="online-count"
+            className={styles["onlineIndicator"]}
+            title={t("nav.onlinePlayersTitle")}
+            aria-label={t("nav.onlinePlayersAria", { count: String(onlinePlayerCount) })}
+          >
+            <span className={styles["onlineDot"]} aria-hidden />
+            <span className={styles["onlineCount"]}>{onlinePlayerCount}</span>
+          </div>
+        )}
         {showBoardSettings && onOpenSettings && (
           <button data-tour="settings-btn" type="button" className={styles['settingsLink']} onClick={onOpenSettings} title={t("nav.boardSettings")}>
             <svg className={styles['navIcon']} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>

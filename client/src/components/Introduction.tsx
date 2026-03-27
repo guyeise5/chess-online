@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
 import { useI18n } from "../i18n/I18nProvider";
+import { getEnv } from "../types";
 import styles from "./Introduction.module.css";
 
 interface Props {
@@ -59,8 +60,17 @@ function computeTooltipPos(
 }
 
 function useIntroSteps(t: (key: string) => string): Step[] {
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const showOnlineCount = getEnv().FEATURE_ONLINE_PLAYER_COUNT !== "false";
+
+    const onlineCountStep: Step = {
+      title: t("intro.onlineCount.title"),
+      selector: "[data-tour='online-count']",
+      position: "left",
+      content: <p>{t("intro.onlineCount.body")}</p>,
+    };
+
+    return [
       {
         title: t("intro.welcome.title"),
         content: (
@@ -82,6 +92,7 @@ function useIntroSteps(t: (key: string) => string): Step[] {
           </p>
         ),
       },
+      ...(showOnlineCount ? [onlineCountStep] : []),
       {
         title: t("intro.time.title"),
         selector: "[data-tour='time-grid']",
@@ -171,9 +182,8 @@ function useIntroSteps(t: (key: string) => string): Step[] {
           </p>
         ),
       },
-    ],
-    [t]
-  );
+    ];
+  }, [t]);
 }
 
 export default function Introduction({ onComplete }: Props) {

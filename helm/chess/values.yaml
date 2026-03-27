@@ -27,6 +27,7 @@ app:
     FEATURE_INTRODUCTION: "true"
     FEATURE_USER_PREFERENCES: "true"
     FEATURE_GAME_CHAT: "true"
+    FEATURE_ONLINE_PLAYER_COUNT: "true"
 
 mongodb:
   image:

@@ -4,7 +4,8 @@
 
 - **Route:** `/` (lobby, default landing page), `/game/:roomId` (game board)
 - **Static shell:** `index.html` is served with `Cache-Control: no-store` (and `Pragma: no-cache`) so a normal refresh loads the latest client entry; hashed JS/CSS assets remain separately cacheable (`server/src/staticIndexHeaders.ts`, `server/src/index.ts`)
-- **Key files:** `client/src/components/Lobby.tsx`, `client/src/components/GameRoom.tsx`, `client/src/components/NavBar.tsx`, `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`
+- **Key files:** `client/src/components/Lobby.tsx`, `client/src/components/GameRoom.tsx`, `client/src/components/NavBar.tsx`, `client/src/hooks/useOnlinePlayerCount.ts`, `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`, `server/src/socket/onlinePlayerCount.ts`
+- NavBar shows a live count of Socket.IO connections (browser sessions / tabs) beside the board-settings control once the first count arrives; server broadcasts `presence:online-count` on connect/disconnect. Not unique player names. Feature flag: `FEATURE_ONLINE_PLAYER_COUNT`
 - Lichess-style lobby as the default landing page with game creation panel and open games table
 - 3×4 time-control grid: 1+0, 2+1, 3+0, 3+2, 5+0, 5+3, 10+0, 10+5, 15+10, 30+0, 30+20, Custom — clicking a preset instantly creates a room
 - Custom time control popup with range sliders: minutes (0, ¼, ½, 1–180), increment (0–180s); "Create lobby" button
@@ -24,7 +25,7 @@
 - Draw offer: two-click to offer (click ½ icon, confirm ✓ or cancel ✗; auto-cancels after 3s); opponent sees minimal inline accept/decline in the control bar (no banner); making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
 - Lichess-style game control bar: compact icon buttons (↶ takeback, ½ draw, ⚑ resign) with dark background; confirm/cancel (✓/✗) pattern for destructive actions
 - In-game chat: floating panel pinned to bottom-left, toggleable open/closed; red notification badge when closed and opponent sends a message; shows player messages and system messages (time given, game over with reason)
-- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`, `FEATURE_GAME_CHAT`
+- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`, `FEATURE_GAME_CHAT`, `FEATURE_ONLINE_PLAYER_COUNT`
 
 ## Private Games
 
@@ -121,7 +122,7 @@
 - **Key files:** `client/src/components/Introduction.tsx`, `client/src/components/Introduction.module.css`
 - **Feature flag:** `FEATURE_INTRODUCTION`
 - Multi-step onboarding walkthrough shown to first-time users after entering their name
-- 9 steps covering: welcome, online play, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
+- 10 steps by default (9 if `FEATURE_ONLINE_PLAYER_COUNT=false`): welcome, online play, live connection count, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
 - Dot navigation to jump between steps, skip button on every step, "Get Started" on the final step
 - Completion persisted via user preferences (`introSeen` field); never shown again once dismissed
 - Cursor rule (`.cursor/rules/introduction.mdc`) ensures new UI features are added as steps
@@ -175,6 +176,7 @@
 | `FEATURE_DRAW_OFFER` | `true` | Draw offer system: players can offer a draw with anti-spam protection (Lichess-style). Set to `false` to disable. |
 | `FEATURE_PRIVATE_GAMES` | `true` | Private game creation with shareable invite links. Rooms are hidden from the lobby. Set to `false` to disable. |
 | `FEATURE_MOVE_SOUND` | `true` | Move sounds using Lichess standard sound set (move, capture, game start/end, low time). Set to `false` to disable. |
-| `FEATURE_INTRODUCTION` | `true` | First-time user onboarding walkthrough (9 steps covering all features). Set to `false` to disable. |
+| `FEATURE_INTRODUCTION` | `true` | First-time user onboarding walkthrough (10 steps by default; 9 when online count is disabled). Set to `false` to disable. |
 | `FEATURE_USER_PREFERENCES` | `true` | Server-side user preferences persistence (MongoDB). Set to `false` to use localStorage only. |
 | `FEATURE_GAME_CHAT` | `true` | In-game chat between players in PvP games. Shows player messages and system events (time given, game over). Set to `false` to disable. |
+| `FEATURE_ONLINE_PLAYER_COUNT` | `true` | NavBar indicator and Socket.IO `presence:online-count` broadcasts (connected client count). Set to `false` to disable. |

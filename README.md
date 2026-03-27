@@ -107,6 +107,7 @@ cd client && npm test
 
 | `AUTHOR_URL` | — | Optional URL for the author watermark link (injected at runtime) |
 | `FEATURE_GAME_STORAGE` | `true` | Enable server-side game storage for analysis (MongoDB `games` collection with 14-day TTL) |
+| `FEATURE_ONLINE_PLAYER_COUNT` | `true` | NavBar live count of Socket.IO connections; set to `false` to hide and stop broadcasts |
 
 ## Project Structure
 

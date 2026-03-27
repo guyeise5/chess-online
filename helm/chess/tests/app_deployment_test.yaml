@@ -334,6 +334,24 @@ tests:
             name: FEATURE_GAME_CHAT
             value: "false"
 
+  - it: should have default FEATURE_ONLINE_PLAYER_COUNT as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_ONLINE_PLAYER_COUNT
+            value: "true"
+
+  - it: should allow disabling FEATURE_ONLINE_PLAYER_COUNT
+    set:
+      app.env.FEATURE_ONLINE_PLAYER_COUNT: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_ONLINE_PLAYER_COUNT
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

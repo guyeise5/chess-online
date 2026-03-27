@@ -1099,3 +1099,15 @@ describe("private games", () => {
     viewer.disconnect();
   });
 });
+
+describe("presence:online-count", () => {
+  it("broadcasts connected client count after handshake", async () => {
+    const client = connectClient();
+    const countPromise = waitForEvent<{ count: number }>(client, "presence:online-count");
+    await waitForEvent(client, "connect");
+    const payload = await countPromise;
+    expect(typeof payload.count).toBe("number");
+    expect(payload.count).toBeGreaterThanOrEqual(1);
+    client.disconnect();
+  });
+});

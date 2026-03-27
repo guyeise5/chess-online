@@ -62,6 +62,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_USER_PREFERENCES | quote }}
             - name: FEATURE_GAME_CHAT
               value: {{ .Values.app.env.FEATURE_GAME_CHAT | quote }}
+            - name: FEATURE_ONLINE_PLAYER_COUNT
+              value: {{ .Values.app.env.FEATURE_ONLINE_PLAYER_COUNT | quote }}
           readinessProbe:
             httpGet:
               path: /readyz
