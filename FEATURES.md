@@ -3,6 +3,7 @@
 ## Online Multiplayer
 
 - **Route:** `/` (lobby, default landing page), `/game/:roomId` (game board)
+- **Static shell:** `index.html` is served with `Cache-Control: no-store` (and `Pragma: no-cache`) so a normal refresh loads the latest client entry; hashed JS/CSS assets remain separately cacheable (`server/src/staticIndexHeaders.ts`, `server/src/index.ts`)
 - **Key files:** `client/src/components/Lobby.tsx`, `client/src/components/GameRoom.tsx`, `client/src/components/NavBar.tsx`, `server/src/game/GameManager.ts`, `server/src/socket/handlers.ts`
 - Lichess-style lobby as the default landing page with game creation panel and open games table
 - 3×4 time-control grid: 1+0, 2+1, 3+0, 3+2, 5+0, 5+3, 10+0, 10+5, 15+10, 30+0, 30+20, Custom — clicking a preset instantly creates a room

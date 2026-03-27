@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { GameManager } from "./game/GameManager";
 import { registerSocketHandlers } from "./socket/handlers";
+import { setIndexHtmlNoCacheHeaders } from "./staticIndexHeaders";
 
 dotenv.config();
 
@@ -18,7 +19,15 @@ app.use(cors());
 app.use(express.json());
 
 const staticPath = path.join(__dirname, "..", "public");
-app.use(express.static(staticPath));
+app.use(
+  express.static(staticPath, {
+    setHeaders(res, filepath) {
+      if (path.basename(filepath) === "index.html") {
+        setIndexHtmlNoCacheHeaders(res);
+      }
+    },
+  }),
+);
 
 const server = http.createServer(app);
 
@@ -321,6 +330,7 @@ async function main() {
   }
 
   app.get("*", (_req, res) => {
+    setIndexHtmlNoCacheHeaders(res);
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
