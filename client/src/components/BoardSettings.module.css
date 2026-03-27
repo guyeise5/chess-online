@@ -100,6 +100,47 @@
   flex-shrink: 0;
 }
 
+.langHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: -0.25rem 0 0.15rem;
+}
+
+.langRow {
+  display: flex;
+  flex-direction: row;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+}
+
+.langBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 40px;
+  padding: 0;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.langBtn:hover {
+  background: var(--bg-card-hover);
+}
+
+.langBtnActive {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.langFlag {
+  border-radius: 3px;
+}
+
 /* ── Grid ────────────────────────────────────────── */
 
 .grid {

@@ -39,6 +39,7 @@ describe("UserPreferences model", () => {
     const doc = await UserPreferences.create({ playerName: "Alice" });
 
     expect(doc.introSeen).toBe(false);
+    expect(doc.locale).toBe("en");
     expect(doc.boardTheme).toBe("brown");
     expect(doc.pieceSet).toBe("cburnett");
     expect(doc.lobbyColor).toBe("random");

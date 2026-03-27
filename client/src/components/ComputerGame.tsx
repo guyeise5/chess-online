@@ -12,6 +12,8 @@ import styles from "./ComputerGame.module.css";
 import { getEnv } from "../types";
 import { playMoveSound, playSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useI18n } from "../i18n/I18nProvider";
+import { translateEndgameReason } from "../i18n/gameReason";
 
 interface Props {
   playerName: string;
@@ -95,6 +97,7 @@ function clearSavedGame() {
 }
 
 export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }: Props) {
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = (location.state || {}) as {
@@ -565,7 +568,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
       <NavBar playerName={playerName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
       <main className={styles['main']}>
-        <div className={styles['boardArea']}>
+        <div className={styles['boardArea']} dir="ltr">
           <div className={styles['playerBar']}>
             <span className={styles['playerBarName']}>{topPlayerName}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
@@ -639,22 +642,27 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
 
         <div className={styles['sidebar']}>
           {computerThinking && status === "playing" && (
-            <div className={styles['thinkingBanner']}>Stockfish is thinking...</div>
+            <div className={styles['thinkingBanner']}>{t("computerGame.thinking")}</div>
           )}
 
           {status === "finished" && (
             <div className={styles['resultBanner']}>
               <strong>
                 {result === "1-0"
-                  ? "White wins!"
+                  ? t("computerGame.whiteWins")
                   : result === "0-1"
-                    ? "Black wins!"
-                    : "Draw!"}
+                    ? t("computerGame.blackWins")
+                    : t("computerGame.draw")}
               </strong>
               {gameOverReason && (
-                <span className={styles['reason']}>by {gameOverReason}</span>
+                <span className={styles['reason']}>
+                  {locale === "he"
+                    ? translateEndgameReason(gameOverReason, locale, t)
+                    : `${t("computerGame.by")} ${gameOverReason}`}
+                </span>
               )}
               <button
+                type="button"
                 className={styles['newGameBtn']}
                 onClick={() => {
                   let id = analysisId;
@@ -676,16 +684,16 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
                   navigate(`/analysis/${id}`);
                 }}
               >
-                Analyze
+                {t("computerGame.analyze")}
               </button>
-              <button className={styles['newGameBtn']} onClick={handleNewGame}>
-                New Game
+              <button type="button" className={styles['newGameBtn']} onClick={handleNewGame}>
+                {t("computerGame.newGame")}
               </button>
             </div>
           )}
 
           <div className={styles['movesPanel']}>
-            <h3 className={styles['movesTitle']}>Moves</h3>
+            <h3 className={styles['movesTitle']}>{t("computerGame.moves")}</h3>
             <div className={styles['movesList']}>
               {movePairs.map((mp) => (
                 <div key={mp.num} className={styles['movePair']}>
@@ -701,17 +709,19 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
           {status === "playing" && (
             <div className={styles['gameActions']}>
               <button
+                type="button"
                 className={styles['actionBtn']}
                 disabled={moves.length === 0}
                 onClick={handleUndo}
-                title="Takeback"
+                title={t("game.takeback")}
               >
                 ↶
               </button>
               <button
+                type="button"
                 className={`${styles['actionBtn']} ${resignConfirm ? styles['actionResignArmed'] : ""}`}
                 onClick={resignConfirm ? confirmResign : startResignConfirm}
-                title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
+                title={resignConfirm ? t("game.confirmResign") : t("game.resign")}
               >
                 ⚑
               </button>

@@ -254,6 +254,7 @@ async function main() {
         }
         res.json({
           introSeen: doc.introSeen,
+          locale: doc.locale === "he" ? "he" : "en",
           boardTheme: doc.boardTheme,
           pieceSet: doc.pieceSet,
           lobbyColor: doc.lobbyColor,
@@ -282,7 +283,7 @@ async function main() {
         }
 
         const allowed = [
-          "introSeen", "boardTheme", "pieceSet", "lobbyColor",
+          "introSeen", "locale", "boardTheme", "pieceSet", "lobbyColor",
           "customMinIdx", "customIncIdx", "computerColor",
           "puzzleRating", "puzzleCount",
         ] as const;
@@ -290,7 +291,14 @@ async function main() {
         const update: Record<string, unknown> = {};
         for (const key of allowed) {
           if (key in req.body) {
-            update[key] = req.body[key];
+            if (key === "locale") {
+              const v = req.body["locale"];
+              if (v === "en" || v === "he") {
+                update[key] = v;
+              }
+            } else {
+              update[key] = req.body[key];
+            }
           }
         }
 

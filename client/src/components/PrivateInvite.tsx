@@ -6,6 +6,8 @@ import { RoomData, ColorChoice, SocketResult, RoomResult } from "../types";
 import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import NavBar from "./NavBar";
+import { useI18n } from "../i18n/I18nProvider";
+import { timeFormatToKey } from "../i18n/timeCategory";
 import styles from "./PrivateInvite.module.css";
 
 interface Props {
@@ -29,23 +31,20 @@ function formatTimeLabel(timeControl: number, increment: number): string {
   return `${fmt}+${increment}`;
 }
 
-function classifyTime(timeControl: number, increment: number): string {
-  const total = timeControl + increment * 40;
-  if (total < 29) return "UltraBullet";
-  if (total < 180) return "Bullet";
-  if (total < 480) return "Blitz";
-  if (total < 1500) return "Rapid";
-  return "Classical";
-}
-
-function colorLabel(choice: ColorChoice, ownerName: string, viewerName: string): string {
-  if (choice === "random") return "Random";
-  const ownerPlays = choice === "white" ? "White" : "Black";
+function colorPieceLabel(
+  choice: ColorChoice,
+  ownerName: string,
+  viewerName: string,
+  t: (key: string) => string
+): string {
+  if (choice === "random") return t("color.random");
+  const ownerPlays = choice === "white" ? t("color.white") : t("color.black");
   if (viewerName === ownerName) return ownerPlays;
-  return ownerPlays === "White" ? "Black" : "White";
+  return choice === "white" ? t("color.black") : t("color.white");
 }
 
 export default function PrivateInvite({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+  const { t } = useI18n();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
@@ -112,41 +111,41 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
       <div className={styles['main']}>
         {loading ? (
           <div className={styles['card']}>
-            <span className={styles['loading']}>Loading game info…</span>
+            <span className={styles['loading']}>{t("invite.loadingInfo")}</span>
           </div>
         ) : notFound ? (
           <div className={styles['card']}>
             <div className={styles['notFound']}>
               <span className={styles['notFoundIcon']}>♔</span>
-              <span className={styles['title']}>Game not found</span>
+              <span className={styles['title']}>{t("invite.notFound")}</span>
               <span className={styles['notFoundText']}>
-                This private game no longer exists. The host may have left or the game has already started.
+                {t("invite.privateGone")}
               </span>
-              <Link to="/" className={styles['lobbyLink']}>Go to Lobby</Link>
+              <Link to="/" className={styles['lobbyLink']}>{t("invite.goLobby")}</Link>
             </div>
           </div>
         ) : room ? (
           <div className={styles['card']}>
-            <span className={styles['title']}>Private Game Invite</span>
+            <span className={styles['title']}>{t("invite.inviteTitle")}</span>
             <span className={styles['owner']}>
-              Hosted by <span className={styles['ownerName']}>{room.owner}</span>
+              {t("invite.hostedBy")} <span className={styles['ownerName']}>{room.owner}</span>
             </span>
 
             <div className={styles['details']}>
               <div className={styles['detailRow']}>
-                <span className={styles['detailLabel']}>Time</span>
+                <span className={styles['detailLabel']}>{t("invite.time")}</span>
                 <span className={styles['detailValue']}>
                   {formatTimeLabel(room.timeControl, room.increment)}
                 </span>
               </div>
               <div className={styles['detailRow']}>
-                <span className={styles['detailLabel']}>Mode</span>
+                <span className={styles['detailLabel']}>{t("invite.mode")}</span>
                 <span className={styles['detailValue']} style={{ fontFamily: "inherit", textTransform: "capitalize" }}>
-                  {classifyTime(room.timeControl, room.increment)}
+                  {t(timeFormatToKey(room.timeFormat))}
                 </span>
               </div>
               <div className={styles['detailRow']}>
-                <span className={styles['detailLabel']}>Color</span>
+                <span className={styles['detailLabel']}>{t("invite.color")}</span>
                 <span className={styles['colorValue']}>
                   {room.colorChoice === "random" ? (
                     <>
@@ -156,17 +155,17 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
                           <div className={styles['halfRight']}><PieceImg piece="bK" piecesName={piecesName} /></div>
                         </div>
                       </div>
-                      Random
+                      {t("invite.random")}
                     </>
                   ) : (
                     <>
                       <div className={styles['colorIcon']}>
                         <PieceImg
-                          piece={colorLabel(room.colorChoice, room.owner, playerName) === "White" ? "wK" : "bK"}
+                          piece={colorPieceLabel(room.colorChoice, room.owner, playerName, t) === t("color.white") ? "wK" : "bK"}
                           piecesName={piecesName}
                         />
                       </div>
-                      You play {colorLabel(room.colorChoice, room.owner, playerName)}
+                      {t("invite.youPlay")} {colorPieceLabel(room.colorChoice, room.owner, playerName, t)}
                     </>
                   )}
                 </span>
@@ -175,24 +174,25 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
 
             {canAccept && (
               <button
+                type="button"
                 className={styles['acceptBtn']}
                 onClick={handleAccept}
                 disabled={joining}
               >
-                {joining ? "Joining…" : "Accept & Play"}
+                {joining ? t("invite.joining") : t("invite.accept")}
               </button>
             )}
 
             {isOwner && room.status === "waiting" && (
-              <span className={styles['statusTag']}>Waiting for opponent…</span>
+              <span className={styles['statusTag']}>{t("invite.waitingOwner")}</span>
             )}
 
             {isPlaying && (
-              <span className={`${styles['statusTag']} ${styles['statusPlaying']}`}>Game in progress</span>
+              <span className={`${styles['statusTag']} ${styles['statusPlaying']}`}>{t("invite.inProgress")}</span>
             )}
 
             {isFinished && (
-              <span className={`${styles['statusTag']} ${styles['statusFinished']}`}>Game finished</span>
+              <span className={`${styles['statusTag']} ${styles['statusFinished']}`}>{t("invite.finishedShort")}</span>
             )}
           </div>
         ) : null}

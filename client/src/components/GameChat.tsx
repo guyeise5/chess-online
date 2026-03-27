@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChatMessage } from "../types";
+import { useI18n } from "../i18n/I18nProvider";
+import { translateSystemChat } from "../i18n/systemChat";
 import styles from "./GameChat.module.css";
 
 interface Props {
@@ -88,6 +90,7 @@ const SendIcon = () => (
 );
 
 export default function GameChat({ messages, onSend, playerName }: Props) {
+  const { t, locale } = useI18n();
   const [isOpen, setIsOpen] = useState(true);
   const [hasUnread, setHasUnread] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -215,9 +218,10 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
   if (!isOpen) {
     return (
       <button
+        type="button"
         className={styles["toggleBtn"]}
         onClick={toggleOpen}
-        title="Open chat"
+        title={t("chat.open")}
         data-tour="game-chat"
       >
         <ChatIcon />
@@ -240,11 +244,12 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
         className={styles["header"]}
         onMouseDown={onDragStart}
       >
-        <span className={styles["headerTitle"]}>Chat</span>
+        <span className={styles["headerTitle"]}>{t("chat.title")}</span>
         <button
+          type="button"
           className={styles["closeBtn"]}
           onClick={toggleOpen}
-          title="Close chat"
+          title={t("chat.close")}
         >
           ✕
         </button>
@@ -254,7 +259,7 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
         {messages.map((msg) =>
           msg.type === "system" ? (
             <div key={msg.id} className={styles["systemMsg"]}>
-              {msg.text}
+              {translateSystemChat(msg.text, locale, t)}
             </div>
           ) : (
             <div key={msg.id} className={styles["playerMsg"]}>
@@ -280,14 +285,15 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={t("chat.placeholder")}
           maxLength={500}
         />
         <button
+          type="button"
           className={styles["sendBtn"]}
           onClick={handleSend}
           disabled={!inputText.trim()}
-          title="Send"
+          title={t("chat.send")}
         >
           <SendIcon />
         </button>

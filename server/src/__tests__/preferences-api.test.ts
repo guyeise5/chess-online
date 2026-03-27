@@ -5,6 +5,7 @@ import { setupDB, teardownDB, clearDB } from "./setup";
 
 const ALLOWED_KEYS = [
   "introSeen",
+  "locale",
   "boardTheme",
   "pieceSet",
   "lobbyColor",
@@ -17,6 +18,7 @@ const ALLOWED_KEYS = [
 
 type PreferencePayload = {
   introSeen: boolean;
+  locale: string;
   boardTheme: string;
   pieceSet: string;
   lobbyColor: string;
@@ -32,6 +34,7 @@ function isPreferencePayload(value: unknown): value is PreferencePayload {
   const o = value as Record<string, unknown>;
   return (
     typeof o.introSeen === "boolean" &&
+    (o.locale === "en" || o.locale === "he") &&
     typeof o.boardTheme === "string" &&
     typeof o.pieceSet === "string" &&
     typeof o.lobbyColor === "string" &&
@@ -65,6 +68,7 @@ beforeAll(() => {
       }
       res.json({
         introSeen: doc.introSeen,
+        locale: doc.locale === "he" ? "he" : "en",
         boardTheme: doc.boardTheme,
         pieceSet: doc.pieceSet,
         lobbyColor: doc.lobbyColor,
@@ -95,7 +99,14 @@ beforeAll(() => {
       const update: Record<string, unknown> = {};
       for (const key of ALLOWED_KEYS) {
         if (key in req.body) {
-          update[key] = (req.body as Record<string, unknown>)[key];
+          if (key === "locale") {
+            const v = (req.body as Record<string, unknown>)["locale"];
+            if (v === "en" || v === "he") {
+              update[key] = v;
+            }
+          } else {
+            update[key] = (req.body as Record<string, unknown>)[key];
+          }
         }
       }
 
@@ -147,6 +158,7 @@ describe("GET /api/preferences/:playerName", () => {
 
     expect(res.body).toEqual({
       introSeen: false,
+      locale: "en",
       boardTheme: "brown",
       pieceSet: "cburnett",
       lobbyColor: "random",

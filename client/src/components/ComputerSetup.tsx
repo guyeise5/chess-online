@@ -6,6 +6,7 @@ import { DEFAULT_PIECES, BLINDFOLD_PIECES } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import { useUserPrefs } from "../hooks/useUserPreferences";
 import NavBar from "./NavBar";
+import { useI18n } from "../i18n/I18nProvider";
 import styles from "./ComputerSetup.module.css";
 
 function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) {
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function ComputerSetup({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
   const piecesName = boardPrefs?.piecesName ?? DEFAULT_PIECES;
@@ -52,14 +54,14 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
             <button
               className={`${styles['colorOption']} ${color === "white" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("white"); updatePrefs({ computerColor: "white" }); }}
-              title="White"
+              title={t("color.white")}
             >
               <div className={styles['pieceIcon']}><PieceImg piece="wK" piecesName={piecesName} /></div>
             </button>
             <button
               className={`${styles['colorOption']} ${color === "random" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("random"); updatePrefs({ computerColor: "random" }); }}
-              title="Random"
+              title={t("color.random")}
             >
               <div className={styles['pieceIcon']}>
                 <div className={styles['halfPieceWrap']}>
@@ -71,7 +73,7 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
             <button
               className={`${styles['colorOption']} ${color === "black" ? styles['colorOptionActive'] : ""}`}
               onClick={() => { setColor("black"); updatePrefs({ computerColor: "black" }); }}
-              title="Black"
+              title={t("color.black")}
             >
               <div className={styles['pieceIcon']}><PieceImg piece="bK" piecesName={piecesName} /></div>
             </button>

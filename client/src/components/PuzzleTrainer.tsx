@@ -11,6 +11,7 @@ import { getEnv } from "../types";
 import { playMoveSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import { useUserPrefs } from "../hooks/useUserPreferences";
+import { useI18n } from "../i18n/I18nProvider";
 import styles from "./PuzzleTrainer.module.css";
 
 const DEFAULT_RATING = 1500;
@@ -72,6 +73,7 @@ interface PuzzleTrainerProps {
 }
 
 export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrainerProps) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { puzzleId: urlPuzzleId } = useParams<{ puzzleId?: string }>();
   const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
@@ -456,7 +458,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const showMaterial = getEnv().FEATURE_MATERIAL_DIFF !== "false";
 
   if (status === "loading" || !puzzle) {
-    return <div className={styles['loading']}>Loading puzzle...</div>;
+    return <div className={styles['loading']}>{t("puzzle.loading")}</div>;
   }
 
   const movePairs: { num: number; white: string; black?: string }[] = [];
@@ -474,9 +476,9 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       <NavBar {...(onOpenSettings ? { onOpenSettings } : {})} />
 
       <main className={styles['main']}>
-        <div className={styles['boardArea']}>
+        <div className={styles['boardArea']} dir="ltr">
           <div className={styles['playerBar']}>
-            <span className={styles['playerBarName']}>{isPlayerWhite ? "Black" : "White"}</span>
+            <span className={styles['playerBarName']}>{isPlayerWhite ? t("puzzle.black") : t("puzzle.white")}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
           </div>
           <div className={styles['board']} style={{ position: "relative" }}>
@@ -543,14 +545,14 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
             />
           </div>
           <div className={styles['playerBar']}>
-            <span className={styles['playerBarName']}>{isPlayerWhite ? "White" : "Black"}</span>
+            <span className={styles['playerBarName']}>{isPlayerWhite ? t("puzzle.white") : t("puzzle.black")}</span>
             {showMaterial && <MaterialDisplay material={bottomMaterial} />}
           </div>
         </div>
 
         <div className={styles['sidebar']}>
           <div className={styles['playerRating']}>
-            <span className={styles['label']}>Your Puzzle Rating</span>
+            <span className={styles['label']}>{t("puzzle.yourRating")}</span>
             <span className={styles['value']}>{playerRating}</span>
           </div>
 
@@ -569,24 +571,26 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                 : styles['statusFailed']
             }`}
           >
-            {status === "showing" && "Opponent is playing..."}
+            {status === "showing" && t("puzzle.opponentPlaying")}
             {status === "solving" &&
               (wrongFlash
-                ? "That's not it — try again!"
+                ? t("puzzle.tryAgain")
                 : hasFailed
-                ? "Keep trying..."
-                : `Find the best move for ${orientation}`)}
+                ? t("puzzle.keepTrying")
+                : t("puzzle.findBestFor", {
+                    color: orientation === "white" ? t("puzzle.white") : t("puzzle.black"),
+                  }))}
             {status === "correct" &&
               (hasFailed
-                ? "Solved!"
-                : "Correct! Well done.")}
-            {status === "failed" && "Solution"}
+                ? t("puzzle.solved")
+                : t("puzzle.correctWell"))}
+            {status === "failed" && t("puzzle.solutionLabel")}
           </div>
 
           {(status === "correct" || status === "failed") && (
             <div className={styles['puzzleInfo']}>
               <div className={styles['puzzleRating']}>
-                <span>Puzzle Rating</span>
+                <span>{t("puzzle.rating")}</span>
                 <span>{puzzle.rating}</span>
               </div>
               {puzzle.themes.length > 0 && (
@@ -602,7 +606,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
           )}
 
           <div className={styles['movesPanel']}>
-            <h3 className={styles['movesTitle']}>Moves</h3>
+            <h3 className={styles['movesTitle']}>{t("game.moves")}</h3>
             <div className={styles['movesList']}>
               {movePairs.map((mp) => (
                 <div key={mp.num} className={styles['movePair']}>
@@ -635,20 +639,20 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
                     setHintLevel((prev) => prev + 1);
                   }}
                 >
-                  {hintLevel === 0 ? "Hint: Show piece" : "Hint: Show move"}
+                  {hintLevel === 0 ? t("puzzle.hintPiece") : t("puzzle.hintMove")}
                 </button>
               )}
               {hasFailed && (
-                <button className={styles['showSolutionBtn']} onClick={showSolution}>
-                  Show Solution
+                <button type="button" className={styles['showSolutionBtn']} onClick={showSolution}>
+                  {t("puzzle.showSolution")}
                 </button>
               )}
             </div>
           )}
 
           {(status === "correct" || status === "failed") && (
-            <button className={styles['nextBtn']} onClick={() => fetchPuzzle()}>
-              Next Puzzle
+            <button type="button" className={styles['nextBtn']} onClick={() => fetchPuzzle()}>
+              {t("puzzle.next")}
             </button>
           )}
         </div>

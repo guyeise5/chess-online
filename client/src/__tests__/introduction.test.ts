@@ -91,16 +91,17 @@ describe("Introduction - step navigation", () => {
 });
 
 describe("Introduction - step content and selectors", () => {
-  const stepTitles = [
-    "Welcome to Chess Online",
-    "Play Online",
-    "Time Controls",
-    "Open Games",
-    "Private Games",
-    "Play vs Computer",
-    "Puzzle Trainer",
-    "Game History",
-    "Board Customization",
+  /** i18n keys for step titles (English copy lives in `client/src/i18n/en.ts`). */
+  const stepTitleKeys = [
+    "intro.welcome.title",
+    "intro.playOnline.title",
+    "intro.time.title",
+    "intro.rooms.title",
+    "intro.private.title",
+    "intro.computer.title",
+    "intro.puzzles.title",
+    "intro.history.title",
+    "intro.board.title",
   ];
 
   const stepSelectors: (string | undefined)[] = [
@@ -116,17 +117,17 @@ describe("Introduction - step content and selectors", () => {
   ];
 
   it("has the correct number of steps", () => {
-    expect(stepTitles).toHaveLength(TOTAL_STEPS);
+    expect(stepTitleKeys).toHaveLength(TOTAL_STEPS);
     expect(stepSelectors).toHaveLength(TOTAL_STEPS);
   });
 
   it("first step is the welcome (no target element)", () => {
-    expect(stepTitles[0]).toBe("Welcome to Chess Online");
+    expect(stepTitleKeys[0]).toBe("intro.welcome.title");
     expect(stepSelectors[0]).toBeUndefined();
   });
 
   it("last step is board customization", () => {
-    expect(stepTitles[stepTitles.length - 1]).toBe("Board Customization");
+    expect(stepTitleKeys[stepTitleKeys.length - 1]).toBe("intro.board.title");
   });
 
   it("all steps after welcome have a target selector", () => {
@@ -136,19 +137,10 @@ describe("Introduction - step content and selectors", () => {
     }
   });
 
-  it("contains all expected topics", () => {
-    const topics = [
-      "Play Online",
-      "Time Controls",
-      "Open Games",
-      "Private Games",
-      "Play vs Computer",
-      "Puzzle Trainer",
-      "Game History",
-      "Board Customization",
-    ];
-    for (const topic of topics) {
-      expect(stepTitles).toContain(topic);
+  it("contains all expected topic keys", () => {
+    const topicKeys = stepTitleKeys.slice(1);
+    for (const k of topicKeys) {
+      expect(stepTitleKeys).toContain(k);
     }
   });
 

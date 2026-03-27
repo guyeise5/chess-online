@@ -11,6 +11,8 @@ import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import GameChat from "./GameChat";
 import styles from "./GameRoom.module.css";
+import { useI18n } from "../i18n/I18nProvider";
+import { translateEndgameReason } from "../i18n/gameReason";
 import { playMoveSound, playSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 
@@ -67,6 +69,7 @@ function findKingSquare(game: Chess): string | null {
 }
 
 export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onActiveGameChange }: Props) {
+  const { t, locale } = useI18n();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
@@ -790,7 +793,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   if (loading || !room) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "var(--text-secondary)" }}>
-        Loading game...
+        {t("game.loading")}
       </div>
     );
   }
@@ -827,10 +830,10 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
       <NavBar playerName={playerName} {...(onOpenSettings ? { onOpenSettings } : {})} inActiveGame={status === "playing"} />
 
       <main className={styles['main']}>
-        <div className={styles['boardArea']}>
+        <div className={styles['boardArea']} dir="ltr">
           <div className={styles['playerBar']}>
             <div className={styles['playerInfo']}>
-              <span className={styles['playerBarName']}>{topPlayer || "Waiting..."}</span>
+              <span className={styles['playerBarName']}>{topPlayer || t("game.waiting")}</span>
               {showMaterial && <MaterialDisplay material={topMaterial} />}
             </div>
             <div className={styles['clockRow']}>
@@ -838,7 +841,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                 <button
                   className={styles['giveTimeBtn']}
                   onClick={() => socket.emit("game:give-time", { roomId, playerName }, () => {})}
-                  title="Give 15 seconds"
+                  title={t("game.giveTime")}
                 >
                   +
                 </button>
@@ -909,7 +912,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
 
           <div className={styles['playerBar']}>
             <div className={styles['playerInfo']}>
-              <span className={styles['playerBarName']}>{bottomPlayer || "Waiting..."}</span>
+              <span className={styles['playerBarName']}>{bottomPlayer || t("game.waiting")}</span>
               {showMaterial && <MaterialDisplay material={bottomMaterial} />}
             </div>
             <span className={`${styles['clock']} ${bottomIsActive ? styles['clockActive'] : ""}${bottomTime <= 10 ? ` ${styles['clockLow']}` : ""}`}>
@@ -921,7 +924,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
         <div className={styles['sidebar']}>
           {status === "waiting" && (
             <div className={styles['waitingBanner']}>
-              Waiting for opponent to join...
+              {t("game.waitingBanner")}
             </div>
           )}
 
@@ -929,15 +932,20 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             <div className={styles['resultBanner']}>
               <strong>
                 {result === "1-0"
-                  ? "White wins!"
+                  ? t("game.whiteWins")
                   : result === "0-1"
-                  ? "Black wins!"
-                  : "Draw!"}
+                  ? t("game.blackWins")
+                  : t("game.draw")}
               </strong>
               {gameOverReason && (
-                <span className={styles['reason']}>by {gameOverReason}</span>
+                <span className={styles['reason']}>
+                  {locale === "he"
+                    ? translateEndgameReason(gameOverReason, locale, t)
+                    : `${t("game.by")} ${gameOverReason}`}
+                </span>
               )}
               <button
+                type="button"
                 className={styles['analyzeBtn']}
                 onClick={() => {
                   const id = roomId ?? generateGameId();
@@ -951,13 +959,13 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                   navigate(`/analysis/${id}`);
                 }}
               >
-                Analyze
+                {t("game.analyze")}
               </button>
             </div>
           )}
 
           <div className={styles['movesPanel']}>
-            <h3 className={styles['movesTitle']}>Moves</h3>
+            <h3 className={styles['movesTitle']}>{t("game.moves")}</h3>
             <div className={styles['movesList']}>
               {movePairs.map((mp) => (
                 <div key={mp.num} className={styles['movePair']}>
@@ -974,24 +982,26 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             <div className={styles['disconnectBanner']}>
               {disconnectClaimAvailable ? (
                 <>
-                  <span>Opponent has left the game</span>
+                  <span>{t("game.opponentLeft")}</span>
                   <div className={styles['disconnectActions']}>
                     <button
+                      type="button"
                       className={styles['claimWinBtn']}
                       onClick={() => socket.emit("game:claim-disconnect-win", { roomId, playerName }, () => {})}
                     >
-                      Claim win
+                      {t("game.claimWin")}
                     </button>
                     <button
+                      type="button"
                       className={styles['claimDrawBtn']}
                       onClick={() => socket.emit("game:claim-disconnect-draw", { roomId, playerName }, () => {})}
                     >
-                      Claim draw
+                      {t("game.claimDraw")}
                     </button>
                   </div>
                 </>
               ) : (
-                <span>Opponent disconnected. Reconnecting... ({disconnectCountdown}s)</span>
+                <span>{t("game.reconnecting")} ({disconnectCountdown}{t("common.seconds")})</span>
               )}
             </div>
           )}
@@ -999,38 +1009,41 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           {isPlayer && status === "playing" && (
             <>
               {undoRequester && undoRequester !== playerName && (
-                <div className={styles['requestLabel']}>Takeback requested</div>
+                <div className={styles['requestLabel']}>{t("game.takebackRequested")}</div>
               )}
               {showDrawOffer && drawOfferer && drawOfferer !== playerName && (
-                <div className={styles['requestLabel']}>Draw offered</div>
+                <div className={styles['requestLabel']}>{t("game.drawOffered")}</div>
               )}
               <div className={styles['gameActions']}>
                 {undoRequester && undoRequester !== playerName ? (
                   <>
                     <button
+                      type="button"
                       className={`${styles['actionBtn']} ${styles['actionConfirm']}`}
                       onClick={() => socket.emit("game:undo-response", { roomId, accepted: true })}
-                      title="Accept takeback"
+                      title={t("game.acceptTakeback")}
                     >
                       ✓
                     </button>
                     <button
+                      type="button"
                       className={`${styles['actionBtn']} ${styles['actionCancel']}`}
                       onClick={() => socket.emit("game:undo-response", { roomId, accepted: false })}
-                      title="Decline takeback"
+                      title={t("game.declineTakeback")}
                     >
                       ✗
                     </button>
                   </>
                 ) : (
                   <button
+                    type="button"
                     className={styles['actionBtn']}
                     disabled={moves.length === 0 || undoPending}
                     onClick={() => {
                       setUndoPending(true);
                       socket.emit("game:undo-request", { roomId, playerName, moveCount: moves.length });
                     }}
-                    title={undoPending ? "Takeback requested" : "Takeback"}
+                    title={undoPending ? t("game.takebackPending") : t("game.takeback")}
                   >
                     ↶
                   </button>
@@ -1041,34 +1054,38 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                     {drawOfferer && drawOfferer !== playerName ? (
                       <>
                         <button
+                          type="button"
                           className={`${styles['actionBtn']} ${styles['actionConfirm']}`}
                           onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: true })}
-                          title="Accept draw"
+                          title={t("game.acceptDraw")}
                         >
                           ✓
                         </button>
                         <button
+                          type="button"
                           className={`${styles['actionBtn']} ${styles['actionCancel']}`}
                           onClick={() => socket.emit("game:draw-response", { roomId, playerName, accepted: false })}
-                          title="Decline draw"
+                          title={t("game.declineDraw")}
                         >
                           ✗
                         </button>
                       </>
                     ) : drawConfirm ? (
                       <button
+                        type="button"
                         className={`${styles['actionBtn']} ${styles['actionDrawArmed']}`}
                         onClick={confirmDrawOffer}
-                        title="Click again to confirm draw offer"
+                        title={t("game.confirmDraw")}
                       >
                         ½
                       </button>
                     ) : (
                       <button
+                        type="button"
                         className={styles['actionBtn']}
                         disabled={drawOfferPending}
                         onClick={startDrawConfirm}
-                        title={drawOfferPending ? "Draw offered" : "Offer draw"}
+                        title={drawOfferPending ? t("game.drawPending") : t("game.offerDraw")}
                       >
                         ½
                       </button>
@@ -1077,9 +1094,10 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                 )}
 
                 <button
+                  type="button"
                   className={`${styles['actionBtn']} ${resignConfirm ? styles['actionResignArmed'] : ""}`}
                   onClick={resignConfirm ? confirmResign : startResignConfirm}
-                  title={resignConfirm ? "Click again to confirm resignation" : "Resign"}
+                  title={resignConfirm ? t("game.confirmResign") : t("game.resign")}
                 >
                   ⚑
                 </button>

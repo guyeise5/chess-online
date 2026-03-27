@@ -7,11 +7,13 @@ import React, {
   type ReactNode,
 } from "react";
 import { getEnv } from "../types";
+import { isAppLocale, type AppLocale } from "../i18n/locale";
 
 const LOCAL_KEY = "chess-user-prefs";
 
 export interface UserPreferences {
   introSeen: boolean;
+  locale: AppLocale;
   boardTheme: string;
   pieceSet: string;
   lobbyColor: string;
@@ -24,6 +26,7 @@ export interface UserPreferences {
 
 export const DEFAULTS: UserPreferences = {
   introSeen: false,
+  locale: "en",
   boardTheme: "brown",
   pieceSet: "cburnett",
   lobbyColor: "random",
@@ -69,8 +72,11 @@ function readFiniteNumber(value: unknown, fallback: number): number {
 }
 
 function parseStoredObject(obj: Record<string, unknown>): UserPreferences {
+  const locRaw = obj["locale"];
+  const locale: AppLocale = isAppLocale(locRaw) ? locRaw : DEFAULTS.locale;
   return {
     introSeen: readBoolean(obj["introSeen"], DEFAULTS.introSeen),
+    locale,
     boardTheme: readString(obj["boardTheme"], DEFAULTS.boardTheme),
     pieceSet: readString(obj["pieceSet"], DEFAULTS.pieceSet),
     lobbyColor: readString(obj["lobbyColor"], DEFAULTS.lobbyColor),
@@ -124,6 +130,10 @@ export function parsePartialFromServer(raw: unknown): Partial<UserPreferences> {
   if ("introSeen" in obj) {
     const v = obj["introSeen"];
     if (typeof v === "boolean") out.introSeen = v;
+  }
+  if ("locale" in obj) {
+    const v = obj["locale"];
+    if (isAppLocale(v)) out.locale = v;
   }
   if ("boardTheme" in obj) {
     const v = obj["boardTheme"];

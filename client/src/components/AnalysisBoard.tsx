@@ -19,6 +19,7 @@ import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import { getEnv } from "../types";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useI18n } from "../i18n/I18nProvider";
 import styles from "./AnalysisBoard.module.css";
 
 const HIGHLIGHT_LAST_MOVE: React.CSSProperties = {
@@ -251,6 +252,7 @@ interface AnalysisBoardProps {
 }
 
 export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }: AnalysisBoardProps) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
@@ -771,7 +773,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
   if (loading) {
     return (
       <div className={styles["empty"]}>
-        <p>Loading game...</p>
+        <p>{t("analysis.loadingGame")}</p>
       </div>
     );
   }
@@ -779,8 +781,8 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
   if (!gameData || gameMoves.length === 0) {
     return (
       <div className={styles["empty"]}>
-        <p>No game to analyze.</p>
-        <button onClick={() => navigate("/")}>Back to Home</button>
+        <p>{t("analysis.noGame")}</p>
+        <button type="button" onClick={() => navigate("/")}>{t("analysis.backHome")}</button>
       </div>
     );
   }
@@ -887,7 +889,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
       <NavBar {...(onOpenSettings ? { onOpenSettings } : {})} />
 
       <main className={styles["main"]}>
-        <div className={styles["boardSection"]}>
+        <div className={styles["boardSection"]} dir="ltr">
           <div className={styles["playerBar"]}>
             <span className={styles["playerBarName"]}>{topPlayer}</span>
             {showMaterial && <MaterialDisplay material={topMaterial} />}
@@ -979,22 +981,22 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
           <div
             className={styles["fenBar"]}
             onClick={() => navigator.clipboard?.writeText(currentFen)}
-            title="Click to copy FEN"
+            title={t("analysis.copyFen")}
           >
             {currentFen}
           </div>
 
           <div className={styles["navButtons"]}>
-            <button onClick={goToStart} title="First">
+            <button type="button" onClick={goToStart} title={t("analysis.navFirst")}>
               &laquo;
             </button>
-            <button onClick={goBack} title="Previous">
+            <button type="button" onClick={goBack} title={t("analysis.navPrev")}>
               &lsaquo;
             </button>
-            <button onClick={goForward} title="Next">
+            <button type="button" onClick={goForward} title={t("analysis.navNext")}>
               &rsaquo;
             </button>
-            <button onClick={goToEnd} title="Last">
+            <button type="button" onClick={goToEnd} title={t("analysis.navLast")}>
               &raquo;
             </button>
           </div>
@@ -1004,7 +1006,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
           {analyzing && (
             <div className={styles["progressBar"]}>
               <div className={styles["progressLabel"]}>
-                Analyzing... {progress}%
+                {t("analysis.analyzing", { p: String(progress) })}
               </div>
               <div className={styles["progressTrack"]}>
                 <div
@@ -1017,7 +1019,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
 
           <div className={styles["engineLines"]}>
             <h3 className={styles["engineLinesTitle"]}>
-              Engine Lines
+              {t("analysis.engineLines")}
               {pvLines.length > 0 && (
                 <span className={styles["engineDepth"]}>
                   d{pvLines[0]?.depth}
@@ -1064,20 +1066,19 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
               </div>
             ) : (
               <div className={styles["engineLinesEmpty"]}>
-                {pvComputing ? "Calculating..." : "No lines"}
+                {pvComputing ? t("analysis.calculating") : t("analysis.noLines")}
               </div>
             )}
           </div>
 
           {movesTruncated && (
             <div className={styles["truncationWarning"]}>
-              Some moves could not be loaded — the game data appears corrupted.
-              Only the first {gameMoves.length} valid move{gameMoves.length !== 1 ? "s are" : " is"} shown.
+              {t("analysis.truncationBanner", { n: String(gameMoves.length) })}
             </div>
           )}
 
           <div className={styles["movesPanel"]}>
-            <h3 className={styles["movesTitle"]}>Moves</h3>
+            <h3 className={styles["movesTitle"]}>{t("analysis.moves")}</h3>
             <div className={styles["movesList"]}>{moveListElements}</div>
           </div>
         </div>

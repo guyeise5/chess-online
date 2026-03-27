@@ -41,6 +41,7 @@ describe("useUserPreferences helpers", () => {
   it("loadLocal parses valid stored JSON", () => {
     const stored = {
       introSeen: true,
+      locale: "en" as const,
       boardTheme: "blue",
       pieceSet: "merida",
       lobbyColor: "white",
@@ -101,5 +102,10 @@ describe("useUserPreferences helpers", () => {
         puzzleCount: "abc",
       })
     ).toEqual({});
+  });
+
+  it("parsePartialFromServer accepts locale en/he only", () => {
+    expect(parsePartialFromServer({ locale: "he" })).toEqual({ locale: "he" });
+    expect(parsePartialFromServer({ locale: "fr" })).toEqual({});
   });
 });

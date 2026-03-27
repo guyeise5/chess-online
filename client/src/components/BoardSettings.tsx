@@ -2,6 +2,10 @@ import React, { useEffect } from "react";
 import { Chessboard } from "react-chessboard";
 import { BOARD_THEMES, PIECE_SETS, DEFAULT_PIECES, BLINDFOLD_PIECES, type BoardTheme } from "../boardThemes";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
+import { useUserPrefs } from "../hooks/useUserPreferences";
+import { useI18n } from "../i18n/I18nProvider";
+import type { AppLocale } from "../i18n/locale";
+import { FlagGb, FlagIl } from "./LanguageFlags";
 import styles from "./BoardSettings.module.css";
 
 interface Props {
@@ -77,6 +81,14 @@ function buildPreviewPieces(pieceSet: string): Record<string, () => React.JSX.El
 }
 
 export default function BoardSettings({ boardPrefs, onClose }: Props) {
+  const { update } = useUserPrefs();
+  const { t, locale, setLocale } = useI18n();
+
+  const setUiLocale = (l: AppLocale) => {
+    setLocale(l);
+    update({ locale: l });
+  };
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -91,8 +103,8 @@ export default function BoardSettings({ boardPrefs, onClose }: Props) {
     <div className={styles['overlay']} onClick={onClose}>
       <div className={styles['modal']} onClick={(e) => e.stopPropagation()}>
         <div className={styles['modalHeader']}>
-          <h2 className={styles['modalTitle']}>Board Settings</h2>
-          <button className={styles['closeBtn']} onClick={onClose}>✕</button>
+          <h2 className={styles['modalTitle']}>{t("settings.title")}</h2>
+          <button type="button" className={styles['closeBtn']} onClick={onClose} aria-label={t("intro.close")}>✕</button>
         </div>
 
         <div className={styles['modalBody']}>
@@ -114,7 +126,32 @@ export default function BoardSettings({ boardPrefs, onClose }: Props) {
           </div>
 
           <div className={styles['optionsCol']}>
-            <h3 className={styles['sectionTitle']}>Board</h3>
+            <h3 className={styles['sectionTitle']}>{t("settings.language")}</h3>
+            <p className={styles['langHint']}>{t("settings.languageHint")}</p>
+            <div className={styles['langRow']}>
+              <button
+                type="button"
+                className={`${styles['langBtn']} ${locale === "en" ? styles['langBtnActive'] : ""}`}
+                onClick={() => setUiLocale("en")}
+                aria-label={t("lang.en")}
+                aria-pressed={locale === "en"}
+                title={t("lang.en")}
+              >
+                <FlagGb {...(styles['langFlag'] ? { className: styles['langFlag'] } : {})} />
+              </button>
+              <button
+                type="button"
+                className={`${styles['langBtn']} ${locale === "he" ? styles['langBtnActive'] : ""}`}
+                onClick={() => setUiLocale("he")}
+                aria-label={t("lang.he")}
+                aria-pressed={locale === "he"}
+                title={t("lang.he")}
+              >
+                <FlagIl {...(styles['langFlag'] ? { className: styles['langFlag'] } : {})} />
+              </button>
+            </div>
+
+            <h3 className={styles['sectionTitle']}>{t("settings.board")}</h3>
             <div className={styles['grid']}>
               {BOARD_THEMES.map((t) => (
                 <BoardSwatch
@@ -126,7 +163,7 @@ export default function BoardSettings({ boardPrefs, onClose }: Props) {
               ))}
             </div>
 
-            <h3 className={styles['sectionTitle']}>Pieces</h3>
+            <h3 className={styles['sectionTitle']}>{t("settings.pieces")}</h3>
             <div className={styles['grid']}>
               {PIECE_SETS.map((name) => (
                 <PieceSwatch

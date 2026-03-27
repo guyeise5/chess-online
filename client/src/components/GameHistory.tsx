@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "./NavBar";
+import { useI18n } from "../i18n/I18nProvider";
 import styles from "./GameHistory.module.css";
 
 interface Props {
@@ -35,16 +36,19 @@ function resultForPlayer(
   return "unknown";
 }
 
-function resultLabel(outcome: "win" | "loss" | "draw" | "unknown"): string {
+function resultLabel(
+  outcome: "win" | "loss" | "draw" | "unknown",
+  t: (key: string) => string
+): string {
   switch (outcome) {
     case "win":
-      return "Won";
+      return t("history.won");
     case "loss":
-      return "Lost";
+      return t("history.lost");
     case "draw":
-      return "Draw";
+      return t("history.draw");
     default:
-      return "—";
+      return t("history.unknown");
   }
 }
 
@@ -75,6 +79,7 @@ function formatDate(iso: string): string {
 }
 
 export default function GameHistory({ playerName, onChangeName, onOpenSettings }: Props) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [games, setGames] = useState<GameSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,18 +118,18 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
       <main className={styles['main']}>
         <div className={styles['panel']}>
           <h2 className={styles['panelTitle']}>
-            My Games
+            {t("history.title")}
             {!loading && !error && (
               <span className={styles['gameCount']}>{games.length}</span>
             )}
           </h2>
 
-          {loading && <div className={styles['status']}>Loading games...</div>}
-          {error && <div className={styles['status']}>Failed to load games.</div>}
+          {loading && <div className={styles['status']}>{t("history.loading")}</div>}
+          {error && <div className={styles['status']}>{t("history.error")}</div>}
 
           {!loading && !error && games.length === 0 && (
             <div className={styles['status']}>
-              No games found. Play a game and it will appear here!
+              {t("history.empty")}
             </div>
           )}
 
@@ -157,17 +162,17 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
                         <span className={styles['currentPlayer']}>
                           {playerName}
                         </span>{" "}
-                        vs {opponent}
+                        {t("history.vs")} {opponent}
                       </span>
                       <span className={styles['gameMeta']}>
-                        {game.moves.length} moves
+                        {t("history.movesMeta", { n: String(game.moves.length) })}
                         {game.createdAt && ` · ${formatDate(game.createdAt)}`}
                       </span>
                     </div>
                     <span
                       className={`${styles['resultBadge']} ${resultClass(outcome)}`}
                     >
-                      {resultLabel(outcome)}
+                      {resultLabel(outcome, t)}
                     </span>
                   </div>
                 );

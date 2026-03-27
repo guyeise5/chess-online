@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Lobby from "./components/Lobby";
 import ComputerSetup from "./components/ComputerSetup";
@@ -13,7 +13,14 @@ import Introduction from "./components/Introduction";
 import NamePrompt from "./components/NamePrompt";
 import Footer from "./components/Footer";
 import useBoardPreferences from "./hooks/useBoardPreferences";
-import { UserPrefsProvider, useUserPrefs } from "./hooks/useUserPreferences";
+import {
+  UserPrefsProvider,
+  useUserPrefs,
+  loadLocal,
+  saveLocal,
+} from "./hooks/useUserPreferences";
+import { useI18n } from "./i18n/I18nProvider";
+import type { AppLocale } from "./i18n/locale";
 import { getEnv } from "./types";
 
 const PLAYER_NAME_KEY = "chess-player-name";
@@ -25,6 +32,21 @@ function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: str
     return <Navigate to={`/game/${activeGameRoomId}`} replace />;
   }
   return <>{children}</>;
+}
+
+/** Applies locale from server-persisted preferences after load. */
+function UserPrefsLocaleSync() {
+  const { prefs, loaded } = useUserPrefs();
+  const { setLocale, locale } = useI18n();
+
+  useEffect(() => {
+    if (!loaded) return;
+    if (prefs.locale !== locale) {
+      setLocale(prefs.locale);
+    }
+  }, [loaded, prefs.locale, locale, setLocale]);
+
+  return null;
 }
 
 function AppInner({ playerName, onChangeName }: { playerName: string; onChangeName: () => void }) {
@@ -129,13 +151,18 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
 }
 
 export default function App() {
+  const { setLocale } = useI18n();
   const [playerName, setPlayerName] = useState<string>(() => {
     return localStorage.getItem(PLAYER_NAME_KEY) || "";
   });
 
-  const handleSetName = (name: string) => {
-    setPlayerName(name);
-    localStorage.setItem(PLAYER_NAME_KEY, name);
+  const handleSetName = (name: string, chosenLocale: AppLocale) => {
+    const trimmed = name.trim();
+    const merged = { ...loadLocal(), locale: chosenLocale };
+    saveLocal(merged);
+    setLocale(chosenLocale);
+    setPlayerName(trimmed);
+    localStorage.setItem(PLAYER_NAME_KEY, trimmed);
   };
 
   const handleChangeName = useCallback(() => {
@@ -154,6 +181,7 @@ export default function App() {
 
   return (
     <UserPrefsProvider playerName={playerName}>
+      <UserPrefsLocaleSync />
       <AppInner playerName={playerName} onChangeName={handleChangeName} />
     </UserPrefsProvider>
   );

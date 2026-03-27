@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
+import { useI18n } from "../i18n/I18nProvider";
 import styles from "./Introduction.module.css";
 
 interface Props {
@@ -11,91 +12,6 @@ interface Step {
   selector?: string;
   position?: "bottom" | "top" | "left" | "right";
 }
-
-const STEPS: Step[] = [
-  {
-    title: "Welcome to Chess Online",
-    content: (
-      <>
-        <p>A real-time multiplayer chess platform where you can play against other players, challenge the computer, and solve puzzles.</p>
-        <p>Let&rsquo;s take a quick tour. You can skip at any time.</p>
-      </>
-    ),
-  },
-  {
-    title: "Play Online",
-    selector: "[data-tour='nav-play']",
-    position: "bottom",
-    content: (
-      <p>The <strong>Play</strong> tab is your main lobby. Create a game or join an existing one.</p>
-    ),
-  },
-  {
-    title: "Time Controls",
-    selector: "[data-tour='time-grid']",
-    position: "right",
-    content: (
-      <>
-        <p>Pick a time control from the grid. For example, <strong>5+3</strong> means 5 minutes per side with 3 seconds added after each move.</p>
-        <p>Click <strong>Custom</strong> to set your own time and increment.</p>
-      </>
-    ),
-  },
-  {
-    title: "Open Games",
-    selector: "[data-tour='rooms-table']",
-    position: "left",
-    content: (
-      <>
-        <p>This table shows all open games waiting for an opponent. Click any row to join.</p>
-        <p>If you get disconnected, you can rejoin&mdash;your game state is preserved.</p>
-      </>
-    ),
-  },
-  {
-    title: "Private Games",
-    selector: "[data-tour='private-game']",
-    position: "top",
-    content: (
-      <p>Want to play a friend? Create a <strong>private game</strong> and share the invite link. It won&rsquo;t appear in the lobby.</p>
-    ),
-  },
-  {
-    title: "Play vs Computer",
-    selector: "[data-tour='nav-computer']",
-    position: "bottom",
-    content: (
-      <>
-        <p>Play against <strong>Stockfish</strong> with 12 difficulty levels. No time limit&mdash;take as long as you need.</p>
-        <p>You can freely undo moves, and finished games are saved for analysis.</p>
-      </>
-    ),
-  },
-  {
-    title: "Puzzle Trainer",
-    selector: "[data-tour='nav-puzzles']",
-    position: "bottom",
-    content: (
-      <p>Solve tactical puzzles matched to your skill level. Use hints if you get stuck, or reveal the solution.</p>
-    ),
-  },
-  {
-    title: "Game History",
-    selector: "[data-tour='nav-games']",
-    position: "bottom",
-    content: (
-      <p>All your games&mdash;online and vs computer&mdash;are saved here. Click any game to analyze it with <strong>engine evaluation</strong>, score graph, and move quality annotations.</p>
-    ),
-  },
-  {
-    title: "Board Customization",
-    selector: "[data-tour='settings-btn']",
-    position: "bottom",
-    content: (
-      <p>Choose from <strong>19 board themes</strong> and <strong>39 piece sets</strong> including a blindfold mode. Your choices are saved.</p>
-    ),
-  },
-];
 
 interface Rect {
   top: number;
@@ -142,21 +58,144 @@ function computeTooltipPos(
   }
 }
 
+function useIntroSteps(t: (key: string) => string): Step[] {
+  return useMemo(
+    () => [
+      {
+        title: t("intro.welcome.title"),
+        content: (
+          <>
+            <p>{t("intro.welcome.p1")}</p>
+            <p>{t("intro.welcome.p2")}</p>
+          </>
+        ),
+      },
+      {
+        title: t("intro.playOnline.title"),
+        selector: "[data-tour='nav-play']",
+        position: "bottom",
+        content: (
+          <p>
+            {t("intro.playOnline.p1a")}
+            <strong>{t("nav.play")}</strong>
+            {t("intro.playOnline.p1b")}
+          </p>
+        ),
+      },
+      {
+        title: t("intro.time.title"),
+        selector: "[data-tour='time-grid']",
+        position: "right",
+        content: (
+          <>
+            <p>
+              {t("intro.time.p1a")}
+              <strong>{t("intro.time.p1example")}</strong>
+              {t("intro.time.p1b")}
+            </p>
+            <p>
+              {t("intro.time.p2a")}
+              <strong>{t("lobby.custom")}</strong>
+              {t("intro.time.p2b")}
+            </p>
+          </>
+        ),
+      },
+      {
+        title: t("intro.rooms.title"),
+        selector: "[data-tour='rooms-table']",
+        position: "left",
+        content: (
+          <>
+            <p>{t("intro.rooms.p1")}</p>
+            <p>{t("intro.rooms.p2")}</p>
+          </>
+        ),
+      },
+      {
+        title: t("intro.private.title"),
+        selector: "[data-tour='private-game']",
+        position: "top",
+        content: (
+          <p>
+            {t("intro.private.p1a")}
+            <strong>{t("intro.private.term")}</strong>
+            {t("intro.private.p1b")}
+          </p>
+        ),
+      },
+      {
+        title: t("intro.computer.title"),
+        selector: "[data-tour='nav-computer']",
+        position: "bottom",
+        content: (
+          <>
+            <p>
+              {t("intro.computer.p1a")}
+              <strong>{t("engine.stockfish")}</strong>
+              {t("intro.computer.p1b")}
+            </p>
+            <p>{t("intro.computer.p2")}</p>
+          </>
+        ),
+      },
+      {
+        title: t("intro.puzzles.title"),
+        selector: "[data-tour='nav-puzzles']",
+        position: "bottom",
+        content: <p>{t("intro.puzzles.body")}</p>,
+      },
+      {
+        title: t("intro.history.title"),
+        selector: "[data-tour='nav-games']",
+        position: "bottom",
+        content: (
+          <p>
+            {t("intro.history.p1a")}
+            <strong>{t("intro.history.engine")}</strong>
+            {t("intro.history.p1b")}
+          </p>
+        ),
+      },
+      {
+        title: t("intro.board.title"),
+        selector: "[data-tour='settings-btn']",
+        position: "bottom",
+        content: (
+          <p>
+            {t("intro.board.p1a")}
+            <strong>{t("intro.board.themesCount")}</strong>
+            {t("intro.board.p1mid")}
+            <strong>{t("intro.board.piecesCount")}</strong>
+            {t("intro.board.p1b")}
+          </p>
+        ),
+      },
+    ],
+    [t]
+  );
+}
+
 export default function Introduction({ onComplete }: Props) {
+  const { t } = useI18n();
+  const steps = useIntroSteps(t);
+  const maskUid = useId().replace(/:/g, "");
+  const maskUrl = `url(#${maskUid})`;
+
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
 
   const measure = useCallback(() => {
-    const s = STEPS[step];
+    const s = steps[step];
     if (s?.selector) {
       setTargetRect(getElementRect(s.selector));
     } else {
       setTargetRect(null);
     }
-  }, [step]);
+  }, [step, steps]);
 
   useEffect(() => {
     measure();
@@ -199,7 +238,7 @@ export default function Introduction({ onComplete }: Props) {
       {hasTarget && (
         <svg className={styles["spotlightSvg"]} width="100%" height="100%">
           <defs>
-            <mask id="tour-mask">
+            <mask id={maskUid}>
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
               <rect
                 x={targetRect.left}
@@ -217,7 +256,7 @@ export default function Introduction({ onComplete }: Props) {
             width="100%"
             height="100%"
             fill="rgba(0,0,0,0.65)"
-            mask="url(#tour-mask)"
+            mask={maskUrl}
           />
         </svg>
       )}
@@ -238,38 +277,39 @@ export default function Introduction({ onComplete }: Props) {
         <div className={styles["tooltipHeader"]}>
           <span className={styles["tooltipTitle"]}>{current.title}</span>
           <span className={styles["stepCount"]}>
-            {step + 1}/{STEPS.length}
+            {step + 1}/{steps.length}
           </span>
         </div>
         <div className={styles["tooltipBody"]}>{current.content}</div>
 
         <div className={styles["dots"]}>
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <button
               key={i}
+              type="button"
               className={`${styles["dot"]} ${i === step ? styles["dotActive"] : ""} ${i < step ? styles["dotDone"] : ""}`}
               onClick={() => setStep(i)}
-              aria-label={`Go to step ${i + 1}`}
+              aria-label={t("intro.stepAria", { n: String(i + 1) })}
             />
           ))}
         </div>
 
         <div className={styles["actions"]}>
-          <button className={styles["skipBtn"]} onClick={onComplete}>
-            {isLast ? "Close" : "Skip"}
+          <button type="button" className={styles["skipBtn"]} onClick={onComplete}>
+            {isLast ? t("intro.close") : t("intro.skip")}
           </button>
           {step > 0 && (
-            <button className={styles["backBtn"]} onClick={() => setStep(step - 1)}>
-              Back
+            <button type="button" className={styles["backBtn"]} onClick={() => setStep(step - 1)}>
+              {t("intro.back")}
             </button>
           )}
           {!isLast ? (
-            <button className={styles["nextBtn"]} onClick={() => setStep(step + 1)}>
-              Next
+            <button type="button" className={styles["nextBtn"]} onClick={() => setStep(step + 1)}>
+              {t("intro.next")}
             </button>
           ) : (
-            <button className={styles["nextBtn"]} onClick={onComplete}>
-              Get Started
+            <button type="button" className={styles["nextBtn"]} onClick={onComplete}>
+              {t("intro.getStarted")}
             </button>
           )}
         </div>
