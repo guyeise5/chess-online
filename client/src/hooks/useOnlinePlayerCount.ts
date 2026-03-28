@@ -26,9 +26,18 @@ export function useOnlinePlayerCount(): number | null {
       if (n !== null) setCount(n);
     };
 
+    const requestCount = () => {
+      socket.emit("presence:request-count");
+    };
+
     socket.on("presence:online-count", handler);
+    socket.on("connect", requestCount);
+
+    if (socket.connected) requestCount();
+
     return () => {
       socket.off("presence:online-count", handler);
+      socket.off("connect", requestCount);
     };
   }, [enabled]);
 

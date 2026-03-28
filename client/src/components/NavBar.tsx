@@ -51,15 +51,15 @@ export default function NavBar({ playerName, onChangeName, onOpenSettings, inAct
         </nav>
       </div>
       <div className={styles['headerRight']}>
-        {showOnlinePlayerCount && onlinePlayerCount !== null && (
+        {showOnlinePlayerCount && (
           <div
             data-tour="online-count"
             className={styles["onlineIndicator"]}
             title={t("nav.onlinePlayersTitle")}
-            aria-label={t("nav.onlinePlayersAria", { count: String(onlinePlayerCount) })}
+            aria-label={onlinePlayerCount !== null ? t("nav.onlinePlayersAria", { count: String(onlinePlayerCount) }) : t("nav.onlinePlayersTitle")}
           >
-            <span className={styles["onlineDot"]} aria-hidden />
-            <span className={styles["onlineCount"]}>{onlinePlayerCount}</span>
+            <span className={onlinePlayerCount === null ? styles["onlineDotStale"] : styles["onlineDot"]} aria-hidden />
+            <span className={styles["onlineCount"]}>{onlinePlayerCount ?? "—"}</span>
           </div>
         )}
         {showBoardSettings && onOpenSettings && (

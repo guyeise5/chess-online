@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager";
 import { ColorChoice } from "../models/Room";
-import { emitOnlinePlayerCount } from "./onlinePlayerCount";
+import { emitOnlinePlayerCount, emitOnlinePlayerCountToSocket } from "./onlinePlayerCount";
 
 const socketPlayers = new Map<string, string>();
 const socketRooms = new Map<string, Set<string>>();
@@ -297,6 +297,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
         safeCallback(callback, result);
       }
     );
+
+    socket.on("presence:request-count", () => {
+      emitOnlinePlayerCountToSocket(io, socket);
+    });
 
     socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);

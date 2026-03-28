@@ -50,6 +50,21 @@
   flex-shrink: 0;
 }
 
+.onlineDotStale {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e6b800;
+  box-shadow: 0 0 0 2px rgba(230, 184, 0, 0.35);
+  flex-shrink: 0;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .onlineCount {
   font-size: 1.05rem;
   font-weight: 700;

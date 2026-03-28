@@ -23,3 +23,33 @@ describe("parseOnlineCountPayload", () => {
     expect(parseOnlineCountPayload({ count: -3 })).toBe(0);
   });
 });
+
+describe("online indicator stale state", () => {
+  function indicatorState(count: number | null) {
+    const isStale = count === null;
+    const dotClass = isStale ? "onlineDotStale" : "onlineDot";
+    const displayText = count !== null ? String(count) : "—";
+    return { isStale, dotClass, displayText };
+  }
+
+  it("shows stale yellow dot when count is null (not yet received)", () => {
+    const state = indicatorState(null);
+    expect(state.isStale).toBe(true);
+    expect(state.dotClass).toBe("onlineDotStale");
+    expect(state.displayText).toBe("—");
+  });
+
+  it("shows green dot when count is received", () => {
+    const state = indicatorState(5);
+    expect(state.isStale).toBe(false);
+    expect(state.dotClass).toBe("onlineDot");
+    expect(state.displayText).toBe("5");
+  });
+
+  it("shows green dot even for zero count", () => {
+    const state = indicatorState(0);
+    expect(state.isStale).toBe(false);
+    expect(state.dotClass).toBe("onlineDot");
+    expect(state.displayText).toBe("0");
+  });
+});
