@@ -175,6 +175,14 @@ describe("move classification via winning chances delta", () => {
   it("isBestMove with inaccuracy delta still classifies as inaccuracy", () => {
     expect(classifyDelta(0.15, true)).toBe("inaccuracy");
   });
+
+  it("classifyMove never returns 'forced' (forced detection is in the analysis loop)", () => {
+    const deltas = [0, 0.01, 0.05, 0.1, 0.15, 0.25, 0.5];
+    for (const d of deltas) {
+      expect(classifyDelta(d, true)).not.toBe("forced");
+      expect(classifyDelta(d, false)).not.toBe("forced");
+    }
+  });
 });
 
 describe("engine eval capture (depth handling)", () => {

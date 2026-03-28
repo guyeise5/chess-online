@@ -174,6 +174,33 @@ describe("useStockfishAnalysis", () => {
     });
   });
 
+  it("classifies a move as 'forced' when the previous position had exactly one legal move", async () => {
+    const forcedFen = "K1k5/8/8/8/8/8/8/1r6 w - - 0 1";
+    const { root, ref } = mountHook(["Ka7"], forcedFen);
+    const worker = MockStockfishWorker.lastInstance!;
+    worker.goHandler = () => ({ cp: -900, best: "a8a7" });
+
+    await flushMicrotasks();
+    act(() => {
+      ref.current!.startAnalysis();
+    });
+    await flushMicrotasks();
+
+    await vi.waitFor(
+      () => {
+        expect(ref.current!.analyzing).toBe(false);
+        expect(ref.current!.evals).toHaveLength(2);
+      },
+      { timeout: 4000 }
+    );
+
+    expect(ref.current!.evals[1]!.classification).toBe("forced");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   it("clears evals and stops analyzing when SAN replay fails", async () => {
     const { root, ref } = mountHook(["not-a-move"]);
     const worker = MockStockfishWorker.lastInstance!;

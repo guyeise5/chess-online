@@ -84,7 +84,7 @@
 - Multi-PV engine analysis (5 principal variations, depth 18) via Stockfish WASM worker
 - Eval bar showing advantage with signed score (+/−) on the winning side, logistic curve, and mate distance labels
 - Score graph plotting evaluations across the game with scrub/jump navigation
-- Move quality annotations on every move (book 📖 / best ★ / good 👍 / inaccuracy `?!` / mistake `?` / blunder `??`) using winning-chances delta with chess.com Expected Points thresholds (best ≤0.04, good 0.04–0.10, inaccuracy 0.10–0.20, mistake 0.20–0.40, blunder >0.40)
+- Move quality annotations on every move (book 📖 / forced ▶ / best ★ / good 👍 / inaccuracy `?!` / mistake `?` / blunder `??`) using winning-chances delta with chess.com Expected Points thresholds (best ≤0.04, good 0.04–0.10, inaccuracy 0.10–0.20, mistake 0.20–0.40, blunder >0.40). Forced moves (only one legal move available) get a distinct arrow icon instead of a quality rating.
 - Opening book detection: known opening positions (from Lichess chess-openings) are labeled "book" instead of receiving a WC-delta classification; once a move leaves the book, normal scoring resumes
 - Analysis board: legal-move dots and capture rings when selecting or dragging a piece (same styling as live play)
 - Material difference display in player bars (updates as you navigate moves)

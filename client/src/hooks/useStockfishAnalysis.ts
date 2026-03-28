@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 
 export type MoveClassification =
   | "book"
+  | "forced"
   | "best"
   | "excellent"
   | "good"
@@ -380,23 +381,29 @@ export function useStockfishAnalysis(
             entry.classification = "book";
           } else {
             bookEnded = true;
-            const prev = built[i - 1]!;
-            const whiteToMoveBefore = sideToMoveFromFen(fens[i - 1]!);
-            const wcBefore = winningChances(prev.score);
-            const wcAfter = winningChances(score);
-            const delta = whiteToMoveBefore
-              ? wcBefore - wcAfter
-              : wcAfter - wcBefore;
-            const prevSan = sanMoves[i - 1];
-            const playedUci =
-              typeof prevSan === "string"
-                ? sanToUci(fens[i - 1]!, prevSan)
-                : "";
-            const isBest =
-              !!prev.bestMove &&
-              playedUci !== "" &&
-              playedUci === prev.bestMove;
-            entry.classification = classifyMove(Math.max(0, delta), isBest);
+            const prevFen = fens[i - 1]!;
+            const legalMoveCount = new Chess(prevFen).moves().length;
+            if (legalMoveCount === 1) {
+              entry.classification = "forced";
+            } else {
+              const prev = built[i - 1]!;
+              const whiteToMoveBefore = sideToMoveFromFen(prevFen);
+              const wcBefore = winningChances(prev.score);
+              const wcAfter = winningChances(score);
+              const delta = whiteToMoveBefore
+                ? wcBefore - wcAfter
+                : wcAfter - wcBefore;
+              const prevSan = sanMoves[i - 1];
+              const playedUci =
+                typeof prevSan === "string"
+                  ? sanToUci(prevFen, prevSan)
+                  : "";
+              const isBest =
+                !!prev.bestMove &&
+                playedUci !== "" &&
+                playedUci === prev.bestMove;
+              entry.classification = classifyMove(Math.max(0, delta), isBest);
+            }
           }
         }
         built.push(entry);
