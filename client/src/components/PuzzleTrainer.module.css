@@ -52,7 +52,7 @@
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 2.625rem;
   padding: 1.75rem;
   min-height: 0;
@@ -193,8 +193,8 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 7px;
-  flex: 1;
-  min-height: 0;
+  height: 525px;
+  max-height: calc(100vh - 300px);
   display: flex;
   flex-direction: column;
 }
