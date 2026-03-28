@@ -367,13 +367,13 @@ describe("rapid navigation resilience", () => {
 /* ---------- inferOrientation ---------- */
 
 describe("inferOrientation", () => {
-  it("returns saved orientation when present (white)", () => {
-    const data: AnalysisGameData = { moves: ["e4"], orientation: "white", playerBlack: "Alice" };
+  it("returns white when playerName matches playerWhite", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "black", playerWhite: "Alice", playerBlack: "Bob" };
     expect(inferOrientation(data, "Alice")).toBe("white");
   });
 
-  it("returns saved orientation when present (black)", () => {
-    const data: AnalysisGameData = { moves: ["e4"], orientation: "black", playerWhite: "Alice" };
+  it("returns black when playerName matches playerBlack", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "white", playerWhite: "Bob", playerBlack: "Alice" };
     expect(inferOrientation(data, "Alice")).toBe("black");
   });
 
@@ -387,12 +387,22 @@ describe("inferOrientation", () => {
     expect(inferOrientation(data, "Alice")).toBe("white");
   });
 
-  it("defaults to white when playerName is not provided", () => {
+  it("falls back to saved orientation when playerName matches neither player", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "black", playerWhite: "Bob", playerBlack: "Carol" };
+    expect(inferOrientation(data, "Alice")).toBe("black");
+  });
+
+  it("defaults to white when playerName is not provided but orientation is set", () => {
+    const data: AnalysisGameData = { moves: ["e4"], orientation: "black", playerBlack: "Alice" };
+    expect(inferOrientation(data)).toBe("black");
+  });
+
+  it("defaults to white when no orientation and playerName not provided", () => {
     const data: AnalysisGameData = { moves: ["e4"], playerBlack: "Alice" };
     expect(inferOrientation(data)).toBe("white");
   });
 
-  it("defaults to white when playerName matches neither player", () => {
+  it("defaults to white when playerName matches neither player and no orientation", () => {
     const data: AnalysisGameData = { moves: ["e4"], playerWhite: "Bob", playerBlack: "Carol" };
     expect(inferOrientation(data, "Alice")).toBe("white");
   });
@@ -405,13 +415,13 @@ describe("inferOrientation", () => {
     expect(inferOrientation(null)).toBe("white");
   });
 
-  it("saved orientation takes precedence over playerName inference", () => {
+  it("playerName match takes precedence over saved orientation", () => {
     const data: AnalysisGameData = {
       moves: ["e4"],
       orientation: "white",
       playerWhite: "Bob",
       playerBlack: "Alice",
     };
-    expect(inferOrientation(data, "Alice")).toBe("white");
+    expect(inferOrientation(data, "Alice")).toBe("black");
   });
 });

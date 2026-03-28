@@ -175,8 +175,9 @@ export function inferOrientation(
   gameData: AnalysisGameData | null,
   playerName?: string
 ): "white" | "black" {
-  if (gameData?.orientation) return gameData.orientation;
+  if (playerName && gameData?.playerWhite === playerName) return "white";
   if (playerName && gameData?.playerBlack === playerName) return "black";
+  if (gameData?.orientation) return gameData.orientation;
   return "white";
 }
 
