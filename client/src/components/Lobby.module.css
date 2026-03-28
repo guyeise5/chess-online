@@ -19,7 +19,6 @@
   gap: 1.25rem;
   max-width: 1000px;
   width: 100%;
-  height: 40%;
   align-items: stretch;
 }
 
@@ -115,10 +114,7 @@
 .presetGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 4px;
-  flex: 1;
-  min-height: 0;
+  gap: 3px;
 }
 
 .presetBtn {
@@ -127,25 +123,26 @@
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
+  padding: 0.9rem 0.5rem;
   border-radius: 3px;
   background: var(--bg-card);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
+  border: none;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.1s, color 0.1s;
   text-align: center;
   overflow: hidden;
 }
 
 .presetTime {
-  font-size: clamp(1.1rem, 2.8vh, 2rem);
+  font-size: 1.55rem;
   font-weight: 700;
   font-family: monospace;
   line-height: 1.2;
 }
 
 .presetCategory {
-  font-size: clamp(0.55rem, 1.2vh, 0.82rem);
+  font-size: 0.72rem;
   font-weight: 500;
   opacity: 0.7;
   font-family: inherit;
@@ -154,7 +151,6 @@
 .presetBtn:hover:not(:disabled) {
   background: var(--accent);
   color: #fff;
-  border-color: var(--accent);
 }
 
 .presetBtn:disabled {
@@ -165,7 +161,6 @@
 .presetBtnActive {
   background: var(--accent);
   color: #fff;
-  border-color: var(--accent);
 }
 
 /* ── Waiting animation (smooth water flow) ───────── */
@@ -174,7 +169,6 @@
   position: relative;
   overflow: hidden;
   color: #fff;
-  border-color: #b56b12;
   background: #b56b12;
   z-index: 0;
 }
@@ -201,7 +195,6 @@
 
 .presetBtnWaiting:hover:not(:disabled) {
   background: #a5600e;
-  border-color: #a5600e;
   color: #fff;
 }
 
@@ -730,11 +723,6 @@
     flex: 0 0 auto;
     width: 100%;
     overflow-y: visible;
-  }
-
-  .presetGrid {
-    grid-template-rows: auto;
-    flex: 0 0 auto;
   }
 
   .tablePanel {
