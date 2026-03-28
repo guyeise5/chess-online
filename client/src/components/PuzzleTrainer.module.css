@@ -52,11 +52,9 @@
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 2.625rem;
   padding: 1.75rem;
-  flex-wrap: wrap;
-  overflow: hidden;
   min-height: 0;
 }
 
@@ -92,9 +90,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.3rem;
-  width: 490px;
-  min-width: 385px;
-  max-height: calc(100vh - 130px);
+  flex: 0 1 490px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .puzzleInfo {

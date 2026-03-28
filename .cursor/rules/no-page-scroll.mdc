@@ -6,7 +6,7 @@ alwaysApply: false
 
 # No Page-Level Scrolling
 
-The page must never scroll. Only popup windows and side panels (e.g. moves list, game history list, board settings modal) may have internal scrolling.
+The page must never scroll. Only popup windows and side panels (e.g. moves list, game history list, board settings modal) may have internal scrolling. All components must remain visible at any browser zoom level.
 
 ## Rules
 
@@ -18,3 +18,15 @@ The page must never scroll. Only popup windows and side panels (e.g. moves list,
   - Side-panel lists (`.movesList`, `.tableBody`, `.gameList`)
   - Modal/popup bodies (`.modalBody .optionsCol`)
 - When adding new pages or panels, verify no content pushes the page beyond the viewport.
+
+## Zoom-Resilient Layout
+
+All content must remain visible at any browser zoom level (up to 200%). Components shrink to fit rather than overflowing or being clipped.
+
+- **No `flex-wrap: wrap`** on main content areas (board + sidebar). Wrapping causes the sidebar to drop below the board, exceeding viewport height and getting clipped by `overflow: hidden`.
+- **No fixed `min-width`** on flex children in the main layout. Use `min-width: 0` so children can shrink.
+- **No fixed `height`** on panels that should fill available space (e.g. moves panel). Use `flex: 1; min-height: 0` instead.
+- **No `vh`-based font sizes** (e.g. `clamp(1rem, 2.8vh, 2rem)`). Use `rem` values which scale naturally with browser zoom.
+- **Board sizing is width-driven**: the board uses `aspect-ratio: 1; width: 100%` (or `flex: 1` in a row). The board area constrains width via `max-width: min(980px, calc(100vh - Xpx))` where `X` accounts for all non-board vertical content (navbar, padding, player bars, controls). react-chessboard sizes from container width, so never use `height: 100%` on the board — it stretches the container without constraining the board squares.
+- **Main content area** uses `align-items: stretch` so both board column and sidebar fill the available height.
+- **Sidebar** uses `flex: 0 1 <preferred>px; min-width: 0; min-height: 0` to allow shrinking from its preferred width.
