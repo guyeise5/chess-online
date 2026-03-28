@@ -17,6 +17,7 @@
 - Material difference display in player bars (piece icons + point advantage, Lichess-style)
 - Undo request system (requires opponent approval); Lichess-style inline accept/decline in the control bar
 - Resign with Lichess-style two-click confirmation (click flag icon, then confirm ✓ or cancel ✗; auto-cancels after 3s)
+- Move history browsing: click any past move in the moves list to view that position; board dims with a semi-transparent overlay, piece interactions are disabled; purple "Back to game" button in the action bar returns to the live position; navigating to the last move also returns to live play
 - Reconnection support (roomId + playerName persisted in localStorage)
 - Waiting rooms auto-close if the owner disconnects
 - Disconnect claim: if a player disconnects or navigates away during a game, the opponent is notified and after a 10-second grace period can claim a win or draw; reconnecting within the grace period cancels the claim
@@ -49,6 +50,7 @@
 - No time limit
 - Material difference display in player bars (shared utility with online play)
 - Instant undo (no opponent approval needed)
+- Move history browsing: same as online play — click a past move to view that position with dimmed board; purple "Back to game" button returns to live play
 - Game state persists across page refreshes via localStorage
 - Game auto-saved to server for analysis when the game finishes
 
@@ -180,3 +182,4 @@
 | `FEATURE_USER_PREFERENCES` | `true` | Server-side user preferences persistence (MongoDB). Set to `false` to use localStorage only. |
 | `FEATURE_GAME_CHAT` | `true` | In-game chat between players in PvP games. Shows player messages and system events (time given, game over). Set to `false` to disable. |
 | `FEATURE_ONLINE_PLAYER_COUNT` | `true` | NavBar indicator and Socket.IO `presence:online-count` broadcasts (connected client count). Set to `false` to disable. |
+| `FEATURE_MOVE_HISTORY_BROWSE` | `true` | Move history browsing in PvP and vs computer games: click past moves to view positions with dimmed board, purple back button. Set to `false` to disable. |

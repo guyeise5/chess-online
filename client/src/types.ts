@@ -87,6 +87,7 @@ export interface AppEnv {
   FEATURE_USER_PREFERENCES?: string;
   FEATURE_GAME_CHAT?: string;
   FEATURE_ONLINE_PLAYER_COUNT?: string;
+  FEATURE_MOVE_HISTORY_BROWSE?: string;
 }
 
 declare global {

@@ -212,6 +212,49 @@
 .moveWhite,
 .moveBlack {
   font-family: monospace;
+  padding: 0.21rem 0.525rem;
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.moveWhite:hover,
+.moveBlack:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.moveCellActive {
+  background: rgba(181, 136, 99, 0.35);
+}
+
+.boardOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 5;
+  pointer-events: none;
+  border-radius: 0;
+}
+
+.backToCurrentBtn {
+  flex: 1;
+  padding: 0.5rem;
+  background: #7b61ff;
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  transition: background 0.15s;
+}
+
+.backToCurrentBtn:hover {
+  background: #6a4fe6;
 }
 
 .gameActions {

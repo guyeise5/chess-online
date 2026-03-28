@@ -73,6 +73,7 @@ export const en: Record<string, string> = {
   "game.resign": "Resign",
   "game.confirmResign": "Click again to confirm resignation",
   "game.by": "by",
+  "game.backToCurrent": "Back to game",
   "reason.checkmate": "checkmate",
   "reason.stalemate": "stalemate",
   "reason.drawGeneric": "draw",

@@ -128,6 +128,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     to: string;
   } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(resuming ? saved!.lastMove : null);
+  const [viewingPly, setViewingPly] = useState<number | null>(null);
   const [computerThinking, setComputerThinking] = useState(false);
   const [analysisId, setAnalysisId] = useState<string | null>(resuming ? saved!.analysisId ?? null : null);
   const [resignConfirm, setResignConfirm] = useState(false);
@@ -294,13 +295,62 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     [game]
   );
 
+  const historyBrowseEnabled = getEnv().FEATURE_MOVE_HISTORY_BROWSE !== "false";
+  const isBrowsingHistory = historyBrowseEnabled && viewingPly !== null && viewingPly < moves.length;
+
+  const historySnapshot = useMemo(() => {
+    if (viewingPly === null) return null;
+    const g = new Chess();
+    let lm: { from: string; to: string } | null = null;
+    for (let i = 0; i < viewingPly && i < moves.length; i++) {
+      const m = g.move(moves[i]!);
+      if (m) lm = { from: m.from, to: m.to };
+    }
+    return { fen: g.fen(), lastMove: lm, game: g };
+  }, [viewingPly, moves]);
+
+  const displayFen = isBrowsingHistory && historySnapshot ? historySnapshot.fen : fen;
+  const displayLastMove = isBrowsingHistory && historySnapshot ? historySnapshot.lastMove : lastMove;
+
+  const goToPly = useCallback((ply: number) => {
+    if (ply >= moves.length) {
+      setViewingPly(null);
+    } else {
+      setViewingPly(Math.max(0, ply));
+    }
+  }, [moves.length]);
+
+  useEffect(() => {
+    if (!historyBrowseEnabled || status !== "playing") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setViewingPly((prev) => {
+          const cur = prev ?? moves.length;
+          return cur <= 0 ? 0 : cur - 1;
+        });
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setViewingPly((prev) => {
+          if (prev === null) return null;
+          return prev + 1 >= moves.length ? null : prev + 1;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [historyBrowseEnabled, status, moves.length]);
+
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
     const result: Record<string, React.CSSProperties> = {};
 
-    if (lastMove) {
-      result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
-      result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
+    const lm = displayLastMove;
+    if (lm) {
+      result[lm.from] = HIGHLIGHT_LAST_MOVE;
+      result[lm.to] = HIGHLIGHT_LAST_MOVE;
     }
+
+    if (isBrowsingHistory) return result;
 
     if (game.inCheck()) {
       const kingSq = findKingSquare(game);
@@ -317,7 +367,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     }
 
     return result;
-  }, [selectedSquare, game, getLegalMovesForSquare, lastMove]);
+  }, [selectedSquare, game, getLegalMovesForSquare, displayLastMove, isBrowsingHistory]);
 
   const isPromotionMove = useCallback(
     (from: string, to: string): boolean => {
@@ -490,6 +540,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
 
   const handleUndo = () => {
     if (moves.length === 0 || status !== "playing") return;
+    if (viewingPly !== null) { setViewingPly(null); return; }
     moveGenRef.current++;
     if (computerTimerRef.current) {
       clearTimeout(computerTimerRef.current);
@@ -575,7 +626,8 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
           </div>
 
           <div className={styles['board']} style={{ position: "relative" }}>
-            {pendingPromotion && (
+            {isBrowsingHistory && <div className={styles['boardOverlay']} />}
+            {pendingPromotion && !isBrowsingHistory && (
               <PromotionDialog
                 color={color}
                 square={pendingPromotion.to}
@@ -593,11 +645,11 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
             <Chessboard
               options={{
                 ...(boardPrefs.customPieces ? { pieces: boardPrefs.customPieces } : {}),
-                position: fen,
-                onPieceDrop: onDrop,
-                onPieceDrag: onPieceDrag,
-                onPieceClick: onPieceClick,
-                onSquareClick: onSquareClick,
+                position: displayFen,
+                onPieceDrop: isBrowsingHistory ? () => false : onDrop,
+                onPieceDrag: isBrowsingHistory ? () => {} : onPieceDrag,
+                onPieceClick: isBrowsingHistory ? () => {} : onPieceClick,
+                onSquareClick: isBrowsingHistory ? () => {} : onSquareClick,
                 squareStyles: highlightStyles,
                 boardOrientation: orientation,
                 animationDurationInMs: 200,
@@ -695,19 +747,43 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
           <div className={styles['movesPanel']}>
             <h3 className={styles['movesTitle']}>{t("computerGame.moves")}</h3>
             <div className={styles['movesList']}>
-              {movePairs.map((mp) => (
-                <div key={mp.num} className={styles['movePair']}>
-                  <span className={styles['moveNum']}>{mp.num}.</span>
-                  <span className={styles['moveWhite']}>{mp.white}</span>
-                  <span className={styles['moveBlack']}>{mp.black || ""}</span>
-                </div>
-              ))}
+              {movePairs.map((mp) => {
+                const whiteIdx = (mp.num - 1) * 2 + 1;
+                const blackIdx = whiteIdx + 1;
+                return (
+                  <div key={mp.num} className={styles['movePair']}>
+                    <span className={styles['moveNum']}>{mp.num}.</span>
+                    <span
+                      className={`${styles['moveWhite']}${historyBrowseEnabled && viewingPly === whiteIdx ? ` ${styles['moveCellActive']}` : ""}`}
+                      onClick={historyBrowseEnabled ? () => goToPly(whiteIdx) : undefined}
+                    >
+                      {mp.white}
+                    </span>
+                    <span
+                      className={`${styles['moveBlack']}${historyBrowseEnabled && viewingPly === blackIdx ? ` ${styles['moveCellActive']}` : ""}`}
+                      onClick={historyBrowseEnabled && mp.black ? () => goToPly(blackIdx) : undefined}
+                    >
+                      {mp.black || ""}
+                    </span>
+                  </div>
+                );
+              })}
               <div ref={movesEndRef} />
             </div>
           </div>
 
           {status === "playing" && (
             <div className={styles['gameActions']}>
+              {isBrowsingHistory && (
+                <button
+                  type="button"
+                  className={styles['backToCurrentBtn']}
+                  onClick={() => setViewingPly(null)}
+                  title={t("game.backToCurrent")}
+                >
+                  &raquo;
+                </button>
+              )}
               <button
                 type="button"
                 className={styles['actionBtn']}

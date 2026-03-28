@@ -97,6 +97,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
+  const [viewingPly, setViewingPly] = useState<number | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatIdRef = useRef(0);
   const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
@@ -499,6 +500,52 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const showDrawOffer = env.FEATURE_DRAW_OFFER !== "false";
   const showDisconnectClaim = env.FEATURE_DISCONNECT_CLAIM !== "false";
   const showChat = env.FEATURE_GAME_CHAT !== "false";
+  const historyBrowseEnabled = env.FEATURE_MOVE_HISTORY_BROWSE !== "false";
+
+  const isBrowsingHistory = historyBrowseEnabled && viewingPly !== null && viewingPly < moves.length;
+
+  const historySnapshot = useMemo(() => {
+    if (viewingPly === null) return null;
+    const g = new Chess();
+    let lm: { from: string; to: string } | null = null;
+    for (let i = 0; i < viewingPly && i < moves.length; i++) {
+      const m = g.move(moves[i]!);
+      if (m) lm = { from: m.from, to: m.to };
+    }
+    return { fen: g.fen(), lastMove: lm, game: g };
+  }, [viewingPly, moves]);
+
+  const displayFen = isBrowsingHistory && historySnapshot ? historySnapshot.fen : fen;
+  const displayLastMove = isBrowsingHistory && historySnapshot ? historySnapshot.lastMove : lastMove;
+
+  const goToPly = useCallback((ply: number) => {
+    if (ply >= moves.length) {
+      setViewingPly(null);
+    } else {
+      setViewingPly(Math.max(0, ply));
+    }
+  }, [moves.length]);
+
+  useEffect(() => {
+    if (!historyBrowseEnabled || status !== "playing") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setViewingPly((prev) => {
+          const cur = prev ?? moves.length;
+          return cur <= 0 ? 0 : cur - 1;
+        });
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setViewingPly((prev) => {
+          if (prev === null) return null;
+          return prev + 1 >= moves.length ? null : prev + 1;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [historyBrowseEnabled, status, moves.length]);
 
   const setPremoveData = useCallback((from: string, to: string, promotion?: string) => {
     const pm = { from, to, ...(promotion != null ? { promotion } : {}) };
@@ -530,10 +577,13 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
   const highlightStyles = useMemo((): Record<string, React.CSSProperties> => {
     const result: Record<string, React.CSSProperties> = {};
 
-    if (lastMove) {
-      result[lastMove.from] = HIGHLIGHT_LAST_MOVE;
-      result[lastMove.to] = HIGHLIGHT_LAST_MOVE;
+    const lm = displayLastMove;
+    if (lm) {
+      result[lm.from] = HIGHLIGHT_LAST_MOVE;
+      result[lm.to] = HIGHLIGHT_LAST_MOVE;
     }
+
+    if (isBrowsingHistory) return result;
 
     if (game.inCheck()) {
       const kingSq = findKingSquare(game);
@@ -559,7 +609,7 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
     }
 
     return result;
-  }, [selectedSquare, premoveSelectedSquare, premove, lastMove, game, getLegalMovesForSquare]);
+  }, [selectedSquare, premoveSelectedSquare, premove, displayLastMove, game, getLegalMovesForSquare, isBrowsingHistory]);
 
   const isMyTurn = useCallback(() => {
     if (status !== "playing" || !isPlayer) return false;
@@ -853,7 +903,8 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           </div>
 
           <div className={styles['board']} style={{ position: "relative" }}>
-            {pendingPromotion && (
+            {isBrowsingHistory && <div className={styles['boardOverlay']} />}
+            {pendingPromotion && !isBrowsingHistory && (
               <PromotionDialog
                 color={isWhite ? "white" : "black"}
                 square={pendingPromotion.to}
@@ -865,12 +916,13 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
             <Chessboard
               options={{
                 ...(boardPrefs.customPieces ? { pieces: boardPrefs.customPieces } : {}),
-                position: fen,
-                onPieceDrop: onDrop,
-                onPieceDrag: onPieceDrag,
-                onPieceClick: onPieceClick,
-                onSquareClick: onSquareClick,
+                position: displayFen,
+                onPieceDrop: isBrowsingHistory ? () => false : onDrop,
+                onPieceDrag: isBrowsingHistory ? () => {} : onPieceDrag,
+                onPieceClick: isBrowsingHistory ? () => {} : onPieceClick,
+                onSquareClick: isBrowsingHistory ? () => {} : onSquareClick,
                 canDragPiece: ({ piece }) => {
+                  if (isBrowsingHistory) return false;
                   if (!isPlayer || status !== "playing") return false;
                   return piece.pieceType[0] === myColor;
                 },
@@ -967,13 +1019,27 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
           <div className={styles['movesPanel']}>
             <h3 className={styles['movesTitle']}>{t("game.moves")}</h3>
             <div className={styles['movesList']}>
-              {movePairs.map((mp) => (
-                <div key={mp.num} className={styles['movePair']}>
-                  <span className={styles['moveNum']}>{mp.num}.</span>
-                  <span className={styles['moveWhite']}>{mp.white}</span>
-                  <span className={styles['moveBlack']}>{mp.black || ""}</span>
-                </div>
-              ))}
+              {movePairs.map((mp) => {
+                const whiteIdx = (mp.num - 1) * 2 + 1;
+                const blackIdx = whiteIdx + 1;
+                return (
+                  <div key={mp.num} className={styles['movePair']}>
+                    <span className={styles['moveNum']}>{mp.num}.</span>
+                    <span
+                      className={`${styles['moveWhite']}${historyBrowseEnabled && viewingPly === whiteIdx ? ` ${styles['moveCellActive']}` : ""}`}
+                      onClick={historyBrowseEnabled ? () => goToPly(whiteIdx) : undefined}
+                    >
+                      {mp.white}
+                    </span>
+                    <span
+                      className={`${styles['moveBlack']}${historyBrowseEnabled && viewingPly === blackIdx ? ` ${styles['moveCellActive']}` : ""}`}
+                      onClick={historyBrowseEnabled && mp.black ? () => goToPly(blackIdx) : undefined}
+                    >
+                      {mp.black || ""}
+                    </span>
+                  </div>
+                );
+              })}
               <div ref={movesEndRef} />
             </div>
           </div>
@@ -1015,6 +1081,16 @@ export default function GameRoom({ playerName, boardPrefs, onOpenSettings, onAct
                 <div className={styles['requestLabel']}>{t("game.drawOffered")}</div>
               )}
               <div className={styles['gameActions']}>
+                {isBrowsingHistory && (
+                  <button
+                    type="button"
+                    className={styles['backToCurrentBtn']}
+                    onClick={() => setViewingPly(null)}
+                    title={t("game.backToCurrent")}
+                  >
+                    &raquo;
+                  </button>
+                )}
                 {undoRequester && undoRequester !== playerName ? (
                   <>
                     <button
