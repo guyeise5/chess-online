@@ -93,6 +93,7 @@
   flex: 0 1 490px;
   min-width: 0;
   min-height: 0;
+  max-height: 100%;
 }
 
 .puzzleInfo {
@@ -103,6 +104,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  flex-shrink: 0;
 }
 
 .puzzleRating {
@@ -141,6 +143,7 @@
   text-align: center;
   font-weight: 600;
   font-size: 1.66rem;
+  flex-shrink: 0;
 }
 
 .statusSolving {
@@ -193,8 +196,8 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 7px;
-  height: 525px;
-  max-height: calc(100vh - 300px);
+  flex: 1;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
 }
@@ -238,6 +241,7 @@
 .hintRow {
   display: flex;
   gap: 0.7rem;
+  flex-shrink: 0;
 }
 
 .hintBtn {
@@ -281,6 +285,7 @@
   color: white;
   font-weight: 600;
   font-size: 1.575rem;
+  flex-shrink: 0;
 }
 
 .nextBtn:hover {
@@ -296,6 +301,7 @@
   flex-direction: column;
   gap: 0.44rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .playerRating .label {

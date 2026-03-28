@@ -25,8 +25,8 @@ All content must remain visible at any browser zoom level (up to 200%). Componen
 
 - **No `flex-wrap: wrap`** on main content areas (board + sidebar). Wrapping causes the sidebar to drop below the board, exceeding viewport height and getting clipped by `overflow: hidden`.
 - **No fixed `min-width`** on flex children in the main layout. Use `min-width: 0` so children can shrink.
-- **No unconstrained `flex: 1`** on panels inside sidebars. Use `height: <preferred>px; max-height: calc(100vh - Xpx)` so the panel has a sensible default but shrinks at high zoom.
+- **Sidebar height must be bounded**: sidebars use `max-height: 100%` so they cannot overflow the main content area. The moves panel inside uses `flex: 1; min-height: 80px` to absorb compression while keeping internal scroll. All other sidebar items (banners, action bars, buttons) use `flex-shrink: 0` so they are always visible.
 - **No `vh`-based font sizes** (e.g. `clamp(1rem, 2.8vh, 2rem)`). Use `rem` values which scale naturally with browser zoom.
 - **Board sizing is width-driven**: the board uses `aspect-ratio: 1; width: 100%` (or `flex: 1` in a row). The board area constrains width via `max-width: min(980px, calc(100vh - Xpx))` where `X` accounts for all non-board vertical content (navbar, padding, player bars, controls). react-chessboard sizes from container width, so never use `height: 100%` on the board — it stretches the container without constraining the board squares.
 - **Main content area** uses `align-items: flex-start` so the sidebar sizes to its content rather than stretching to the full viewport height.
-- **Sidebar** uses `flex: 0 1 <preferred>px; min-width: 0; min-height: 0` to allow shrinking from its preferred width.
+- **Sidebar** uses `flex: 0 1 <preferred>px; min-width: 0; min-height: 0; max-height: 100%` to allow shrinking from its preferred width and stay bounded vertically.
