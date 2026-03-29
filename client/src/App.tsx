@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Lobby from "./components/Lobby";
 import ComputerSetup from "./components/ComputerSetup";
@@ -22,6 +22,8 @@ import {
 import { useI18n } from "./i18n/I18nProvider";
 import type { AppLocale } from "./i18n/locale";
 import { getEnv } from "./types";
+
+const StatsGraphs = lazy(() => import("./components/StatsGraphs"));
 
 const PLAYER_NAME_KEY = "chess-player-name";
 const ACTIVE_GAME_KEY = "chess-active-room";
@@ -152,6 +154,7 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
 
 export default function App() {
   const { setLocale } = useI18n();
+  const location = useLocation();
   const [playerName, setPlayerName] = useState<string>(() => {
     return localStorage.getItem(PLAYER_NAME_KEY) || "";
   });
@@ -169,6 +172,14 @@ export default function App() {
     setPlayerName("");
     localStorage.removeItem(PLAYER_NAME_KEY);
   }, []);
+
+  if (location.pathname === "/stats/graphs" && getEnv().FEATURE_STATS !== "false") {
+    return (
+      <Suspense fallback={null}>
+        <StatsGraphs />
+      </Suspense>
+    );
+  }
 
   if (!playerName) {
     return (

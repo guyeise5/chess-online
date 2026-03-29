@@ -156,6 +156,24 @@
 - Self-hosted Inter font (no external dependencies)
 - URL-driven state for all routable views
 
+## Server Statistics
+
+- **Route:** `/stats/graphs` (not linked from the UI; direct URL access only)
+- **Key files:** `client/src/components/StatsGraphs.tsx`, `client/src/components/StatsGraphs.module.css`, `server/src/index.ts` (API endpoint)
+- **Feature flag:** `FEATURE_STATS`
+- **API:** `GET /api/stats/daily` — aggregates finished rooms from MongoDB `rooms` collection (7-day TTL window)
+- No additional data stored; all statistics derived via aggregation pipelines on existing `rooms` documents
+- Bypasses the name prompt — accessible without logging in
+- Dark-themed dashboard with recharts-based graphs:
+  - Games per day (bar chart)
+  - Active players per day (line chart) — unique players from finished games
+  - Time format distribution (pie chart) — blitz, rapid, bullet, etc.
+  - Result distribution (pie chart) — white wins, black wins, draws
+  - Average moves per game per day (line chart)
+  - Peak playing hours (bar chart) — games grouped by UTC hour
+  - Private vs public games (donut chart)
+- Summary cards: total games, peak daily players, average moves per game
+
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yaml`): Runs on pull requests — server tests, client tests, builds, Helm lint/unit tests, Docker build, Kind deploy + smoke test
@@ -183,3 +201,4 @@
 | `FEATURE_GAME_CHAT` | `true` | In-game chat between players in PvP games. Shows player messages and system events (time given, game over). Set to `false` to disable. |
 | `FEATURE_ONLINE_PLAYER_COUNT` | `true` | NavBar indicator and Socket.IO `presence:online-count` broadcasts (connected client count). Set to `false` to disable. |
 | `FEATURE_MOVE_HISTORY_BROWSE` | `true` | Move history browsing in PvP and vs computer games: click past moves to view positions with dimmed board, purple back button. Set to `false` to disable. |
+| `FEATURE_STATS` | `true` | Server statistics dashboard at `/stats/graphs` with daily charts (games, players, time formats, results, peak hours). Set to `false` to disable. |

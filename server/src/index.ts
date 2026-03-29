@@ -329,6 +329,118 @@ async function main() {
     });
   }
 
+  if (process.env["FEATURE_STATS"] !== "false") {
+    const Room = (await import("./models/Room")).default;
+
+    app.get("/api/stats/daily", async (_req, res) => {
+      try {
+        const db = mongoose.connection.db;
+        if (!db) {
+          res.status(503).json({ error: "DB unavailable" });
+          return;
+        }
+
+        const matchFinished = { status: "finished" };
+
+        const [gamesPerDay, activePlayers, timeFormats, results, avgMoves, peakHours, privateVsPublic] =
+          await Promise.all([
+            Room.aggregate([
+              { $match: matchFinished },
+              {
+                $group: {
+                  _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                  count: { $sum: 1 },
+                },
+              },
+              { $sort: { _id: 1 } },
+              { $project: { date: "$_id", count: 1, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: matchFinished },
+              {
+                $project: {
+                  date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                  players: {
+                    $filter: {
+                      input: ["$whitePlayer", "$blackPlayer"],
+                      cond: { $ne: ["$$this", null] },
+                    },
+                  },
+                },
+              },
+              { $unwind: "$players" },
+              { $group: { _id: { date: "$date", player: "$players" } } },
+              { $group: { _id: "$_id.date", count: { $sum: 1 } } },
+              { $sort: { _id: 1 } },
+              { $project: { date: "$_id", count: 1, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: matchFinished },
+              { $group: { _id: "$timeFormat", count: { $sum: 1 } } },
+              { $project: { format: "$_id", count: 1, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: { ...matchFinished, result: { $ne: null } } },
+              { $group: { _id: "$result", count: { $sum: 1 } } },
+              { $project: { result: "$_id", count: 1, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: matchFinished },
+              {
+                $group: {
+                  _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                  avgMoves: { $avg: { $size: "$moves" } },
+                },
+              },
+              { $sort: { _id: 1 } },
+              { $project: { date: "$_id", avgMoves: { $round: ["$avgMoves", 1] }, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: matchFinished },
+              { $group: { _id: { $hour: "$createdAt" }, count: { $sum: 1 } } },
+              { $sort: { _id: 1 } },
+              { $project: { hour: "$_id", count: 1, _id: 0 } },
+            ]),
+
+            Room.aggregate([
+              { $match: matchFinished },
+              {
+                $group: {
+                  _id: "$isPrivate",
+                  count: { $sum: 1 },
+                },
+              },
+              {
+                $project: {
+                  type: { $cond: ["$_id", "private", "public"] },
+                  count: 1,
+                  _id: 0,
+                },
+              },
+            ]),
+          ]);
+
+        res.json({
+          gamesPerDay,
+          activePlayers,
+          timeFormats,
+          results,
+          avgMoves,
+          peakHours,
+          privateVsPublic,
+        });
+      } catch (err) {
+        console.error("Stats fetch error:", err);
+        res.status(500).json({ error: "Failed to fetch stats" });
+      }
+    });
+  }
+
   app.get("*", (_req, res) => {
     setIndexHtmlNoCacheHeaders(res);
     res.sendFile(path.join(staticPath, "index.html"));

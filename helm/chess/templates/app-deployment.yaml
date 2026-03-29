@@ -66,6 +66,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_ONLINE_PLAYER_COUNT | quote }}
             - name: FEATURE_MOVE_HISTORY_BROWSE
               value: {{ .Values.app.env.FEATURE_MOVE_HISTORY_BROWSE | quote }}
+            - name: FEATURE_STATS
+              value: {{ .Values.app.env.FEATURE_STATS | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

@@ -370,6 +370,24 @@ tests:
             name: FEATURE_MOVE_HISTORY_BROWSE
             value: "false"
 
+  - it: should have default FEATURE_STATS as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_STATS
+            value: "true"
+
+  - it: should allow disabling FEATURE_STATS
+    set:
+      app.env.FEATURE_STATS: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_STATS
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:
