@@ -411,7 +411,7 @@ async function main() {
               { $match: matchFinished },
               {
                 $group: {
-                  _id: "$isPrivate",
+                  _id: { $ifNull: ["$isPrivate", false] },
                   count: { $sum: 1 },
                 },
               },

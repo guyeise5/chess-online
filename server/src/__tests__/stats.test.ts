@@ -111,7 +111,7 @@ beforeAll(async () => {
             { $match: matchFinished },
             {
               $group: {
-                _id: "$isPrivate",
+                _id: { $ifNull: ["$isPrivate", false] },
                 count: { $sum: 1 },
               },
             },
@@ -279,6 +279,23 @@ describe("GET /api/stats/daily", () => {
     const pub = res.body.privateVsPublic.find((d: { type: string }) => d.type === "public");
     const priv = res.body.privateVsPublic.find((d: { type: string }) => d.type === "private");
     expect(pub?.count).toBe(2);
+    expect(priv?.count).toBe(1);
+  });
+
+  it("counts rooms with missing isPrivate as public (no duplicate public entry)", async () => {
+    await Room.create(makeRoom({ roomId: "r1", isPrivate: false }));
+    const doc = await Room.create(makeRoom({ roomId: "r2" }));
+    await Room.collection.updateOne({ _id: doc._id }, { $unset: { isPrivate: "" } });
+    await Room.create(makeRoom({ roomId: "r3", isPrivate: true }));
+
+    const res = await request(app).get("/api/stats/daily");
+    expect(res.status).toBe(200);
+
+    const publicEntries = res.body.privateVsPublic.filter((d: { type: string }) => d.type === "public");
+    expect(publicEntries).toHaveLength(1);
+    expect(publicEntries[0].count).toBe(2);
+
+    const priv = res.body.privateVsPublic.find((d: { type: string }) => d.type === "private");
     expect(priv?.count).toBe(1);
   });
 
