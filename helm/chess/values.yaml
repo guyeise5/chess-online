@@ -31,6 +31,7 @@ app:
     FEATURE_MOVE_HISTORY_BROWSE: "true"
     FEATURE_STATS: "true"
     FEATURE_PUZZLE_ANALYSIS: "true"
+    FEATURE_CONNECTION_STATUS: "true"
 
 mongodb:
   image:

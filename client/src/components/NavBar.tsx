@@ -2,7 +2,41 @@ import { Link, useLocation } from "react-router-dom";
 import { getEnv } from "../types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useOnlinePlayerCount } from "../hooks/useOnlinePlayerCount";
+import { useConnectionStatus, type SignalStrength } from "../hooks/useConnectionStatus";
 import styles from "./NavBar.module.css";
+
+const STRENGTH_COLORS: Record<SignalStrength, string> = {
+  0: "#ca3431",
+  1: "#ca3431",
+  2: "#e6b800",
+  3: "#3dad2e",
+  4: "#3dad2e",
+};
+
+function SignalIcon({ strength, connected }: { strength: SignalStrength; connected: boolean }) {
+  if (!connected) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca3431" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23" />
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" opacity="0.2" />
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" opacity="0.2" />
+        <path d="M10.71 5.05A16 16 0 0 1 22.56 9" opacity="0.2" />
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" opacity="0.2" />
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" opacity="0.2" />
+        <line x1="12" y1="20" x2="12.01" y2="20" strokeWidth="3" />
+      </svg>
+    );
+  }
+  const color = STRENGTH_COLORS[strength];
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.42 9a15.91 15.91 0 0 1 21.16 0" opacity={strength >= 4 ? 1 : 0.2} />
+      <path d="M5 12.55a10.94 10.94 0 0 1 14 0" opacity={strength >= 3 ? 1 : 0.2} />
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0" opacity={strength >= 2 ? 1 : 0.2} />
+      <line x1="12" y1="20" x2="12.01" y2="20" strokeWidth="3" opacity={strength >= 1 ? 1 : 0.2} />
+    </svg>
+  );
+}
 
 interface Props {
   playerName?: string;
@@ -17,7 +51,9 @@ export default function NavBar({ playerName, onChangeName, onOpenSettings, inAct
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
   const showBoardSettings = flags.FEATURE_BOARD_SETTINGS !== "false";
   const showOnlinePlayerCount = flags.FEATURE_ONLINE_PLAYER_COUNT !== "false";
+  const showConnectionStatus = flags.FEATURE_CONNECTION_STATUS !== "false";
   const onlinePlayerCount = useOnlinePlayerCount();
+  const connectionStatus = useConnectionStatus();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
@@ -51,6 +87,27 @@ export default function NavBar({ playerName, onChangeName, onOpenSettings, inAct
         </nav>
       </div>
       <div className={styles['headerRight']}>
+        {showConnectionStatus && (
+          <div
+            data-tour="connection-status"
+            className={styles["connectionIndicator"]}
+            title={
+              connectionStatus.connected
+                ? t("nav.connectionLatency", { ms: String(connectionStatus.latency ?? "—") })
+                : t("nav.connectionDisconnected")
+            }
+            aria-label={
+              connectionStatus.connected
+                ? t("nav.connectionLatency", { ms: String(connectionStatus.latency ?? "—") })
+                : t("nav.connectionDisconnected")
+            }
+          >
+            <SignalIcon strength={connectionStatus.strength} connected={connectionStatus.connected} />
+            {connectionStatus.connected && connectionStatus.latency !== null && (
+              <span className={styles["connectionLatency"]}>{connectionStatus.latency}ms</span>
+            )}
+          </div>
+        )}
         {showOnlinePlayerCount && (
           <div
             data-tour="online-count"

@@ -90,6 +90,7 @@ export interface AppEnv {
   FEATURE_MOVE_HISTORY_BROWSE?: string;
   FEATURE_STATS?: string;
   FEATURE_PUZZLE_ANALYSIS?: string;
+  FEATURE_CONNECTION_STATUS?: string;
 }
 
 declare global {

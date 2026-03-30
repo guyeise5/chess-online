@@ -44,111 +44,89 @@ function computeTooltipPos(
   tooltipWidth: number
 ): TooltipPos {
   const gap = 12;
+  const margin = 12;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
   const centerX = rect.left + rect.width / 2 - tooltipWidth / 2;
-  const clampedX = Math.max(12, Math.min(centerX, window.innerWidth - tooltipWidth - 12));
+  const clampedX = Math.max(margin, Math.min(centerX, vw - tooltipWidth - margin));
+  const clampTop = (t: number) => Math.max(margin, Math.min(t, vh - margin - 200));
 
   switch (position) {
     case "bottom":
-      return { top: rect.top + rect.height + gap, left: clampedX, transformX: "0" };
+      return { top: Math.min(rect.top + rect.height + gap, vh - margin - 200), left: clampedX, transformX: "0" };
     case "top":
-      return { bottom: window.innerHeight - rect.top + gap, left: clampedX, transformX: "0" };
-    case "right":
-      return { top: rect.top, left: rect.left + rect.width + gap, transformX: "0" };
-    case "left":
-      return { top: rect.top, right: window.innerWidth - rect.left + gap, transformX: "0" };
+      return { bottom: Math.max(margin, vh - rect.top + gap), left: clampedX, transformX: "0" };
+    case "right": {
+      const left = rect.left + rect.width + gap;
+      const clampedLeft = left + tooltipWidth > vw - margin ? vw - tooltipWidth - margin : left;
+      return { top: clampTop(rect.top), left: Math.max(margin, clampedLeft), transformX: "0" };
+    }
+    case "left": {
+      const rightVal = vw - rect.left + gap;
+      const wouldOverflowLeft = rightVal + tooltipWidth > vw - margin;
+      if (wouldOverflowLeft) {
+        return { top: clampTop(rect.top), left: margin, transformX: "0" };
+      }
+      return { top: clampTop(rect.top), right: rightVal, transformX: "0" };
+    }
   }
 }
 
 function useIntroSteps(t: (key: string) => string): Step[] {
   return useMemo(() => {
     const showOnlineCount = getEnv().FEATURE_ONLINE_PLAYER_COUNT !== "false";
+    const showConnectionStatus = getEnv().FEATURE_CONNECTION_STATUS !== "false";
 
     const onlineCountStep: Step = {
       title: t("intro.onlineCount.title"),
       selector: "[data-tour='online-count']",
-      position: "left",
+      position: "bottom",
       content: <p>{t("intro.onlineCount.body")}</p>,
+    };
+
+    const connectionStatusStep: Step = {
+      title: t("intro.connection.title"),
+      selector: "[data-tour='connection-status']",
+      position: "bottom",
+      content: <p>{t("intro.connection.body")}</p>,
     };
 
     return [
       {
         title: t("intro.welcome.title"),
-        content: (
-          <>
-            <p>{t("intro.welcome.p1")}</p>
-            <p>{t("intro.welcome.p2")}</p>
-          </>
-        ),
+        content: <p>{t("intro.welcome.body")}</p>,
       },
       {
         title: t("intro.playOnline.title"),
         selector: "[data-tour='nav-play']",
         position: "bottom",
-        content: (
-          <p>
-            {t("intro.playOnline.p1a")}
-            <strong>{t("nav.play")}</strong>
-            {t("intro.playOnline.p1b")}
-          </p>
-        ),
+        content: <p>{t("intro.playOnline.body")}</p>,
       },
       ...(showOnlineCount ? [onlineCountStep] : []),
+      ...(showConnectionStatus ? [connectionStatusStep] : []),
       {
         title: t("intro.time.title"),
         selector: "[data-tour='time-grid']",
         position: "right",
-        content: (
-          <>
-            <p>
-              {t("intro.time.p1a")}
-              <strong>{t("intro.time.p1example")}</strong>
-              {t("intro.time.p1b")}
-            </p>
-            <p>
-              {t("intro.time.p2a")}
-              <strong>{t("lobby.custom")}</strong>
-              {t("intro.time.p2b")}
-            </p>
-          </>
-        ),
+        content: <p>{t("intro.time.body")}</p>,
       },
       {
         title: t("intro.rooms.title"),
         selector: "[data-tour='rooms-table']",
         position: "left",
-        content: (
-          <>
-            <p>{t("intro.rooms.p1")}</p>
-            <p>{t("intro.rooms.p2")}</p>
-          </>
-        ),
+        content: <p>{t("intro.rooms.body")}</p>,
       },
       {
         title: t("intro.private.title"),
         selector: "[data-tour='private-game']",
         position: "top",
-        content: (
-          <p>
-            {t("intro.private.p1a")}
-            <strong>{t("intro.private.term")}</strong>
-            {t("intro.private.p1b")}
-          </p>
-        ),
+        content: <p>{t("intro.private.body")}</p>,
       },
       {
         title: t("intro.computer.title"),
         selector: "[data-tour='nav-computer']",
         position: "bottom",
-        content: (
-          <>
-            <p>
-              {t("intro.computer.p1a")}
-              <strong>{t("engine.stockfish")}</strong>
-              {t("intro.computer.p1b")}
-            </p>
-            <p>{t("intro.computer.p2")}</p>
-          </>
-        ),
+        content: <p>{t("intro.computer.body")}</p>,
       },
       {
         title: t("intro.puzzles.title"),
@@ -160,27 +138,13 @@ function useIntroSteps(t: (key: string) => string): Step[] {
         title: t("intro.history.title"),
         selector: "[data-tour='nav-games']",
         position: "bottom",
-        content: (
-          <p>
-            {t("intro.history.p1a")}
-            <strong>{t("intro.history.engine")}</strong>
-            {t("intro.history.p1b")}
-          </p>
-        ),
+        content: <p>{t("intro.history.body")}</p>,
       },
       {
         title: t("intro.board.title"),
         selector: "[data-tour='settings-btn']",
         position: "bottom",
-        content: (
-          <p>
-            {t("intro.board.p1a")}
-            <strong>{t("intro.board.themesCount")}</strong>
-            {t("intro.board.p1mid")}
-            <strong>{t("intro.board.piecesCount")}</strong>
-            {t("intro.board.p1b")}
-          </p>
-        ),
+        content: <p>{t("intro.board.body")}</p>,
       },
     ];
   }, [t]);

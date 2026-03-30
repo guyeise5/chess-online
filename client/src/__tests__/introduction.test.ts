@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 
-/** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT` is not `"false"`. */
-const TOTAL_STEPS_WITH_ONLINE = 10;
+/** Mirrors `Introduction.tsx` when both online count and connection status are enabled. */
+const TOTAL_STEPS_ALL = 11;
 
-/** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT === "false"`. */
-const TOTAL_STEPS_WITHOUT_ONLINE = 9;
+/** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT === "false"` but connection status on. */
+const TOTAL_STEPS_WITHOUT_ONLINE = 10;
+
+/** Mirrors `Introduction.tsx` when both online count and connection status are disabled. */
+const TOTAL_STEPS_MINIMAL = 9;
 
 describe("Introduction - introSeen preference tracking", () => {
   it("new user has introSeen = false", () => {
@@ -67,18 +70,18 @@ describe("Introduction - step navigation", () => {
   it("can navigate to any step via dot click", () => {
     const step = 5;
     expect(step).toBeGreaterThanOrEqual(0);
-    expect(step).toBeLessThan(TOTAL_STEPS_WITH_ONLINE);
+    expect(step).toBeLessThan(TOTAL_STEPS_ALL);
   });
 
-  it("last step index is TOTAL_STEPS_WITH_ONLINE - 1", () => {
-    const lastStep = TOTAL_STEPS_WITH_ONLINE - 1;
-    expect(lastStep).toBe(9);
+  it("last step index is TOTAL_STEPS_ALL - 1", () => {
+    const lastStep = TOTAL_STEPS_ALL - 1;
+    expect(lastStep).toBe(10);
   });
 
   it("isLast is true only on final step", () => {
-    for (let i = 0; i < TOTAL_STEPS_WITH_ONLINE; i++) {
-      const isLast = i === TOTAL_STEPS_WITH_ONLINE - 1;
-      if (i === TOTAL_STEPS_WITH_ONLINE - 1) {
+    for (let i = 0; i < TOTAL_STEPS_ALL; i++) {
+      const isLast = i === TOTAL_STEPS_ALL - 1;
+      if (i === TOTAL_STEPS_ALL - 1) {
         expect(isLast).toBe(true);
       } else {
         expect(isLast).toBe(false);
@@ -100,6 +103,7 @@ describe("Introduction - step content and selectors", () => {
     "intro.welcome.title",
     "intro.playOnline.title",
     "intro.onlineCount.title",
+    "intro.connection.title",
     "intro.time.title",
     "intro.rooms.title",
     "intro.private.title",
@@ -113,6 +117,7 @@ describe("Introduction - step content and selectors", () => {
     undefined,
     "[data-tour='nav-play']",
     "[data-tour='online-count']",
+    "[data-tour='connection-status']",
     "[data-tour='time-grid']",
     "[data-tour='rooms-table']",
     "[data-tour='private-game']",
@@ -122,9 +127,9 @@ describe("Introduction - step content and selectors", () => {
     "[data-tour='settings-btn']",
   ];
 
-  it("has the correct number of steps when online indicator is enabled", () => {
-    expect(stepTitleKeys).toHaveLength(TOTAL_STEPS_WITH_ONLINE);
-    expect(stepSelectors).toHaveLength(TOTAL_STEPS_WITH_ONLINE);
+  it("has the correct number of steps when all features are enabled", () => {
+    expect(stepTitleKeys).toHaveLength(TOTAL_STEPS_ALL);
+    expect(stepSelectors).toHaveLength(TOTAL_STEPS_ALL);
   });
 
   it("first step is the welcome (no target element)", () => {
@@ -163,6 +168,7 @@ describe("Introduction - step list when online player count feature is off", () 
   const stepTitleKeysNoOnline = [
     "intro.welcome.title",
     "intro.playOnline.title",
+    "intro.connection.title",
     "intro.time.title",
     "intro.rooms.title",
     "intro.private.title",
@@ -175,6 +181,7 @@ describe("Introduction - step list when online player count feature is off", () 
   const stepSelectorsNoOnline: (string | undefined)[] = [
     undefined,
     "[data-tour='nav-play']",
+    "[data-tour='connection-status']",
     "[data-tour='time-grid']",
     "[data-tour='rooms-table']",
     "[data-tour='private-game']",
@@ -187,5 +194,23 @@ describe("Introduction - step list when online player count feature is off", () 
   it("matches Introduction.tsx without the online-count step", () => {
     expect(stepTitleKeysNoOnline).toHaveLength(TOTAL_STEPS_WITHOUT_ONLINE);
     expect(stepSelectorsNoOnline).toHaveLength(TOTAL_STEPS_WITHOUT_ONLINE);
+  });
+});
+
+describe("Introduction - step list when both optional NavBar features are off", () => {
+  const stepTitleKeysMinimal = [
+    "intro.welcome.title",
+    "intro.playOnline.title",
+    "intro.time.title",
+    "intro.rooms.title",
+    "intro.private.title",
+    "intro.computer.title",
+    "intro.puzzles.title",
+    "intro.history.title",
+    "intro.board.title",
+  ];
+
+  it("matches Introduction.tsx without online-count and connection-status steps", () => {
+    expect(stepTitleKeysMinimal).toHaveLength(TOTAL_STEPS_MINIMAL);
   });
 });

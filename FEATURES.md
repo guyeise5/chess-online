@@ -126,7 +126,7 @@
 - **Key files:** `client/src/components/Introduction.tsx`, `client/src/components/Introduction.module.css`
 - **Feature flag:** `FEATURE_INTRODUCTION`
 - Multi-step onboarding walkthrough shown to first-time users after entering their name
-- 10 steps by default (9 if `FEATURE_ONLINE_PLAYER_COUNT=false`): welcome, online play, live connection count, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
+- 11 steps by default (fewer when optional NavBar features are disabled): welcome, online play, live connection count, connection status, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
 - Dot navigation to jump between steps, skip button on every step, "Get Started" on the final step
 - Completion persisted via user preferences (`introSeen` field); never shown again once dismissed
 - Cursor rule (`.cursor/rules/introduction.mdc`) ensures new UI features are added as steps
@@ -142,6 +142,17 @@
 - localStorage used as write-through cache for instant reads; server is source of truth
 - Graceful offline fallback: if server is unavailable, preferences are read/written to localStorage only
 - Replaces direct localStorage usage in: `useBoardPreferences`, `Lobby`, `ComputerSetup`, `PuzzleTrainer`, `App` (intro seen)
+
+## Connection Status
+
+- **Key files:** `client/src/hooks/useConnectionStatus.ts`, `client/src/components/NavBar.tsx`, `server/src/socket/handlers.ts`
+- **Feature flag:** `FEATURE_CONNECTION_STATUS`
+- WiFi-like signal icon in the NavBar showing connection strength to the server
+- Latency measured via `ping:latency` Socket.IO event every 5 seconds
+- 4 signal levels: excellent (<100ms, green), good (<300ms, green), fair (<600ms, yellow), poor (>=600ms, red)
+- Disconnected state shows a crossed-out WiFi icon in red
+- Latency displayed in milliseconds next to the icon when connected
+- Tooltip shows exact latency or "Disconnected" message
 
 ## UI/UX
 
@@ -205,3 +216,4 @@
 | `FEATURE_MOVE_HISTORY_BROWSE` | `true` | Move history browsing in PvP and vs computer games: click past moves to view positions with dimmed board, purple back button. Set to `false` to disable. |
 | `FEATURE_STATS` | `true` | Server statistics dashboard at `/stats/graphs` with daily charts (games, players, time formats, results, peak hours). Set to `false` to disable. |
 | `FEATURE_PUZZLE_ANALYSIS` | `true` | Analyze button on completed puzzles, opens the analysis board at `/analyzePuzzle/:gameId`. Requires `FEATURE_GAME_STORAGE`. Set to `false` to disable. |
+| `FEATURE_CONNECTION_STATUS` | `true` | WiFi-like signal icon in NavBar showing server connection strength and latency. Set to `false` to disable. |

@@ -1111,3 +1111,30 @@ describe("presence:online-count", () => {
     client.disconnect();
   });
 });
+
+describe("ping:latency", () => {
+  it("echoes back the provided timestamp", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+    const ts = Date.now();
+    const res = await emitWithAck<{ ts: number }>(client, "ping:latency", { ts });
+    expect(res.ts).toBe(ts);
+    client.disconnect();
+  });
+
+  it("returns ts 0 when payload is missing ts", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+    const res = await emitWithAck<{ ts: number }>(client, "ping:latency", {});
+    expect(res.ts).toBe(0);
+    client.disconnect();
+  });
+
+  it("returns ts 0 when payload is not an object", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+    const res = await emitWithAck<{ ts: number }>(client, "ping:latency", "not-an-object");
+    expect(res.ts).toBe(0);
+    client.disconnect();
+  });
+});

@@ -302,6 +302,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       emitOnlinePlayerCountToSocket(io, socket);
     });
 
+    socket.on("ping:latency", (data: unknown, callback: unknown) => {
+      safeCallback(callback, { ts: isObj(data) && typeof data["ts"] === "number" ? data["ts"] : 0 });
+    });
+
     socket.on("disconnect", async () => {
       console.log(`Client disconnected: ${socket.id}`);
       const playerName = socketPlayers.get(socket.id);

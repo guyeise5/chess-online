@@ -70,6 +70,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_STATS | quote }}
             - name: FEATURE_PUZZLE_ANALYSIS
               value: {{ .Values.app.env.FEATURE_PUZZLE_ANALYSIS | quote }}
+            - name: FEATURE_CONNECTION_STATUS
+              value: {{ .Values.app.env.FEATURE_CONNECTION_STATUS | quote }}
           readinessProbe:
             httpGet:
               path: /readyz
