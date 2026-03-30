@@ -15,6 +15,7 @@ export const he: Record<string, string> = {
   "namePrompt.language": "שפה",
   "namePrompt.username": "שם משתמש",
   "namePrompt.enter": "כניסה",
+  "namePrompt.reservedName": "שם זה שמור",
   "lang.en": "אנגלית",
   "lang.he": "עברית",
   "settings.title": "הגדרות לוח",

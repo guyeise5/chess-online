@@ -8,6 +8,12 @@ interface Props {
   onSubmit: (name: string, locale: AppLocale) => void;
 }
 
+const RESERVED_NAME_PATTERN = /^stockfish/i;
+
+function isReservedName(name: string): boolean {
+  return RESERVED_NAME_PATTERN.test(name.trim());
+}
+
 export default function NamePrompt({ onSubmit }: Props) {
   const { t, locale: ctxLocale, setLocale } = useI18n();
   const [name, setName] = useState("");
@@ -18,10 +24,13 @@ export default function NamePrompt({ onSubmit }: Props) {
     setLocale(l);
   };
 
+  const trimmed = name.trim();
+  const reserved = isReservedName(trimmed);
+  const valid = trimmed.length >= 2 && !reserved;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (trimmed.length >= 2) {
+    if (valid) {
       onSubmit(trimmed, locale);
     }
   };
@@ -71,10 +80,13 @@ export default function NamePrompt({ onSubmit }: Props) {
             autoFocus
             maxLength={20}
           />
+          {reserved && (
+            <p className={styles["error"]}>{t("namePrompt.reservedName")}</p>
+          )}
           <button
             className={styles["button"]}
             type="submit"
-            disabled={name.trim().length < 2}
+            disabled={!valid}
           >
             {t("namePrompt.enter")}
           </button>

@@ -116,6 +116,68 @@ describe("room:create", () => {
 });
 
 // ---------------------------------------------------------------------------
+// reserved name validation
+// ---------------------------------------------------------------------------
+describe("reserved name validation", () => {
+  it("rejects room:create with Stockfish name", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const res = await emitWithAck(client, "room:create", {
+      playerName: "Stockfish 5",
+      timeControl: 300,
+      increment: 0,
+      colorChoice: "white",
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe("Reserved name");
+    client.disconnect();
+  });
+
+  it("rejects room:join with Stockfish name", async () => {
+    const owner = connectClient();
+    await waitForEvent(owner, "connect");
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 0,
+      colorChoice: "white",
+    });
+
+    const joiner = connectClient();
+    await waitForEvent(joiner, "connect");
+
+    const joinRes = await emitWithAck(joiner, "room:join", {
+      roomId: createRes.room.roomId,
+      playerName: "stockfish",
+    });
+
+    expect(joinRes.success).toBe(false);
+    expect(joinRes.error).toBe("Reserved name");
+
+    owner.disconnect();
+    joiner.disconnect();
+  });
+
+  it("accepts normal names", async () => {
+    const client = connectClient();
+    await waitForEvent(client, "connect");
+
+    const res = await emitWithAck(client, "room:create", {
+      playerName: "Alice",
+      timeControl: 300,
+      increment: 0,
+      colorChoice: "white",
+    });
+
+    expect(res.success).toBe(true);
+    client.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // room:join
 // ---------------------------------------------------------------------------
 describe("room:join", () => {

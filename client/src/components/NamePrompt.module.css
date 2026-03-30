@@ -126,3 +126,9 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.error {
+  color: #e74c3c;
+  font-size: 0.82rem;
+  margin: 0;
+}

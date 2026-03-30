@@ -19,6 +19,12 @@ function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+const RESERVED_NAME_PATTERN = /^stockfish/i;
+
+function isReservedName(name: string): boolean {
+  return RESERVED_NAME_PATTERN.test(name);
+}
+
 export function registerSocketHandlers(io: Server, gm: GameManager): void {
   const safeCallback = (callback: unknown, res: Record<string, unknown>): void => {
     if (typeof callback === "function") callback(res);
@@ -45,6 +51,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       ) => {
         try {
           if (!isObj(data)) { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
+          if (typeof data.playerName === "string" && isReservedName(data.playerName)) {
+            safeCallback(callback, { success: false, error: "Reserved name" });
+            return;
+          }
           const isPrivate = data.isPrivate === true;
           if (isPrivate && process.env["FEATURE_PRIVATE_GAMES"] === "false") {
             safeCallback(callback, { success: false, error: "Feature disabled" });
@@ -77,6 +87,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager): void {
       ) => {
         try {
           if (!isObj(data) || typeof data.roomId !== "string" || typeof data.playerName !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
+          if (isReservedName(data.playerName)) { safeCallback(callback, { success: false, error: "Reserved name" }); return; }
           const room = await gm.joinRoom(data.roomId, data.playerName, socket);
           if (!room) {
             safeCallback(callback, { success: false, error: "Room not found" });
