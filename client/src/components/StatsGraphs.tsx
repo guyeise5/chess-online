@@ -125,7 +125,7 @@ export default function StatsGraphs() {
     setLoading(true);
     setError(null);
 
-    fetch(`${API_BASE}/api/stats/daily`)
+    fetch(`${API_BASE}/api/stats/daily`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load statistics");
         return res.json();

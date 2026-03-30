@@ -12,8 +12,9 @@ import NavBar from "./NavBar";
 import styles from "./Lobby.module.css";
 
 interface Props {
-  playerName: string;
-  onChangeName: () => void;
+  userId: string;
+  displayName: string;
+  onChangeName?: () => void;
   onOpenSettings?: () => void;
   boardPrefs?: BoardPreferences;
 }
@@ -67,7 +68,7 @@ function ColorIcon({ choice, piecesName }: { choice: ColorChoice; piecesName: st
   );
 }
 
-export default function Lobby({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+export default function Lobby({ userId, displayName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
@@ -121,20 +122,20 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       socket.off("rooms:list", handleRoomsList);
       socket.off("game:start", handleGameStart);
       if (waitingRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: waitingRoomIdRef.current, playerName }, () => {});
+        socket.emit("room:leave", { roomId: waitingRoomIdRef.current }, () => {});
       }
       if (privateRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName }, () => {});
+        socket.emit("room:leave", { roomId: privateRoomIdRef.current }, () => {});
       }
     };
-  }, [navigate, playerName]);
+  }, [navigate]);
 
   const closeRoom = useCallback(
     (roomId: string): Promise<void> =>
       new Promise((resolve) => {
-        socket.emit("room:leave", { roomId, playerName }, () => resolve());
+        socket.emit("room:leave", { roomId }, () => resolve());
       }),
-    [playerName]
+    []
   );
 
   const openRoom = useCallback(
@@ -145,7 +146,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       const doCreate = () => {
         socket.emit(
           "room:create",
-          { playerName, timeControl, increment, colorChoice: color },
+          { userId, displayName, timeControl, increment, colorChoice: color },
           (res: RoomResult) => {
             busyRef.current = false;
             if (res?.success && res.room?.roomId) {
@@ -166,7 +167,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
         doCreate();
       }
     },
-    [playerName, waitingRoomId, closeRoom]
+    [userId, displayName, waitingRoomId, closeRoom]
   );
 
   const handlePresetClick = useCallback(
@@ -205,19 +206,19 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
 
   const handleJoin = useCallback(
     (roomId: string) => {
-      socket.emit("room:join", { roomId, playerName }, (res: SocketResult) => {
+      socket.emit("room:join", { roomId, userId, displayName }, (res: SocketResult) => {
         if (res?.success) navigate(`/game/${roomId}`);
       });
     },
-    [playerName, navigate]
+    [userId, displayName, navigate]
   );
 
   const closePrivateRoom = useCallback(() => {
     if (privateRoomIdRef.current) {
-      socket.emit("room:leave", { roomId: privateRoomIdRef.current, playerName }, () => {});
+      socket.emit("room:leave", { roomId: privateRoomIdRef.current }, () => {});
       setPrivateRoomId(null);
     }
-  }, [playerName]);
+  }, []);
 
   const handleClosePrivateModal = useCallback(() => {
     closePrivateRoom();
@@ -234,7 +235,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       const doCreate = () => {
         socket.emit(
           "room:create",
-          { playerName, timeControl, increment, colorChoice: colorChoice, isPrivate: true },
+          { userId, displayName, timeControl, increment, colorChoice: colorChoice, isPrivate: true },
           (res: RoomResult) => {
             setPrivateBusy(false);
             if (res?.success && res.room?.roomId) {
@@ -247,12 +248,12 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
       if (privateRoomIdRef.current) {
         const oldId = privateRoomIdRef.current;
         setPrivateRoomId(null);
-        socket.emit("room:leave", { roomId: oldId, playerName }, () => doCreate());
+        socket.emit("room:leave", { roomId: oldId }, () => doCreate());
       } else {
         doCreate();
       }
     },
-    [playerName, colorChoice, privateBusy]
+    [userId, displayName, colorChoice, privateBusy]
   );
 
   const privateInviteUrl = privateRoomId
@@ -296,7 +297,11 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar
+        displayName={displayName}
+        {...(onChangeName ? { onChangeName } : {})}
+        {...(onOpenSettings ? { onOpenSettings } : {})}
+      />
 
       <main className={styles['main']}>
         <div className={styles['layout']}>
@@ -374,7 +379,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
             ) : (
               <div className={styles['tableBody']}>
                 {rooms.map((room) => {
-                  const isOwn = room.owner === playerName;
+                  const isOwn = room.owner === userId;
                   return (
                     <div
                       key={room.roomId}
@@ -388,7 +393,7 @@ export default function Lobby({ playerName, onChangeName, onOpenSettings, boardP
                     >
                       <span className={styles['tdPlayer']}>
                         <ColorIcon choice={room.colorChoice} piecesName={piecesName} />
-                        {room.owner}
+                        {room.ownerName ?? room.owner}
                         {isOwn && <span className={styles['youTag']}>{t("lobby.you")}</span>}
                       </span>
                       <span className={styles['tdTime']}>

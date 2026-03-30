@@ -18,13 +18,15 @@ function PieceImg({ piece, piecesName }: { piece: string; piecesName: string }) 
 }
 
 interface Props {
-  playerName: string;
-  onChangeName: () => void;
+  userId: string;
+  displayName: string;
+  onChangeName?: () => void;
   onOpenSettings?: () => void;
   boardPrefs?: BoardPreferences;
 }
 
-export default function ComputerSetup({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+export default function ComputerSetup({ userId, displayName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+  void userId;
   const { t } = useI18n();
   const navigate = useNavigate();
   const { prefs: userPrefs, update: updatePrefs } = useUserPrefs();
@@ -46,7 +48,11 @@ export default function ComputerSetup({ playerName, onChangeName, onOpenSettings
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar
+        displayName={displayName}
+        {...(onChangeName ? { onChangeName } : {})}
+        {...(onOpenSettings ? { onOpenSettings } : {})}
+      />
 
       <main className={styles['main']}>
         <div className={styles['setupPanel']}>

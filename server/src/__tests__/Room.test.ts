@@ -114,6 +114,10 @@ describe("Room model", () => {
     expect(room.opponent).toBeNull();
     expect(room.whitePlayer).toBeNull();
     expect(room.blackPlayer).toBeNull();
+    expect(room.ownerName).toBe("");
+    expect(room.opponentName).toBeNull();
+    expect(room.whiteName).toBeNull();
+    expect(room.blackName).toBeNull();
   });
 
   it("creates timestamps automatically", async () => {

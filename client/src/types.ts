@@ -5,7 +5,9 @@ export type RoomStatus = "waiting" | "playing" | "finished";
 export interface RoomData {
   roomId: string;
   owner: string;
+  ownerName?: string;
   opponent: string | null;
+  opponentName?: string | null;
   timeFormat: TimeFormat;
   timeControl: number;
   increment: number;
@@ -15,6 +17,8 @@ export interface RoomData {
   fen: string;
   whitePlayer: string | null;
   blackPlayer: string | null;
+  whiteName?: string | null;
+  blackName?: string | null;
   whiteTime: number;
   blackTime: number;
   turn: "w" | "b";
@@ -91,6 +95,7 @@ export interface AppEnv {
   FEATURE_STATS?: string;
   FEATURE_PUZZLE_ANALYSIS?: string;
   FEATURE_CONNECTION_STATUS?: string;
+  FEATURE_SAML_AUTH?: string;
 }
 
 declare global {

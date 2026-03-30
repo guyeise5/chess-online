@@ -5,8 +5,9 @@ import { useI18n } from "../i18n/I18nProvider";
 import styles from "./GameHistory.module.css";
 
 interface Props {
-  playerName: string;
-  onChangeName: () => void;
+  userId: string;
+  displayName: string;
+  onChangeName?: () => void;
   onOpenSettings?: () => void;
 }
 
@@ -15,6 +16,8 @@ export interface GameSummary {
   moves: string[];
   playerWhite?: string;
   playerBlack?: string;
+  displayWhite?: string;
+  displayBlack?: string;
   orientation?: "white" | "black";
   result?: string;
   createdAt: string;
@@ -24,12 +27,12 @@ const API_BASE = import.meta.env.PROD ? "" : "http://localhost:3001";
 
 function resultForPlayer(
   game: GameSummary,
-  playerName: string
+  userId: string
 ): "win" | "loss" | "draw" | "unknown" {
   if (!game.result) return "unknown";
   if (game.result === "1/2-1/2") return "draw";
-  const isWhite = game.playerWhite === playerName;
-  const isBlack = game.playerBlack === playerName;
+  const isWhite = game.playerWhite === userId;
+  const isBlack = game.playerBlack === userId;
   if (!isWhite && !isBlack) return "unknown";
   if (game.result === "1-0") return isWhite ? "win" : "loss";
   if (game.result === "0-1") return isBlack ? "win" : "loss";
@@ -78,7 +81,7 @@ function formatDate(iso: string): string {
   }
 }
 
-export default function GameHistory({ playerName, onChangeName, onOpenSettings }: Props) {
+export default function GameHistory({ userId, displayName, onChangeName, onOpenSettings }: Props) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [games, setGames] = useState<GameSummary[]>([]);
@@ -89,7 +92,7 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/api/games?player=${encodeURIComponent(playerName)}`)
+    fetch(`${API_BASE}/api/games?player=${encodeURIComponent(userId)}`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load games");
         return res.json();
@@ -109,11 +112,15 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
     return () => {
       cancelled = true;
     };
-  }, [playerName]);
+  }, [userId]);
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar
+        displayName={displayName}
+        {...(onChangeName ? { onChangeName } : {})}
+        {...(onOpenSettings ? { onOpenSettings } : {})}
+      />
 
       <main className={styles['main']}>
         <div className={styles['panel']}>
@@ -136,11 +143,11 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
           {!loading && !error && games.length > 0 && (
             <div className={styles['gameList']}>
               {games.map((game) => {
-                const outcome = resultForPlayer(game, playerName);
+                const outcome = resultForPlayer(game, userId);
                 const opponent =
-                  game.playerWhite === playerName
-                    ? game.playerBlack ?? "Unknown"
-                    : game.playerWhite ?? "Unknown";
+                  game.playerWhite === userId
+                    ? game.displayBlack ?? game.playerBlack ?? "Unknown"
+                    : game.displayWhite ?? game.playerWhite ?? "Unknown";
 
                 return (
                   <div
@@ -160,7 +167,7 @@ export default function GameHistory({ playerName, onChangeName, onOpenSettings }
                     <div className={styles['gameInfo']}>
                       <span className={styles['players']}>
                         <span className={styles['currentPlayer']}>
-                          {playerName}
+                          {displayName}
                         </span>{" "}
                         {t("history.vs")} {opponent}
                       </span>

@@ -32,6 +32,8 @@ beforeAll(async () => {
           moves: g.moves,
           playerWhite: g.playerWhite,
           playerBlack: g.playerBlack,
+          displayWhite: g.displayWhite ?? g.playerWhite,
+          displayBlack: g.displayBlack ?? g.playerBlack,
           orientation: g.orientation,
           result: g.result,
           createdAt: g.createdAt,
@@ -83,9 +85,33 @@ describe("Game model — result field", () => {
 
 describe("GET /api/games?player=", () => {
   const games = [
-    { gameId: "a1", moves: ["e4", "e5", "Nf3"], playerWhite: "Alice", playerBlack: "Bob", result: "1-0" },
-    { gameId: "a2", moves: ["d4", "d5"], playerWhite: "Charlie", playerBlack: "Alice", result: "0-1" },
-    { gameId: "a3", moves: ["c4"], playerWhite: "Bob", playerBlack: "Charlie", result: "1/2-1/2" },
+    {
+      gameId: "a1",
+      moves: ["e4", "e5", "Nf3"],
+      playerWhite: "Alice",
+      playerBlack: "Bob",
+      displayWhite: "Alice D.",
+      displayBlack: "Bob D.",
+      result: "1-0",
+    },
+    {
+      gameId: "a2",
+      moves: ["d4", "d5"],
+      playerWhite: "Charlie",
+      playerBlack: "Alice",
+      displayWhite: "Charlie D.",
+      displayBlack: "Alice D.",
+      result: "0-1",
+    },
+    {
+      gameId: "a3",
+      moves: ["c4"],
+      playerWhite: "Bob",
+      playerBlack: "Charlie",
+      displayWhite: "Bob D.",
+      displayBlack: "Charlie D.",
+      result: "1/2-1/2",
+    },
   ];
 
   beforeEach(async () => {
@@ -132,6 +158,17 @@ describe("GET /api/games?player=", () => {
     expect(res.status).toBe(200);
     const g1 = res.body.find((g: any) => g.gameId === "a1");
     expect(g1.result).toBe("1-0");
+  });
+
+  it("includes displayWhite and displayBlack in response", async () => {
+    const res = await request(app).get("/api/games?player=Alice");
+    expect(res.status).toBe(200);
+    const g1 = res.body.find((g: any) => g.gameId === "a1");
+    expect(g1.displayWhite).toBe("Alice D.");
+    expect(g1.displayBlack).toBe("Bob D.");
+    const g2 = res.body.find((g: any) => g.gameId === "a2");
+    expect(g2.displayWhite).toBe("Charlie D.");
+    expect(g2.displayBlack).toBe("Alice D.");
   });
 
   it("includes createdAt field in response", async () => {

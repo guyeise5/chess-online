@@ -209,14 +209,14 @@ export function useUserPrefs(): UserPrefsContextValue {
   return useContext(UserPrefsContext);
 }
 
-export function useUserPreferences(playerName: string): UserPrefsContextValue {
+export function useUserPreferences(userId: string): UserPrefsContextValue {
   const [prefs, setPrefs] = useState<UserPreferences>(() => loadLocal());
   const [loaded, setLoaded] = useState(false);
 
   const prefsRemoteEnabled = getEnv().FEATURE_USER_PREFERENCES !== "false";
 
   useEffect(() => {
-    if (!playerName) {
+    if (!userId) {
       setLoaded(true);
       return;
     }
@@ -231,7 +231,8 @@ export function useUserPreferences(playerName: string): UserPrefsContextValue {
     (async () => {
       try {
         const res = await fetch(
-          `/api/preferences/${encodeURIComponent(playerName)}`
+          `/api/preferences/${encodeURIComponent(userId)}`,
+          { credentials: "include" }
         );
         if (!res.ok) {
           if (!cancelled) setLoaded(true);
@@ -253,24 +254,25 @@ export function useUserPreferences(playerName: string): UserPrefsContextValue {
     return () => {
       cancelled = true;
     };
-  }, [playerName, prefsRemoteEnabled]);
+  }, [userId, prefsRemoteEnabled]);
 
   const update = useCallback(
     (partial: Partial<UserPreferences>) => {
       setPrefs((prev) => {
         const next = { ...prev, ...partial };
         saveLocal(next);
-        if (prefsRemoteEnabled && playerName) {
-          fetch(`/api/preferences/${encodeURIComponent(playerName)}`, {
+        if (prefsRemoteEnabled && userId) {
+          fetch(`/api/preferences/${encodeURIComponent(userId)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify(partial),
           }).catch(() => {});
         }
         return next;
       });
     },
-    [playerName, prefsRemoteEnabled]
+    [userId, prefsRemoteEnabled]
   );
 
   return { prefs, loaded, update };
@@ -278,12 +280,12 @@ export function useUserPreferences(playerName: string): UserPrefsContextValue {
 
 /** Wrap the app (or subtree) so `useUserPrefs()` shares the same preferences state. */
 export function UserPrefsProvider({
-  playerName,
+  userId,
   children,
 }: {
-  playerName: string;
+  userId: string;
   children: ReactNode;
 }): React.ReactElement {
-  const value = useUserPreferences(playerName);
+  const value = useUserPreferences(userId);
   return React.createElement(UserPrefsContext.Provider, { value }, children);
 }

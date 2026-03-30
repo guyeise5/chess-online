@@ -739,7 +739,7 @@ describe("disconnect claim", () => {
 
     const state = gm.getDisconnectState(room.roomId);
     expect(state).toBeDefined();
-    expect(state!.playerName).toBe("Alice");
+    expect(state!.userId).toBe("Alice");
     expect(state!.claimAvailable).toBe(false);
   });
 
@@ -753,7 +753,7 @@ describe("disconnect claim", () => {
 
     expect(emitSpy).toHaveBeenCalledWith(room.roomId);
     const emitCall = (emitSpy.mock.results[0].value as any).emit;
-    expect(emitCall).toHaveBeenCalledWith("game:opponent-disconnected", { playerName: "Bob" });
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-disconnected", { userId: "Bob" });
 
     emitSpy.mockRestore();
   });
@@ -779,7 +779,7 @@ describe("disconnect claim", () => {
     await gm.handlePlayerDisconnect(room.roomId, "Bob");
     const state2 = gm.getDisconnectState(room.roomId);
 
-    expect(state2!.playerName).toBe("Alice");
+    expect(state2!.userId).toBe("Alice");
     expect(state1).toBe(state2);
   });
 
@@ -802,7 +802,7 @@ describe("disconnect claim", () => {
     await gm.handlePlayerReconnect(room.roomId, "Alice");
 
     const emitCall = (emitSpy.mock.results[0].value as any).emit;
-    expect(emitCall).toHaveBeenCalledWith("game:opponent-reconnected", { playerName: "Alice" });
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-reconnected", { userId: "Alice" });
 
     emitSpy.mockRestore();
   });
@@ -1235,7 +1235,9 @@ describe("serializeRoom", () => {
       expect.objectContaining({
         roomId: room.roomId,
         owner: "Alice",
+        ownerName: "Alice",
         opponent: null,
+        opponentName: null,
         timeFormat: "blitz",
         timeControl: 300,
         increment: 2,
@@ -1243,6 +1245,8 @@ describe("serializeRoom", () => {
         status: "waiting",
         whitePlayer: null,
         blackPlayer: null,
+        whiteName: null,
+        blackName: null,
         whiteTime: 300,
         blackTime: 300,
         turn: "w",
@@ -1618,5 +1622,105 @@ describe("emitSystemChat", () => {
       (m: { type: string; text: string }) => m.type === "player" && m.text === "hello"
     );
     expect(playerMsg).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// saveGameRecord — server-side game persistence
+// ---------------------------------------------------------------------------
+describe("saveGameRecord — automatic game persistence", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Game = require("../models/Game").default;
+
+  async function createPlayingRoom() {
+    const room = await gm.createRoom("Alice", 300, 2, "white", false, "Alice Display");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket(), "Bob Display");
+    return (await Room.findOne({ roomId: room.roomId }))!;
+  }
+
+  it("saves a game record on checkmate", async () => {
+    const room = await createPlayingRoom();
+
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.makeMove(room.roomId, "Bob", "e7", "e5");
+    await gm.makeMove(room.roomId, "Alice", "f1", "c4");
+    await gm.makeMove(room.roomId, "Bob", "b8", "c6");
+    await gm.makeMove(room.roomId, "Alice", "d1", "h5");
+    await gm.makeMove(room.roomId, "Bob", "g8", "f6");
+    await gm.makeMove(room.roomId, "Alice", "h5", "f7");
+
+    const game = await Game.findOne({ gameId: room.roomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("1-0");
+    expect(game.playerWhite).toBe("Alice");
+    expect(game.playerBlack).toBe("Bob");
+    expect(game.displayWhite).toBe("Alice Display");
+    expect(game.displayBlack).toBe("Bob Display");
+    expect(game.moves.length).toBeGreaterThan(0);
+  });
+
+  it("saves a game record on resignation", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.resign(room.roomId, "Alice");
+
+    const game = await Game.findOne({ gameId: room.roomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("0-1");
+    expect(game.playerWhite).toBe("Alice");
+    expect(game.playerBlack).toBe("Bob");
+  });
+
+  it("saves a game record on accepted draw", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.offerDraw(room.roomId, "Alice");
+    await gm.respondDraw(room.roomId, "Bob", true);
+
+    const game = await Game.findOne({ gameId: room.roomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("1/2-1/2");
+  });
+
+  it("saves a game record on disconnect claim (win)", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+
+    const state = gm.getDisconnectState(room.roomId);
+    if (state) state.claimAvailable = true;
+
+    await gm.claimDisconnectResult(room.roomId, "Alice", "win");
+
+    const game = await Game.findOne({ gameId: room.roomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("1-0");
+  });
+
+  it("saves a game record on disconnect claim (draw)", async () => {
+    const room = await createPlayingRoom();
+    await gm.makeMove(room.roomId, "Alice", "e2", "e4");
+    await gm.handlePlayerDisconnect(room.roomId, "Bob");
+
+    const state = gm.getDisconnectState(room.roomId);
+    if (state) state.claimAvailable = true;
+
+    await gm.claimDisconnectResult(room.roomId, "Alice", "draw");
+
+    const game = await Game.findOne({ gameId: room.roomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("1/2-1/2");
+  });
+
+  it("does not save when FEATURE_GAME_STORAGE is false", async () => {
+    process.env["FEATURE_GAME_STORAGE"] = "false";
+    try {
+      const room = await createPlayingRoom();
+      await gm.resign(room.roomId, "Alice");
+      const game = await Game.findOne({ gameId: room.roomId }).lean();
+      expect(game).toBeNull();
+    } finally {
+      delete process.env["FEATURE_GAME_STORAGE"];
+    }
   });
 });

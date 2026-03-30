@@ -11,8 +11,9 @@ import { timeFormatToKey } from "../i18n/timeCategory";
 import styles from "./PrivateInvite.module.css";
 
 interface Props {
-  playerName: string;
-  onChangeName: () => void;
+  userId: string;
+  displayName: string;
+  onChangeName?: () => void;
   onOpenSettings?: () => void;
   boardPrefs?: BoardPreferences;
 }
@@ -43,7 +44,7 @@ function colorPieceLabel(
   return choice === "white" ? t("color.black") : t("color.white");
 }
 
-export default function PrivateInvite({ playerName, onChangeName, onOpenSettings, boardPrefs }: Props) {
+export default function PrivateInvite({ userId, displayName, onChangeName, onOpenSettings, boardPrefs }: Props) {
   const { t } = useI18n();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
   const handleAccept = useCallback(() => {
     if (!roomId || joining) return;
     setJoining(true);
-    socket.emit("room:join", { roomId, playerName }, (res: SocketResult) => {
+    socket.emit("room:join", { roomId, userId, displayName }, (res: SocketResult) => {
       if (res?.success) {
         navigate(`/game/${roomId}`);
       } else {
@@ -98,16 +99,20 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
         }
       }
     });
-  }, [roomId, playerName, joining, navigate]);
+  }, [roomId, userId, displayName, joining, navigate]);
 
-  const isOwner = room?.owner === playerName;
+  const isOwner = room?.owner === userId;
   const canAccept = room && room.status === "waiting" && !isOwner;
   const isPlaying = room?.status === "playing";
   const isFinished = room?.status === "finished";
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar
+        displayName={displayName}
+        {...(onChangeName ? { onChangeName } : {})}
+        {...(onOpenSettings ? { onOpenSettings } : {})}
+      />
       <div className={styles['main']}>
         {loading ? (
           <div className={styles['card']}>
@@ -128,7 +133,7 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
           <div className={styles['card']}>
             <span className={styles['title']}>{t("invite.inviteTitle")}</span>
             <span className={styles['owner']}>
-              {t("invite.hostedBy")} <span className={styles['ownerName']}>{room.owner}</span>
+              {t("invite.hostedBy")} <span className={styles['ownerName']}>{room.ownerName ?? room.owner}</span>
             </span>
 
             <div className={styles['details']}>
@@ -161,11 +166,11 @@ export default function PrivateInvite({ playerName, onChangeName, onOpenSettings
                     <>
                       <div className={styles['colorIcon']}>
                         <PieceImg
-                          piece={colorPieceLabel(room.colorChoice, room.owner, playerName, t) === t("color.white") ? "wK" : "bK"}
+                          piece={colorPieceLabel(room.colorChoice, room.owner, userId, t) === t("color.white") ? "wK" : "bK"}
                           piecesName={piecesName}
                         />
                       </div>
-                      {t("invite.youPlay")} {colorPieceLabel(room.colorChoice, room.owner, playerName, t)}
+                      {t("invite.youPlay")} {colorPieceLabel(room.colorChoice, room.owner, userId, t)}
                     </>
                   )}
                 </span>

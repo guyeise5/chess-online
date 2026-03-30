@@ -187,6 +187,25 @@
   - Private vs public games (donut chart)
 - Summary cards: total games, peak daily players, average moves per game
 
+## SAML Authentication
+
+- **Key files:** `server/src/auth/samlAuth.ts`, `server/src/index.ts` (auth routes, session setup), `client/src/App.tsx` (auth flow)
+- **Feature flag:** `FEATURE_SAML_AUTH` (default: `false`)
+- Optional SAML 2.0 authentication via passport-saml
+- When enabled, users authenticate through an external SAML IdP; `userId` is extracted from a configurable profile field (default: `sub`), display name from `given_name` + `family_name` (configurable)
+- When disabled (default), users enter a name via NamePrompt; `userId` = `displayName` = typed name
+- `userId` is the identity key for all DB models (UserPreferences, Room, Game), socket events, and API endpoints
+- `displayName` is used for UI rendering (player bars, NavBar, chat, game history)
+- Server-side sessions stored in MongoDB via `connect-mongo`
+- Auth routes: `GET /auth/login` (SSO), `POST /auth/callback` (ACS), `GET /auth/logout`, `GET /api/auth/me` (returns user info + preferences)
+- `GET /api/auth/me` returns all user data (preferences, puzzle rating, intro state) so the client can load everything before showing the main screen
+- Docker Compose includes a `saml-idp` test service (`kristophjunge/test-saml-idp`) with two test users (`user1`/`user1pass`, `user2`/`user2pass`)
+- Server-side identity resolution: socket events derive userId/displayName from the session (SAML) or socketPlayers map (no-auth), never trusting client payloads for non-entry events
+- Puzzle random endpoint looks up the user's puzzleRating from UserPreferences when SAML is on (ignores client-supplied rating)
+- POST /api/games/:gameId overrides player identity from the session when SAML is on (client cannot spoof player names)
+- API routes enforce that the session userId matches the URL/query userId (403 on mismatch)
+- Configurable env vars: `SAML_ENTRY_POINT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`, `SAML_IDP_CERT`, `SAML_USER_ID_FIELD`, `SAML_FIRST_NAME_FIELD`, `SAML_LAST_NAME_FIELD`, `SAML_WANT_RESPONSE_SIGNED`, `SESSION_SECRET`
+
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yaml`): Runs on pull requests — server tests, client tests, builds, Helm lint/unit tests, Docker build, Kind deploy + smoke test
@@ -199,7 +218,7 @@
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `FEATURE_GAME_STORAGE` | `true` | Server-side game storage for analysis (MongoDB `games` collection, 14-day TTL). Set to `false` to disable. |
+| `FEATURE_GAME_STORAGE` | `true` | Server-side game storage (MongoDB `games` collection, 14-day TTL). PvP games are auto-saved by GameManager on finish; computer games are saved via client POST. Set to `false` to disable. |
 | `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |
 | `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |
 | `FEATURE_GAME_HISTORY` | `true` | Game history page listing the player's past games for analysis. Set to `false` to disable. |
@@ -217,3 +236,5 @@
 | `FEATURE_STATS` | `true` | Server statistics dashboard at `/stats/graphs` with daily charts (games, players, time formats, results, peak hours). Set to `false` to disable. |
 | `FEATURE_PUZZLE_ANALYSIS` | `true` | Analyze button on completed puzzles, fetches puzzle from server and opens the analysis board at `/analyzePuzzle/:puzzleId`. Set to `false` to disable. |
 | `FEATURE_CONNECTION_STATUS` | `true` | WiFi-like signal icon in NavBar showing server connection strength and latency. Set to `false` to disable. |
+| `FEATURE_SAML_AUTH` | `false` | SAML 2.0 authentication via passport-saml. Requires IdP configuration (`SAML_ENTRY_POINT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`). Set to `true` to enable. |
+| `SAML_WANT_RESPONSE_SIGNED` | `true` | Require signed SAML responses from the IdP. Set to `false` only for test IdPs that don't sign responses. |

@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserPreferences extends Document {
-  playerName: string;
+  userId: string;
+  displayName: string;
   introSeen: boolean;
   /** UI locale: English or Hebrew (RTL). */
   locale: string;
@@ -19,7 +20,8 @@ export interface IUserPreferences extends Document {
 
 const UserPreferencesSchema = new Schema<IUserPreferences>(
   {
-    playerName: { type: String, required: true, unique: true, index: true },
+    userId: { type: String, required: true, unique: true, index: true },
+    displayName: { type: String, default: "" },
     introSeen: { type: Boolean, default: false },
     locale: { type: String, default: "en", enum: ["en", "he"] },
     boardTheme: { type: String, default: "brown" },
