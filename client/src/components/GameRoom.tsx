@@ -85,6 +85,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
   const [moves, setMoves] = useState<string[]>([]);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const moveHandledRef = useRef(false);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [undoRequester, setUndoRequester] = useState<string | null>(null);
   const [undoPending, setUndoPending] = useState(false);
@@ -121,7 +122,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
     setLoading(true);
     socket.emit(
       "room:rejoin",
-      { roomId, userId },
+      { roomId },
       (res: { success: boolean; room?: RoomData }) => {
         setLoading(false);
         if (res?.success && res.room) {
@@ -218,7 +219,6 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                 "game:move",
                 {
                   roomId,
-                  userId,
                   from: currentPm.from,
                   to: currentPm.to,
                   ...(currentPm.promotion != null ? { promotion: currentPm.promotion } : {}),
@@ -404,7 +404,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
       if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
     };
-  }, [addChatMessage, roomId, userId]);
+  }, [addChatMessage, roomId]);
 
   const statusRef = useRef(status);
   statusRef.current = status;
@@ -436,11 +436,11 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
   useEffect(() => {
     return () => {
       if (statusRef.current === "playing" && roomIdRef.current) {
-        socket.emit("game:player-left", { roomId: roomIdRef.current, userId });
+        socket.emit("game:player-left", { roomId: roomIdRef.current });
         onActiveGameChange?.(null);
       }
     };
-  }, [userId, onActiveGameChange]);
+  }, [onActiveGameChange]);
 
   useEffect(() => {
     if (!opponentDisconnected || disconnectClaimAvailable) return;
@@ -618,7 +618,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
 
       socket.emit(
         "game:move",
-        { roomId, userId, from, to, ...(promotion != null ? { promotion } : {}) },
+        { roomId, from, to, ...(promotion != null ? { promotion } : {}) },
         (res: SocketResult) => {
           if (res && !res.success) {
             console.warn("Move rejected:", res.error);
@@ -720,6 +720,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
           const targets = getLegalMovesForSquare(selectedSquare);
           if (targets.includes(square)) {
             tryMove(selectedSquare, square);
+            moveHandledRef.current = true;
             return;
           }
         }
@@ -758,6 +759,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
 
   const onSquareClick = useCallback(
     ({ square }: { piece: { pieceType: string } | null; square: string }) => {
+      if (moveHandledRef.current) { moveHandledRef.current = false; return; }
       if (isMyTurn()) {
         if (!selectedSquare) return;
         const targets = getLegalMovesForSquare(selectedSquare);
@@ -801,7 +803,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
 
   const confirmResign = useCallback(() => {
     cancelResignConfirm();
-    socket.emit("game:resign", { roomId, userId });
+    socket.emit("game:resign", { roomId });
   }, [roomId, userId, cancelResignConfirm]);
 
   const startDrawConfirm = useCallback(() => {
@@ -820,7 +822,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
   const confirmDrawOffer = useCallback(() => {
     cancelDrawConfirm();
     setDrawOfferPending(true);
-    socket.emit("game:draw-offer", { roomId, userId }, (res: SocketResult) => {
+    socket.emit("game:draw-offer", { roomId }, (res: SocketResult) => {
       if (!res?.success) setDrawOfferPending(false);
     });
   }, [roomId, userId, cancelDrawConfirm]);
@@ -879,7 +881,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
               {isPlayer && status === "playing" && getEnv().FEATURE_GIVE_TIME !== "false" && (
                 <button
                   className={styles['giveTimeBtn']}
-                  onClick={() => socket.emit("game:give-time", { roomId, userId }, () => {})}
+                  onClick={() => socket.emit("game:give-time", { roomId }, () => {})}
                   title={t("game.giveTime")}
                 >
                   +
@@ -1035,14 +1037,14 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                     <button
                       type="button"
                       className={styles['claimWinBtn']}
-                      onClick={() => socket.emit("game:claim-disconnect-win", { roomId, userId }, () => {})}
+                      onClick={() => socket.emit("game:claim-disconnect-win", { roomId }, () => {})}
                     >
                       {t("game.claimWin")}
                     </button>
                     <button
                       type="button"
                       className={styles['claimDrawBtn']}
-                      onClick={() => socket.emit("game:claim-disconnect-draw", { roomId, userId }, () => {})}
+                      onClick={() => socket.emit("game:claim-disconnect-draw", { roomId }, () => {})}
                     >
                       {t("game.claimDraw")}
                     </button>
@@ -1099,7 +1101,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                     disabled={moves.length === 0 || undoPending}
                     onClick={() => {
                       setUndoPending(true);
-                      socket.emit("game:undo-request", { roomId, userId, moveCount: moves.length });
+                      socket.emit("game:undo-request", { roomId, moveCount: moves.length });
                     }}
                     title={undoPending ? t("game.takebackPending") : t("game.takeback")}
                   >
@@ -1114,7 +1116,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                         <button
                           type="button"
                           className={`${styles['actionBtn']} ${styles['actionConfirm']}`}
-                          onClick={() => socket.emit("game:draw-response", { roomId, userId, accepted: true })}
+                          onClick={() => socket.emit("game:draw-response", { roomId, accepted: true })}
                           title={t("game.acceptDraw")}
                         >
                           ✓
@@ -1122,7 +1124,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                         <button
                           type="button"
                           className={`${styles['actionBtn']} ${styles['actionCancel']}`}
-                          onClick={() => socket.emit("game:draw-response", { roomId, userId, accepted: false })}
+                          onClick={() => socket.emit("game:draw-response", { roomId, accepted: false })}
                           title={t("game.declineDraw")}
                         >
                           ✗
@@ -1172,7 +1174,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
             if (roomId) {
               socket.emit(
                 "game:chat",
-                { roomId, userId, text },
+                { roomId, text },
                 () => {}
               );
             }

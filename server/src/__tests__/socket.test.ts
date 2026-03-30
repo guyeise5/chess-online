@@ -306,7 +306,6 @@ describe("room:rejoin", () => {
     // Alice makes a move
     await emitWithAck(owner, "game:move", {
       roomId,
-      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -330,7 +329,6 @@ describe("room:rejoin", () => {
 
     await emitWithAck(joiner, "game:move", {
       roomId,
-      userId: "Bob",
       from: "e7",
       to: "e5",
     });
@@ -372,7 +370,6 @@ describe("room:rejoin — reconnection scenarios", () => {
     // Play a move
     await emitWithAck(owner, "game:move", {
       roomId,
-      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -406,7 +403,6 @@ describe("room:rejoin — reconnection scenarios", () => {
     // Continue the game — Bob can now move
     const moveRes = await emitWithAck(joinerNew, "game:move", {
       roomId,
-      userId: "Bob",
       from: "e7",
       to: "e5",
     });
@@ -416,7 +412,6 @@ describe("room:rejoin — reconnection scenarios", () => {
     const aliceMovePromise = waitForEvent(ownerNew, "game:move");
     await emitWithAck(joinerNew, "game:move", {
       roomId,
-      userId: "Bob",
       // Bob already moved e5, now it's Alice's turn — but let's verify Alice got the e5 event
     });
     // Actually, the move already happened. Let's verify Alice got the e5 broadcast from the previous move.
@@ -493,7 +488,7 @@ describe("room:rejoin — reconnection scenarios", () => {
     });
 
     // Resign
-    owner.emit("game:resign", { roomId, userId: "Alice" });
+    owner.emit("game:resign", { roomId });
     await waitForEvent(joiner, "game:over");
 
     // Both disconnect
@@ -535,7 +530,6 @@ describe("room:leave", () => {
 
     const res = await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
     });
 
     expect(res.success).toBe(true);
@@ -577,7 +571,6 @@ describe("room:leave", () => {
 
     await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
     });
 
     await closedPromise; // resolves if event is received
@@ -609,7 +602,6 @@ describe("room:leave", () => {
 
     await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
     });
 
     const rooms = await roomsPromise;
@@ -638,7 +630,6 @@ describe("room:leave", () => {
 
     const res = await emitWithAck(other, "room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Bob",
     });
 
     expect(res.success).toBe(false);
@@ -669,7 +660,6 @@ describe("room:leave", () => {
     // Emit room:leave without a callback (fire-and-forget)
     owner.emit("room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
     });
 
     // Give the server time to process — it must not crash
@@ -708,7 +698,6 @@ describe("room:leave", () => {
 
     const res = await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
     });
 
     expect(res.success).toBe(false);
@@ -748,7 +737,6 @@ describe("game:move", () => {
 
     const moveRes = await emitWithAck(owner, "game:move", {
       roomId,
-      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -786,7 +774,6 @@ describe("game:move", () => {
 
     const res = await emitWithAck(owner, "game:move", {
       roomId: createRes.room.roomId,
-      userId: "Alice",
       from: "e2",
       to: "e5",
     });
@@ -826,7 +813,7 @@ describe("game:resign", () => {
 
     const gameOverPromise = waitForEvent(joiner, "game:over");
 
-    owner.emit("game:resign", { roomId, userId: "Alice" });
+    owner.emit("game:resign", { roomId });
 
     const gameOver = await gameOverPromise;
     expect(gameOver.result).toBe("0-1");
@@ -866,7 +853,6 @@ describe("game:draw-offer", () => {
     const drawOfferPromise = waitForEvent(black, "game:draw-offer");
     const offerRes = await emitWithAck(white, "game:draw-offer", {
       roomId,
-      userId: "Alice",
     });
     expect(offerRes.success).toBe(true);
 
@@ -874,7 +860,7 @@ describe("game:draw-offer", () => {
     expect(offerData.userId).toBe("Alice");
 
     const gameOverPromise = waitForEvent(white, "game:over");
-    black.emit("game:draw-response", { roomId, userId: "Bob", accepted: true });
+    black.emit("game:draw-response", { roomId, accepted: true });
 
     const gameOver = await gameOverPromise;
     expect(gameOver.result).toBe("1/2-1/2");
@@ -908,11 +894,10 @@ describe("game:draw-offer", () => {
 
     await emitWithAck(white, "game:draw-offer", {
       roomId,
-      userId: "Alice",
     });
 
     const declinePromise = waitForEvent(white, "game:draw-declined");
-    black.emit("game:draw-response", { roomId, userId: "Bob", accepted: false });
+    black.emit("game:draw-response", { roomId, accepted: false });
 
     await declinePromise;
 
@@ -944,14 +929,12 @@ describe("game:draw-offer", () => {
 
     await emitWithAck(white, "game:draw-offer", {
       roomId,
-      userId: "Alice",
     });
 
     const cancelPromise = waitForEvent(black, "game:draw-cancelled");
 
     await emitWithAck(white, "game:move", {
       roomId,
-      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -1004,7 +987,6 @@ describe("full game flow", () => {
       const socket = move.player === "Alice" ? white : black;
       lastRes = await emitWithAck(socket, "game:move", {
         roomId,
-        userId: move.player,
         from: move.from,
         to: move.to,
       });
@@ -1027,6 +1009,8 @@ describe("private games", () => {
     const client = connectClient();
     await waitForEvent(client, "connect");
 
+    const roomsListPromise = waitForEvent(client, "rooms:list");
+
     const createRes = await emitWithAck(client, "room:create", {
       userId: "Alice",
       displayName: "Alice",
@@ -1039,7 +1023,7 @@ describe("private games", () => {
     expect(createRes.success).toBe(true);
     expect(createRes.room.isPrivate).toBe(true);
 
-    const roomsList = await waitForEvent(client, "rooms:list");
+    const roomsList = await roomsListPromise;
     expect(roomsList.length).toBe(0);
 
     client.disconnect();
@@ -1228,5 +1212,80 @@ describe("ping:latency", () => {
     const res = await emitWithAck<{ ts: number }>(client, "ping:latency", "not-an-object");
     expect(res.ts).toBe(0);
     client.disconnect();
+  });
+});
+
+describe("server-side identity enforcement", () => {
+  it("ignores client-supplied userId in game:move and uses socketPlayers identity", async () => {
+    const owner = connectClient();
+    const joiner = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(joiner, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      userId: "Alice",
+      displayName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    await emitWithAck(joiner, "room:join", {
+      roomId,
+      userId: "Bob",
+    });
+
+    // Send game:move without userId — server resolves from socketPlayers
+    const moveRes = await emitWithAck(owner, "game:move", {
+      roomId,
+      from: "e2",
+      to: "e4",
+    });
+
+    expect(moveRes.success).toBe(true);
+
+    owner.disconnect();
+    joiner.disconnect();
+  });
+
+  it("rejects game:move from a socket not in socketPlayers", async () => {
+    const owner = connectClient();
+    const joiner = connectClient();
+    const stranger = connectClient();
+    await Promise.all([
+      waitForEvent(owner, "connect"),
+      waitForEvent(joiner, "connect"),
+      waitForEvent(stranger, "connect"),
+    ]);
+
+    const createRes = await emitWithAck(owner, "room:create", {
+      userId: "Alice",
+      displayName: "Alice",
+      timeControl: 300,
+      increment: 2,
+      colorChoice: "white",
+    });
+    const roomId = createRes.room.roomId;
+
+    await emitWithAck(joiner, "room:join", {
+      roomId,
+      userId: "Bob",
+    });
+
+    // stranger never joined any room, so socketPlayers won't have them
+    const moveRes = await emitWithAck(stranger, "game:move", {
+      roomId,
+      from: "e2",
+      to: "e4",
+    });
+
+    expect(moveRes.success).toBe(false);
+
+    owner.disconnect();
+    joiner.disconnect();
+    stranger.disconnect();
   });
 });

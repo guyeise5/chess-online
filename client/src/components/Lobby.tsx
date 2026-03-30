@@ -122,20 +122,20 @@ export default function Lobby({ userId, displayName, onChangeName, onOpenSetting
       socket.off("rooms:list", handleRoomsList);
       socket.off("game:start", handleGameStart);
       if (waitingRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: waitingRoomIdRef.current, userId }, () => {});
+        socket.emit("room:leave", { roomId: waitingRoomIdRef.current }, () => {});
       }
       if (privateRoomIdRef.current) {
-        socket.emit("room:leave", { roomId: privateRoomIdRef.current, userId }, () => {});
+        socket.emit("room:leave", { roomId: privateRoomIdRef.current }, () => {});
       }
     };
-  }, [navigate, userId]);
+  }, [navigate]);
 
   const closeRoom = useCallback(
     (roomId: string): Promise<void> =>
       new Promise((resolve) => {
-        socket.emit("room:leave", { roomId, userId }, () => resolve());
+        socket.emit("room:leave", { roomId }, () => resolve());
       }),
-    [userId]
+    []
   );
 
   const openRoom = useCallback(
@@ -215,10 +215,10 @@ export default function Lobby({ userId, displayName, onChangeName, onOpenSetting
 
   const closePrivateRoom = useCallback(() => {
     if (privateRoomIdRef.current) {
-      socket.emit("room:leave", { roomId: privateRoomIdRef.current, userId }, () => {});
+      socket.emit("room:leave", { roomId: privateRoomIdRef.current }, () => {});
       setPrivateRoomId(null);
     }
-  }, [userId]);
+  }, []);
 
   const handleClosePrivateModal = useCallback(() => {
     closePrivateRoom();
@@ -248,7 +248,7 @@ export default function Lobby({ userId, displayName, onChangeName, onOpenSetting
       if (privateRoomIdRef.current) {
         const oldId = privateRoomIdRef.current;
         setPrivateRoomId(null);
-        socket.emit("room:leave", { roomId: oldId, userId }, () => doCreate());
+        socket.emit("room:leave", { roomId: oldId }, () => doCreate());
       } else {
         doCreate();
       }

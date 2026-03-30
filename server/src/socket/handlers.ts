@@ -4,6 +4,7 @@ import { ColorChoice } from "../models/Room";
 import { emitOnlinePlayerCount, emitOnlinePlayerCountToSocket } from "./onlinePlayerCount";
 
 const socketPlayers = new Map<string, string>();
+const socketDisplayNames = new Map<string, string>();
 const socketRooms = new Map<string, Set<string>>();
 
 function trackSocketRoom(socketId: string, roomId: string): void {
@@ -33,12 +34,34 @@ function getSessionUser(socket: Socket): { userId?: string; displayName?: string
   return user;
 }
 
-function resolveUserId(socket: Socket, dataUserId: string, authEnabled: boolean): string | null {
-  if (!authEnabled) return dataUserId;
-  const sessionUid = typeof socket.data["userId"] === "string" ? socket.data["userId"] as string : "";
-  if (!sessionUid) return null;
-  if (dataUserId && dataUserId !== sessionUid) return null;
-  return sessionUid;
+function getSocketUserId(socket: Socket, authEnabled: boolean): string | null {
+  if (authEnabled) {
+    const uid = typeof socket.data["userId"] === "string" ? socket.data["userId"] as string : "";
+    return uid || null;
+  }
+  return socketPlayers.get(socket.id) ?? null;
+}
+
+export function getSocketDisplayName(socket: Socket, authEnabled: boolean): string {
+  if (authEnabled) {
+    return typeof socket.data["displayName"] === "string" ? socket.data["displayName"] as string : "";
+  }
+  return socketDisplayNames.get(socket.id) ?? socketPlayers.get(socket.id) ?? "";
+}
+
+function resolveEntryUserId(socket: Socket, clientUserId: string, authEnabled: boolean): string | null {
+  if (authEnabled) {
+    const uid = typeof socket.data["userId"] === "string" ? socket.data["userId"] as string : "";
+    return uid || null;
+  }
+  return clientUserId || null;
+}
+
+function resolveEntryDisplayName(socket: Socket, clientDisplayName: string | undefined, uid: string, authEnabled: boolean): string {
+  if (authEnabled) {
+    return typeof socket.data["displayName"] === "string" ? socket.data["displayName"] as string : uid;
+  }
+  return typeof clientDisplayName === "string" && clientDisplayName ? clientDisplayName : uid;
 }
 
 export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled = false): void {
@@ -65,7 +88,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
       "room:create",
       async (
         data: {
-          userId: string;
+          userId?: string;
           displayName?: string;
           timeControl: number;
           increment: number;
@@ -76,8 +99,8 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
       ) => {
         try {
           if (!isObj(data)) { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-          const rawUid = typeof data.userId === "string" ? data.userId : "";
-          const uid = resolveUserId(socket, rawUid, samlEnabled);
+          const clientUid = typeof data.userId === "string" ? data.userId : "";
+          const uid = resolveEntryUserId(socket, clientUid, samlEnabled);
           if (!uid) { safeCallback(callback, { success: false, error: samlEnabled ? "Unauthorized" : "Invalid payload" }); return; }
           if (isReservedName(uid)) {
             safeCallback(callback, { success: false, error: "Reserved name" });
@@ -88,7 +111,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
             safeCallback(callback, { success: false, error: "Feature disabled" });
             return;
           }
-          const displayName = typeof data.displayName === "string" ? data.displayName : uid;
+          const displayName = resolveEntryDisplayName(socket, data.displayName, uid, samlEnabled);
           const room = await gm.createRoom(
             uid,
             data.timeControl,
@@ -99,6 +122,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
           );
           socket.join(room.roomId);
           socketPlayers.set(socket.id, uid);
+          socketDisplayNames.set(socket.id, displayName);
           trackSocketRoom(socket.id, room.roomId);
           safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
           await gm.broadcastRooms();
@@ -112,21 +136,23 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "room:join",
       async (
-        data: { roomId: string; userId: string; displayName?: string },
+        data: { roomId: string; userId?: string; displayName?: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         try {
           if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-          const joinUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+          const clientUid = typeof data.userId === "string" ? data.userId : "";
+          const joinUid = resolveEntryUserId(socket, clientUid, samlEnabled);
           if (!joinUid) { safeCallback(callback, { success: false, error: samlEnabled ? "Unauthorized" : "Invalid payload" }); return; }
           if (isReservedName(joinUid)) { safeCallback(callback, { success: false, error: "Reserved name" }); return; }
-          const displayName = typeof data.displayName === "string" ? data.displayName : joinUid;
+          const displayName = resolveEntryDisplayName(socket, data.displayName, joinUid, samlEnabled);
           const room = await gm.joinRoom(data.roomId, joinUid, socket, displayName);
           if (!room) {
             safeCallback(callback, { success: false, error: "Room not found" });
             return;
           }
           socketPlayers.set(socket.id, joinUid);
+          socketDisplayNames.set(socket.id, displayName);
           trackSocketRoom(socket.id, data.roomId);
           safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
         } catch (err) {
@@ -139,12 +165,13 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "room:rejoin",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string; userId?: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         try {
           if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-          const rejoinUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+          const clientUid = typeof data.userId === "string" ? data.userId : "";
+          const rejoinUid = resolveEntryUserId(socket, clientUid, samlEnabled);
           if (!rejoinUid) { safeCallback(callback, { success: false, error: samlEnabled ? "Unauthorized" : "Invalid payload" }); return; }
           const room = await gm.rejoinRoom(data.roomId, rejoinUid, socket);
           if (!room) {
@@ -165,12 +192,12 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "room:leave",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         try {
           if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false }); return; }
-          const leaveUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+          const leaveUid = getSocketUserId(socket, samlEnabled);
           if (!leaveUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
           const closed = await gm.closeRoom(data.roomId, leaveUid);
           socket.leave(data.roomId);
@@ -208,7 +235,6 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
       async (
         data: {
           roomId: string;
-          userId: string;
           from: string;
           to: string;
           promotion?: string;
@@ -216,7 +242,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-        const moveUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const moveUid = getSocketUserId(socket, samlEnabled);
         if (!moveUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.makeMove(
           data.roomId,
@@ -231,9 +257,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
 
     socket.on(
       "game:undo-request",
-      (data: { roomId: string; userId: string; moveCount: number }) => {
+      (data: { roomId: string; moveCount: number }) => {
         if (!isObj(data) || typeof data.roomId !== "string") return;
-        const undoUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const undoUid = getSocketUserId(socket, samlEnabled);
         if (!undoUid) return;
         gm.requestUndo(data.roomId, undoUid, data.moveCount);
         socket.to(data.roomId).emit("game:undo-request", {
@@ -257,11 +283,11 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "game:give-time",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-        const giveUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const giveUid = getSocketUserId(socket, samlEnabled);
         if (!giveUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.giveTime(data.roomId, giveUid);
         safeCallback(callback, result);
@@ -271,11 +297,11 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "game:draw-offer",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-        const drawUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const drawUid = getSocketUserId(socket, samlEnabled);
         if (!drawUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.offerDraw(data.roomId, drawUid);
         safeCallback(callback, result);
@@ -284,9 +310,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
 
     socket.on(
       "game:draw-response",
-      async (data: { roomId: string; userId: string; accepted: boolean }) => {
+      async (data: { roomId: string; accepted: boolean }) => {
         if (!isObj(data) || typeof data.roomId !== "string") return;
-        const drawRespUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const drawRespUid = getSocketUserId(socket, samlEnabled);
         if (!drawRespUid) return;
         await gm.respondDraw(data.roomId, drawRespUid, data.accepted);
       }
@@ -295,7 +321,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "game:chat",
       async (
-        data: { roomId: string; userId: string; text: string },
+        data: { roomId: string; text: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (
@@ -306,7 +332,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
           safeCallback(callback, { success: false, error: "Invalid payload" });
           return;
         }
-        const chatUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const chatUid = getSocketUserId(socket, samlEnabled);
         if (!chatUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.sendChatMessage(
           data.roomId,
@@ -319,9 +345,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
 
     socket.on(
       "game:resign",
-      async (data: { roomId: string; userId: string }) => {
+      async (data: { roomId: string }) => {
         if (!isObj(data) || typeof data.roomId !== "string") return;
-        const resignUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const resignUid = getSocketUserId(socket, samlEnabled);
         if (!resignUid) return;
         await gm.resign(data.roomId, resignUid);
       }
@@ -329,9 +355,9 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
 
     socket.on(
       "game:player-left",
-      async (data: { roomId: string; userId: string }) => {
+      async (data: { roomId: string }) => {
         if (!isObj(data) || typeof data.roomId !== "string") return;
-        const leftUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const leftUid = getSocketUserId(socket, samlEnabled);
         if (!leftUid) return;
         await gm.handlePlayerDisconnect(data.roomId, leftUid);
       }
@@ -340,11 +366,11 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "game:claim-disconnect-win",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-        const claimWinUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const claimWinUid = getSocketUserId(socket, samlEnabled);
         if (!claimWinUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.claimDisconnectResult(data.roomId, claimWinUid, "win");
         safeCallback(callback, result);
@@ -354,11 +380,11 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
     socket.on(
       "game:claim-disconnect-draw",
       async (
-        data: { roomId: string; userId: string },
+        data: { roomId: string },
         callback: (res: Record<string, unknown>) => void
       ) => {
         if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
-        const claimDrawUid = resolveUserId(socket, typeof data.userId === "string" ? data.userId : "", samlEnabled);
+        const claimDrawUid = getSocketUserId(socket, samlEnabled);
         if (!claimDrawUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.claimDisconnectResult(data.roomId, claimDrawUid, "draw");
         safeCallback(callback, result);
@@ -378,6 +404,7 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
       const userId = socketPlayers.get(socket.id);
       const rooms = socketRooms.get(socket.id);
       socketPlayers.delete(socket.id);
+      socketDisplayNames.delete(socket.id);
       socketRooms.delete(socket.id);
 
       if (userId) {

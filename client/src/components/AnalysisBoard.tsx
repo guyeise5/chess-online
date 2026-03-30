@@ -380,6 +380,7 @@ export default function AnalysisBoard({ userId, displayName, boardPrefs, onOpenS
     to: string;
   } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const moveHandledRef = useRef(false);
 
   const currentFen = useMemo(
     () => navFen(startFen, gameMoves, variations, nav),
@@ -614,6 +615,7 @@ export default function AnalysisBoard({ userId, displayName, boardPrefs, onOpenS
           if (move) {
             playMove(move.san);
             setSelectedSquare(null);
+            moveHandledRef.current = true;
             return;
           }
         }
@@ -633,6 +635,10 @@ export default function AnalysisBoard({ userId, displayName, boardPrefs, onOpenS
     ({
       square,
     }: { piece: { pieceType: string } | null; square: string }) => {
+      if (moveHandledRef.current) {
+        moveHandledRef.current = false;
+        return;
+      }
       if (!selectedSquare) return;
       const targets = getLegalMovesForSquare(selectedSquare);
       if (targets.includes(square)) {

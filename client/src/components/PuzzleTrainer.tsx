@@ -90,6 +90,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
   const [moveIndex, setMoveIndex] = useState(0);
   const [playedMoves, setPlayedMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const moveHandledRef = useRef(false);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
@@ -122,9 +123,12 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
     setMoveIndex(0);
 
     try {
+      const samlAuth = getEnv().FEATURE_SAML_AUTH !== "false";
       const url = specificId
         ? `${API_BASE}/api/puzzles/${specificId}`
-        : `${API_BASE}/api/puzzles/random?rating=${playerRating}`;
+        : samlAuth
+          ? `${API_BASE}/api/puzzles/random`
+          : `${API_BASE}/api/puzzles/random?rating=${playerRating}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       const data: PuzzleData = await res.json();
@@ -425,6 +429,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
         const targets = getLegalMovesForSquare(selectedSquare);
         if (targets.includes(square)) {
           tryMove(selectedSquare, square);
+          moveHandledRef.current = true;
           return;
         }
       }
@@ -440,6 +445,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
 
   const onSquareClick = useCallback(
     ({ square }: { piece: { pieceType: string } | null; square: string }) => {
+      if (moveHandledRef.current) { moveHandledRef.current = false; return; }
       if (!selectedSquare) return;
       const targets = getLegalMovesForSquare(selectedSquare);
       if (targets.includes(square)) {

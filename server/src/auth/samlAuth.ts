@@ -146,6 +146,14 @@ export function getSessionUserId(req: { user?: unknown }): string | undefined {
   return undefined;
 }
 
+export function getSessionDisplayName(req: { user?: unknown }): string | undefined {
+  const user = req.user as { displayName?: string } | undefined;
+  if (user && typeof user.displayName === "string" && user.displayName) {
+    return user.displayName;
+  }
+  return undefined;
+}
+
 export function requireAuth(): RequestHandler {
   return (req, res, next) => {
     const path = req.path;

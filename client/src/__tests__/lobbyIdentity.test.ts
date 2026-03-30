@@ -10,9 +10,10 @@ describe("Lobby identity socket payloads", () => {
   const displayName = "Alice";
   const roomId = "room-abc";
 
-  it("room:leave includes roomId and userId only", () => {
-    const leave = { roomId, userId };
-    expect(leave).toEqual({ roomId, userId });
+  it("room:leave includes roomId only (identity from socket session)", () => {
+    const leave = { roomId };
+    expect(leave).toEqual({ roomId });
+    expect("userId" in leave).toBe(false);
     expect("displayName" in leave).toBe(false);
     expect("playerName" in leave).toBe(false);
   });

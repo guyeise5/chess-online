@@ -124,6 +124,7 @@ export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSe
   const [gameOverReason, setGameOverReason] = useState<string | null>(resuming ? saved!.gameOverReason : null);
   const [moves, setMoves] = useState<string[]>(resuming ? saved!.moves : []);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const moveHandledRef = useRef(false);
   const [pendingPromotion, setPendingPromotion] = useState<{
     from: string;
     to: string;
@@ -477,6 +478,7 @@ export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSe
         const targets = getLegalMovesForSquare(selectedSquare);
         if (targets.includes(square)) {
           tryMove(selectedSquare, square);
+          moveHandledRef.current = true;
           return;
         }
       }
@@ -509,6 +511,7 @@ export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSe
       piece: { pieceType: string } | null;
       square: string;
     }) => {
+      if (moveHandledRef.current) { moveHandledRef.current = false; return; }
       if (!selectedSquare) return;
       const targets = getLegalMovesForSquare(selectedSquare);
       if (targets.includes(square)) {

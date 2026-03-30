@@ -6,7 +6,7 @@ import { io as ioClient, Socket as ClientSocket } from "socket.io-client";
 import { AddressInfo } from "net";
 import { GameManager } from "../game/GameManager";
 import { registerSocketHandlers } from "../socket/handlers";
-import { getSessionUserId } from "../auth/samlAuth";
+import { getSessionUserId, getSessionDisplayName } from "../auth/samlAuth";
 import UserPreferences from "../models/UserPreferences";
 import Game from "../models/Game";
 import { setupDB, teardownDB, clearDB } from "./setup";
@@ -32,6 +32,22 @@ describe("getSessionUserId", () => {
   it("returns undefined when userId is not a string", () => {
     expect(getSessionUserId({ user: { userId: 123 } })).toBeUndefined();
     expect(getSessionUserId({ user: { userId: "" } })).toBeUndefined();
+  });
+});
+
+describe("getSessionDisplayName", () => {
+  it("returns displayName from req.user", () => {
+    const req = { user: { userId: "u1", displayName: "User One" } };
+    expect(getSessionDisplayName(req)).toBe("User One");
+  });
+
+  it("returns undefined when req.user is missing", () => {
+    expect(getSessionDisplayName({})).toBeUndefined();
+  });
+
+  it("returns undefined when displayName is empty or not a string", () => {
+    expect(getSessionDisplayName({ user: { displayName: "" } })).toBeUndefined();
+    expect(getSessionDisplayName({ user: { displayName: 42 } })).toBeUndefined();
   });
 });
 
@@ -161,44 +177,138 @@ describe("API authorization when SAML enabled", () => {
     });
   });
 
-  describe("POST /api/games/:gameId", () => {
+  describe("POST /api/games/:gameId — identity override", () => {
     const ROUTE = "/api-games-save";
 
     beforeAll(() => {
       app.post(`${ROUTE}/:gameId`, mockAuth("user-a"), async (req, res) => {
         const sessionUid = getSessionUserId(req);
-        const pw =
-          typeof req.body.playerWhite === "string" ? req.body.playerWhite : "";
-        const pb =
-          typeof req.body.playerBlack === "string" ? req.body.playerBlack : "";
-        if (!sessionUid || (sessionUid !== pw && sessionUid !== pb)) {
-          res.status(403).json({ error: "Forbidden" });
-          return;
+        if (!sessionUid) { res.status(403).json({ error: "Forbidden" }); return; }
+        const sessionDisplay = getSessionDisplayName(req) ?? sessionUid;
+        const ori = typeof req.body.orientation === "string" ? req.body.orientation : "white";
+        let { playerWhite, playerBlack, displayWhite, displayBlack } = req.body;
+        if (ori === "white") {
+          playerWhite = sessionUid;
+          displayWhite = sessionDisplay;
+        } else {
+          playerBlack = sessionUid;
+          displayBlack = sessionDisplay;
         }
-        res.json({ ok: true });
+        res.json({ ok: true, playerWhite, playerBlack, displayWhite, displayBlack });
       });
     });
 
-    it("returns 403 when session user is neither playerWhite nor playerBlack", async () => {
-      const res = await request(app)
+    it("returns 403 when no session user", async () => {
+      const noAuthApp = express();
+      noAuthApp.use(express.json());
+      noAuthApp.post(`${ROUTE}/:gameId`, async (req, res) => {
+        const sessionUid = getSessionUserId(req);
+        if (!sessionUid) { res.status(403).json({ error: "Forbidden" }); return; }
+        res.json({ ok: true });
+      });
+      const r = await request(noAuthApp)
         .post(`${ROUTE}/game-1`)
-        .send({ playerWhite: "user-x", playerBlack: "user-y" });
-      expect(res.status).toBe(403);
+        .send({ moves: ["e4"], orientation: "white" });
+      expect(r.status).toBe(403);
     });
 
-    it("passes through when session user is playerWhite", async () => {
+    it("overrides playerWhite with session user when orientation=white", async () => {
       const res = await request(app)
         .post(`${ROUTE}/game-2`)
-        .send({ playerWhite: "user-a", playerBlack: "user-b" });
+        .send({ playerWhite: "spoofed", playerBlack: "Stockfish 5", orientation: "white" });
       expect(res.status).toBe(200);
+      expect(res.body.playerWhite).toBe("user-a");
+      expect(res.body.displayWhite).toBe("user-a");
+      expect(res.body.playerBlack).toBe("Stockfish 5");
     });
 
-    it("passes through when session user is playerBlack", async () => {
+    it("overrides playerBlack with session user when orientation=black", async () => {
       const res = await request(app)
         .post(`${ROUTE}/game-3`)
-        .send({ playerWhite: "user-b", playerBlack: "user-a" });
+        .send({ playerWhite: "Stockfish 5", playerBlack: "spoofed", orientation: "black" });
       expect(res.status).toBe(200);
+      expect(res.body.playerBlack).toBe("user-a");
+      expect(res.body.displayBlack).toBe("user-a");
+      expect(res.body.playerWhite).toBe("Stockfish 5");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Puzzle rating server-side lookup
+// ---------------------------------------------------------------------------
+describe("Puzzle random endpoint — server-side rating lookup", () => {
+  let app: express.Application;
+
+  beforeAll(() => {
+    app = express();
+    app.use(express.json());
+  });
+
+  it("uses session user puzzleRating when SAML is enabled", async () => {
+    const Puzzle = (await import("../models/Puzzle")).default;
+    const UP = (await import("../models/UserPreferences")).default;
+
+    await Puzzle.create({
+      puzzleId: "p-rating-test",
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      moves: ["e2e4"],
+      rating: 1800,
+      ratingDeviation: 80,
+      popularity: 90,
+      nbPlays: 100,
+    });
+    await UP.create({ userId: "rated-user", puzzleRating: 1800, puzzleCount: 10 });
+
+    app.get("/api/puzzles/random-auth", (req, _res, next) => {
+      (req as any).user = { userId: "rated-user", displayName: "Rated User" };
+      next();
+    }, async (req, res) => {
+      const sessionUid = getSessionUserId(req);
+      let rating = 1500;
+      if (sessionUid) {
+        const prefs = await UP.findOne({ userId: sessionUid }).lean();
+        if (prefs && typeof prefs.puzzleRating === "number" && Number.isFinite(prefs.puzzleRating)) {
+          rating = prefs.puzzleRating;
+        }
+      }
+      const range = 15;
+      const p = await Puzzle.findOne({ rating: { $gte: rating - range, $lte: rating + range } }).lean();
+      if (!p) { res.status(404).json({ error: "No puzzles" }); return; }
+      res.json({ puzzleId: p.puzzleId, rating: p.rating });
+    });
+
+    const res = await request(app).get("/api/puzzles/random-auth");
+    expect(res.status).toBe(200);
+    expect(res.body.puzzleId).toBe("p-rating-test");
+  });
+
+  it("falls back to query param when no session (auth off)", async () => {
+    const Puzzle = (await import("../models/Puzzle")).default;
+
+    await Puzzle.create({
+      puzzleId: "p-fallback",
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      moves: ["e2e4"],
+      rating: 1200,
+      ratingDeviation: 80,
+      popularity: 90,
+      nbPlays: 100,
+    });
+
+    app.get("/api/puzzles/random-noauth", async (req, res) => {
+      const ratingParam = Array.isArray(req.query["rating"]) ? req.query["rating"][0] : req.query["rating"];
+      const parsed = parseInt(String(ratingParam ?? ""), 10);
+      const rating = Number.isFinite(parsed) ? parsed : 1500;
+      const range = 15;
+      const p = await Puzzle.findOne({ rating: { $gte: rating - range, $lte: rating + range } }).lean();
+      if (!p) { res.status(404).json({ error: "No puzzles" }); return; }
+      res.json({ puzzleId: p.puzzleId, rating: p.rating });
+    });
+
+    const res = await request(app).get("/api/puzzles/random-noauth?rating=1200");
+    expect(res.status).toBe(200);
+    expect(res.body.puzzleId).toBe("p-fallback");
   });
 });
 
@@ -315,7 +425,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:move", {
       roomId: "r1",
-      userId: "attacker",
       from: "e2",
       to: "e4",
     });
@@ -333,7 +442,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:chat", {
       roomId: "r1",
-      userId: "attacker",
       text: "hello",
     });
 
@@ -350,7 +458,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:give-time", {
       roomId: "r1",
-      userId: "attacker",
     });
 
     expect(res).toEqual(
@@ -366,7 +473,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:draw-offer", {
       roomId: "r1",
-      userId: "attacker",
     });
 
     expect(res).toEqual(
@@ -382,7 +488,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:claim-disconnect-win", {
       roomId: "r1",
-      userId: "attacker",
     });
 
     expect(res).toEqual(
@@ -398,7 +503,6 @@ describe("Socket identity enforcement when samlEnabled", () => {
 
     const res = await emitWithAck(client, "game:claim-disconnect-draw", {
       roomId: "r1",
-      userId: "attacker",
     });
 
     expect(res).toEqual(

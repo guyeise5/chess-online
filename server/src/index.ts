@@ -8,7 +8,7 @@ import path from "path";
 import { GameManager } from "./game/GameManager";
 import { registerSocketHandlers } from "./socket/handlers";
 import { setIndexHtmlNoCacheHeaders } from "./staticIndexHeaders";
-import { setupSamlAuth, requireAuth, getSessionUserId } from "./auth/samlAuth";
+import { setupSamlAuth, requireAuth, getSessionUserId, getSessionDisplayName } from "./auth/samlAuth";
 
 dotenv.config();
 
@@ -129,9 +129,21 @@ async function main() {
 
   app.get("/api/puzzles/random", async (req, res) => {
     try {
-      const ratingParam = Array.isArray(req.query["rating"]) ? req.query["rating"][0] : req.query["rating"];
-      const parsed = parseInt(String(ratingParam ?? ""), 10);
-      const rating = Number.isFinite(parsed) ? parsed : 1500;
+      let rating = 1500;
+      if (samlEnabled) {
+        const sessionUid = getSessionUserId(req);
+        if (sessionUid) {
+          const UP = (await import("./models/UserPreferences")).default;
+          const prefs = await UP.findOne({ userId: sessionUid }).lean();
+          if (prefs && typeof prefs.puzzleRating === "number" && Number.isFinite(prefs.puzzleRating)) {
+            rating = prefs.puzzleRating;
+          }
+        }
+      } else {
+        const ratingParam = Array.isArray(req.query["rating"]) ? req.query["rating"][0] : req.query["rating"];
+        const parsed = parseInt(String(ratingParam ?? ""), 10);
+        if (Number.isFinite(parsed)) rating = parsed;
+      }
       const range = 15;
       const min = rating - range;
       const max = rating + range;
@@ -213,16 +225,24 @@ async function main() {
       try {
         const { gameId } = req.params;
         if (!req.body || typeof req.body !== "object") { res.status(400).json({ error: "Invalid body" }); return; }
+
+        let { playerWhite, playerBlack, displayWhite, displayBlack } = req.body;
+        const { moves, startFen, orientation, result } = req.body;
+
         if (samlEnabled) {
           const sessionUid = getSessionUserId(req);
-          const pw = typeof req.body.playerWhite === "string" ? req.body.playerWhite : "";
-          const pb = typeof req.body.playerBlack === "string" ? req.body.playerBlack : "";
-          if (!sessionUid || (sessionUid !== pw && sessionUid !== pb)) {
-            res.status(403).json({ error: "Forbidden" });
-            return;
+          if (!sessionUid) { res.status(403).json({ error: "Forbidden" }); return; }
+          const sessionDisplay = getSessionDisplayName(req) ?? sessionUid;
+          const ori = typeof orientation === "string" ? orientation : "white";
+          if (ori === "white") {
+            playerWhite = sessionUid;
+            displayWhite = sessionDisplay;
+          } else {
+            playerBlack = sessionUid;
+            displayBlack = sessionDisplay;
           }
         }
-        const { moves, startFen, playerWhite, playerBlack, displayWhite, displayBlack, orientation, result } = req.body;
+
         if (!Array.isArray(moves) || moves.length === 0 || !moves.every((m: unknown) => typeof m === "string")) {
           res.status(400).json({ error: "moves array is required" });
           return;

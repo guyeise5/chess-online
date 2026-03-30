@@ -200,7 +200,10 @@
 - Auth routes: `GET /auth/login` (SSO), `POST /auth/callback` (ACS), `GET /auth/logout`, `GET /api/auth/me` (returns user info + preferences)
 - `GET /api/auth/me` returns all user data (preferences, puzzle rating, intro state) so the client can load everything before showing the main screen
 - Docker Compose includes a `saml-idp` test service (`kristophjunge/test-saml-idp`) with two test users (`user1`/`user1pass`, `user2`/`user2pass`)
-- When enabled, API routes enforce that the session userId matches the URL/query userId (403 on mismatch); Socket.IO events are bound to the session identity and reject spoofed userIds
+- Server-side identity resolution: socket events derive userId/displayName from the session (SAML) or socketPlayers map (no-auth), never trusting client payloads for non-entry events
+- Puzzle random endpoint looks up the user's puzzleRating from UserPreferences when SAML is on (ignores client-supplied rating)
+- POST /api/games/:gameId overrides player identity from the session when SAML is on (client cannot spoof player names)
+- API routes enforce that the session userId matches the URL/query userId (403 on mismatch)
 - Configurable env vars: `SAML_ENTRY_POINT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`, `SAML_IDP_CERT`, `SAML_USER_ID_FIELD`, `SAML_FIRST_NAME_FIELD`, `SAML_LAST_NAME_FIELD`, `SAML_WANT_RESPONSE_SIGNED`, `SESSION_SECRET`
 
 ## CI/CD
