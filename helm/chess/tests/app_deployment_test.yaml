@@ -388,6 +388,24 @@ tests:
             name: FEATURE_STATS
             value: "false"
 
+  - it: should have default FEATURE_PUZZLE_ANALYSIS as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_PUZZLE_ANALYSIS
+            value: "true"
+
+  - it: should allow disabling FEATURE_PUZZLE_ANALYSIS
+    set:
+      app.env.FEATURE_PUZZLE_ANALYSIS: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_PUZZLE_ANALYSIS
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

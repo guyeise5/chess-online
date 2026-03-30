@@ -158,6 +158,7 @@ export const en: Record<string, string> = {
   "puzzle.hintMove": "Hint: Show move",
   "puzzle.showSolution": "Show solution",
   "puzzle.next": "Next puzzle",
+  "puzzle.analyze": "Analyze",
   "puzzle.rating": "Puzzle Rating",
   "puzzle.themes": "Themes",
   "history.title": "My Games",

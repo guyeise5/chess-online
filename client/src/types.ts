@@ -89,6 +89,7 @@ export interface AppEnv {
   FEATURE_ONLINE_PLAYER_COUNT?: string;
   FEATURE_MOVE_HISTORY_BROWSE?: string;
   FEATURE_STATS?: string;
+  FEATURE_PUZZLE_ANALYSIS?: string;
 }
 
 declare global {

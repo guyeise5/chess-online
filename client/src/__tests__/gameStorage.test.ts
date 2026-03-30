@@ -135,3 +135,46 @@ describe("analysis route construction", () => {
     expect(extractGameId("/game/abc123")).toBeNull();
   });
 });
+
+describe("puzzle analysis route construction", () => {
+  it("builds the correct puzzle analysis URL from a gameId", () => {
+    const gameId = "pzl_9a2c3267";
+    const path = `/analyzePuzzle/${gameId}`;
+    expect(path).toBe("/analyzePuzzle/pzl_9a2c3267");
+  });
+
+  it("extracts gameId from puzzle analysis path", () => {
+    function extractGameId(path: string): string | null {
+      const match = path.match(/^\/analyzePuzzle\/([^/]+)$/);
+      return match ? match[1] : null;
+    }
+    expect(extractGameId("/analyzePuzzle/abc123")).toBe("abc123");
+    expect(extractGameId("/analyzePuzzle/")).toBeNull();
+    expect(extractGameId("/analysis/abc123")).toBeNull();
+  });
+
+  it("puzzle analysis saves with startFen", () => {
+    vi.restoreAllMocks();
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    );
+
+    const puzzleData: AnalysisGameData = {
+      startFen: "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27",
+      moves: ["Qd6", "Rd8", "Qxd8+", "Bxd8"],
+      playerWhite: "White",
+      playerBlack: "Black",
+      orientation: "black",
+    };
+
+    saveAnalysisGame("puzzle-test-id", puzzleData);
+
+    expect(spy).toHaveBeenCalledOnce();
+    const body = JSON.parse(spy.mock.calls[0][1]?.body as string);
+    expect(body.startFen).toBe(puzzleData.startFen);
+    expect(body.moves).toEqual(puzzleData.moves);
+    expect(body.orientation).toBe("black");
+
+    spy.mockRestore();
+  });
+});

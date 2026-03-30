@@ -68,6 +68,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_MOVE_HISTORY_BROWSE | quote }}
             - name: FEATURE_STATS
               value: {{ .Values.app.env.FEATURE_STATS | quote }}
+            - name: FEATURE_PUZZLE_ANALYSIS
+              value: {{ .Values.app.env.FEATURE_PUZZLE_ANALYSIS | quote }}
           readinessProbe:
             httpGet:
               path: /readyz

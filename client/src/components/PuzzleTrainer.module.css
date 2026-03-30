@@ -278,18 +278,41 @@
   background: var(--bg-card-hover);
 }
 
+.doneActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 .nextBtn {
+  flex: 1;
   padding: 0.96rem 1.75rem;
   border-radius: 7px;
   background: var(--accent);
   color: white;
   font-weight: 600;
   font-size: 1.575rem;
-  flex-shrink: 0;
 }
 
 .nextBtn:hover {
   background: var(--accent-hover);
+}
+
+.analyzeBtn {
+  flex: 1;
+  padding: 0.96rem 1.75rem;
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 1.575rem;
+  cursor: pointer;
+}
+
+.analyzeBtn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
 }
 
 .playerRating {

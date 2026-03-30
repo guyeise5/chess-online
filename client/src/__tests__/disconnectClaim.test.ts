@@ -261,6 +261,10 @@ describe("active game navigation guard", () => {
     expect(shouldRedirect("abc123", "/analysis/some-id")).toBe(true);
   });
 
+  it("redirects from puzzle analysis when there is an active game", () => {
+    expect(shouldRedirect("abc123", "/analyzePuzzle/some-id")).toBe(true);
+  });
+
   it("does not redirect from a different game room", () => {
     expect(shouldRedirect("abc123", "/game/xyz789")).toBe(true);
   });

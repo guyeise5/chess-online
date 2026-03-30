@@ -531,3 +531,102 @@ describe("puzzle material difference display", () => {
     expect(showMaterialDefault).toBe(true);
   });
 });
+
+describe("puzzle analysis", () => {
+  it("constructs analysis game data from puzzle state", () => {
+    const puzzleFen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const playedMoves = ["Qd6", "Rd8", "Qxd8+", "Bxd8"];
+    const orientation = "black" as const;
+
+    const analysisData = {
+      startFen: puzzleFen,
+      moves: playedMoves,
+      playerWhite: "White",
+      playerBlack: "Black",
+      orientation,
+    };
+
+    expect(analysisData.startFen).toBe(puzzleFen);
+    expect(analysisData.moves).toEqual(playedMoves);
+    expect(analysisData.orientation).toBe("black");
+    expect(analysisData.moves.length).toBe(4);
+  });
+
+  it("includes all played moves including opponent first move", () => {
+    const puzzleFen = "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24";
+    const moves = ["f2g3", "e6e7", "b2b1", "b3c1", "b1c1", "h6c1"];
+
+    const g = new Chess(puzzleFen);
+    const playedSans: string[] = [];
+    for (const uci of moves) {
+      const from = uci.slice(0, 2);
+      const to = uci.slice(2, 4);
+      const promo = uci.length > 4 ? uci[4] : undefined;
+      const m = g.move({ from, to, promotion: promo });
+      if (m) playedSans.push(m.san);
+    }
+
+    const analysisData = {
+      startFen: puzzleFen,
+      moves: playedSans,
+      orientation: "white" as const,
+    };
+
+    expect(analysisData.moves.length).toBe(moves.length);
+    expect(analysisData.startFen).toBe(puzzleFen);
+  });
+
+  it("analysis URL uses /analyzePuzzle/ prefix", () => {
+    const gameId = "abc123def";
+    const url = `/analyzePuzzle/${gameId}`;
+    expect(url).toBe("/analyzePuzzle/abc123def");
+    expect(url).not.toContain("/analysis/");
+  });
+
+  it("respects FEATURE_PUZZLE_ANALYSIS flag", () => {
+    const flagsDisabled = { FEATURE_PUZZLE_ANALYSIS: "false" };
+    const showAnalyze = flagsDisabled.FEATURE_PUZZLE_ANALYSIS !== "false";
+    expect(showAnalyze).toBe(false);
+
+    const flagsEnabled = { FEATURE_PUZZLE_ANALYSIS: "true" };
+    const showAnalyzeEnabled = flagsEnabled.FEATURE_PUZZLE_ANALYSIS !== "false";
+    expect(showAnalyzeEnabled).toBe(true);
+
+    const flagsUndefined: Record<string, string | undefined> = {};
+    const showAnalyzeDefault = flagsUndefined.FEATURE_PUZZLE_ANALYSIS !== "false";
+    expect(showAnalyzeDefault).toBe(true);
+  });
+
+  it("requires both FEATURE_PUZZLE_ANALYSIS and FEATURE_GAME_STORAGE", () => {
+    const shouldShow = (flags: Record<string, string | undefined>) =>
+      flags.FEATURE_PUZZLE_ANALYSIS !== "false" && flags.FEATURE_GAME_STORAGE !== "false";
+
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "true", FEATURE_GAME_STORAGE: "true" })).toBe(true);
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "false", FEATURE_GAME_STORAGE: "true" })).toBe(false);
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "true", FEATURE_GAME_STORAGE: "false" })).toBe(false);
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "false", FEATURE_GAME_STORAGE: "false" })).toBe(false);
+    expect(shouldShow({})).toBe(true);
+  });
+
+  it("analyze button only shows when puzzle is complete", () => {
+    const statuses = ["loading", "showing", "solving", "correct", "failed"];
+    const showAnalyze = (status: string) => status === "correct" || status === "failed";
+
+    expect(showAnalyze("loading")).toBe(false);
+    expect(showAnalyze("showing")).toBe(false);
+    expect(showAnalyze("solving")).toBe(false);
+    expect(showAnalyze("correct")).toBe(true);
+    expect(showAnalyze("failed")).toBe(true);
+  });
+
+  it("preserves puzzle start FEN (not standard start position)", () => {
+    const puzzleFen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const analysisData = {
+      startFen: puzzleFen,
+      moves: ["Qd6"],
+    };
+
+    expect(analysisData.startFen).not.toBe(new Chess().fen());
+    expect(analysisData.startFen).toBe(puzzleFen);
+  });
+});

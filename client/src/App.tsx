@@ -117,6 +117,7 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
             }
           />
           <Route path="/analysis/:gameId" element={<AnalysisBoard playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
+          <Route path="/analyzePuzzle/:gameId" element={<AnalysisBoard playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
           <Route
             path="/games"
             element={

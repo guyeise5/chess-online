@@ -159,6 +159,7 @@ export const he: Record<string, string> = {
   "puzzle.hintMove": "רמז: הצגת מהלך",
   "puzzle.showSolution": "הצג פתרון",
   "puzzle.next": "חידה הבאה",
+  "puzzle.analyze": "ניתוח",
   "puzzle.rating": "דירוג החידה",
   "puzzle.themes": "תגיות",
   "history.title": "המשחקים שלי",
