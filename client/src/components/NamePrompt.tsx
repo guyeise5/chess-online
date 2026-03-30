@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nProvider";
 import type { AppLocale } from "../i18n/locale";
-import { FlagGb, FlagIl } from "./LanguageFlags";
+import { FlagGb, FlagIl, FlagRu, FlagFr, FlagEs } from "./LanguageFlags";
 import styles from "./NamePrompt.module.css";
+
+const LANG_OPTIONS: { locale: AppLocale; Flag: React.ComponentType<{ className?: string }>; key: string }[] = [
+  { locale: "en", Flag: FlagGb, key: "lang.en" },
+  { locale: "he", Flag: FlagIl, key: "lang.he" },
+  { locale: "ru", Flag: FlagRu, key: "lang.ru" },
+  { locale: "fr", Flag: FlagFr, key: "lang.fr" },
+  { locale: "es", Flag: FlagEs, key: "lang.es" },
+];
 
 interface Props {
   onSubmit: (name: string, locale: AppLocale) => void;
@@ -47,26 +55,19 @@ export default function NamePrompt({ onSubmit }: Props) {
         <div className={styles["langBlock"]}>
           <span className={styles["langLabel"]}>{t("namePrompt.language")}</span>
           <div className={styles["langRow"]}>
-            <button
-              type="button"
-              className={`${styles["langBtn"]} ${locale === "en" ? styles["langBtnActive"] : ""}`}
-              onClick={() => pickLocale("en")}
-              aria-label={t("lang.en")}
-              aria-pressed={locale === "en"}
-            >
-              <FlagGb {...(styles["flag"] ? { className: styles["flag"] } : {})} />
-              <span>{t("lang.en")}</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles["langBtn"]} ${locale === "he" ? styles["langBtnActive"] : ""}`}
-              onClick={() => pickLocale("he")}
-              aria-label={t("lang.he")}
-              aria-pressed={locale === "he"}
-            >
-              <FlagIl {...(styles["flag"] ? { className: styles["flag"] } : {})} />
-              <span>{t("lang.he")}</span>
-            </button>
+            {LANG_OPTIONS.map(({ locale: l, Flag, key }) => (
+              <button
+                key={l}
+                type="button"
+                className={`${styles["langBtn"]} ${locale === l ? styles["langBtnActive"] : ""}`}
+                onClick={() => pickLocale(l)}
+                aria-label={t(key)}
+                aria-pressed={locale === l}
+              >
+                <Flag {...(styles["flag"] ? { className: styles["flag"] } : {})} />
+                <span>{t(key)}</span>
+              </button>
+            ))}
           </div>
         </div>
 

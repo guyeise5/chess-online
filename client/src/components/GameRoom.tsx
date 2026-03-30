@@ -982,9 +982,9 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
               </strong>
               {gameOverReason && (
                 <span className={styles['reason']}>
-                  {locale === "he"
-                    ? translateEndgameReason(gameOverReason, locale, t)
-                    : `${t("game.by")} ${gameOverReason}`}
+                  {locale === "en"
+                    ? `${t("game.by")} ${gameOverReason}`
+                    : translateEndgameReason(gameOverReason, locale, t)}
                 </span>
               )}
               <button

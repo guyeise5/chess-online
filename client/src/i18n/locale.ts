@@ -1,9 +1,11 @@
-export type AppLocale = "en" | "he";
+export type AppLocale = "en" | "he" | "ru" | "fr" | "es";
 
-export const APP_LOCALES: readonly AppLocale[] = ["en", "he"] as const;
+export const APP_LOCALES: readonly AppLocale[] = ["en", "he", "ru", "fr", "es"] as const;
+
+const LOCALE_SET: ReadonlySet<string> = new Set(APP_LOCALES);
 
 export function isAppLocale(value: unknown): value is AppLocale {
-  return value === "en" || value === "he";
+  return typeof value === "string" && LOCALE_SET.has(value);
 }
 
 /** Reads persisted locale from local user prefs JSON (before login, may be empty). */
