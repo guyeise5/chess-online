@@ -125,7 +125,7 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
       const url = specificId
         ? `${API_BASE}/api/puzzles/${specificId}`
         : `${API_BASE}/api/puzzles/random?rating=${playerRating}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       const data: PuzzleData = await res.json();
       if (!data || !Array.isArray(data.moves) || data.moves.length === 0 || typeof data.fen !== "string") {

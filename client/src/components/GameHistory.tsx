@@ -92,7 +92,7 @@ export default function GameHistory({ userId, displayName, onChangeName, onOpenS
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/api/games?player=${encodeURIComponent(userId)}`)
+    fetch(`${API_BASE}/api/games?player=${encodeURIComponent(userId)}`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load games");
         return res.json();

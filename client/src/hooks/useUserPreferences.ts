@@ -231,7 +231,8 @@ export function useUserPreferences(userId: string): UserPrefsContextValue {
     (async () => {
       try {
         const res = await fetch(
-          `/api/preferences/${encodeURIComponent(userId)}`
+          `/api/preferences/${encodeURIComponent(userId)}`,
+          { credentials: "include" }
         );
         if (!res.ok) {
           if (!cancelled) setLoaded(true);
@@ -264,6 +265,7 @@ export function useUserPreferences(userId: string): UserPrefsContextValue {
           fetch(`/api/preferences/${encodeURIComponent(userId)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify(partial),
           }).catch(() => {});
         }

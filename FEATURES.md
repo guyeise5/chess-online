@@ -215,7 +215,7 @@
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `FEATURE_GAME_STORAGE` | `true` | Server-side game storage for analysis (MongoDB `games` collection, 14-day TTL). Set to `false` to disable. |
+| `FEATURE_GAME_STORAGE` | `true` | Server-side game storage (MongoDB `games` collection, 14-day TTL). PvP games are auto-saved by GameManager on finish; computer games are saved via client POST. Set to `false` to disable. |
 | `FEATURE_MATERIAL_DIFF` | `true` | Material difference display in player bars (piece icons + point advantage). Set to `false` to hide. |
 | `FEATURE_OPENING_BOOK` | `true` | Opening book move detection in game analysis (MongoDB `bookpositions` collection, Lichess chess-openings data). Set to `false` to disable. |
 | `FEATURE_GAME_HISTORY` | `true` | Game history page listing the player's past games for analysis. Set to `false` to disable. |

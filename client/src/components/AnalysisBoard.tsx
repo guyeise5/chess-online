@@ -135,6 +135,7 @@ export function saveAnalysisGame(gameId: string, data: AnalysisGameData) {
   fetch(`${API_BASE}/api/games/${gameId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(data),
   }).catch(() => {});
 }
@@ -143,7 +144,7 @@ async function loadAnalysisGame(
   gameId: string
 ): Promise<AnalysisGameData | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/games/${gameId}`);
+    const res = await fetch(`${API_BASE}/api/games/${gameId}`, { credentials: "include" });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || typeof data !== "object" || !Array.isArray(data.moves)) return null;
@@ -171,7 +172,7 @@ export async function loadPuzzleForAnalysis(
   puzzleId: string
 ): Promise<AnalysisGameData | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/puzzles/${puzzleId}`);
+    const res = await fetch(`${API_BASE}/api/puzzles/${puzzleId}`, { credentials: "include" });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || typeof data !== "object" || typeof data.fen !== "string" || !Array.isArray(data.moves)) return null;

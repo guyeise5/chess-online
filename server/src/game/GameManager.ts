@@ -253,6 +253,7 @@ export class GameManager {
 
         const label = result === "1-0" ? "White wins" : result === "0-1" ? "Black wins" : "Draw";
         await this.emitSystemChat(roomId, `${label} — ${gameOverReason}`);
+        await this.saveGameRecord(room);
       }
 
       if (this.undoRequests.has(roomId)) {
@@ -492,6 +493,7 @@ export class GameManager {
       this.games.delete(roomId);
 
       await this.emitSystemChat(roomId, "Draw — mutual agreement");
+      await this.saveGameRecord(room);
 
       this.io.to(roomId).emit("game:over", {
         result: "1/2-1/2",
@@ -527,6 +529,7 @@ export class GameManager {
 
     const resignLabel = room.result === "1-0" ? "White wins" : "Black wins";
     await this.emitSystemChat(roomId, `${resignLabel} — resignation`);
+    await this.saveGameRecord(room);
 
     this.io.to(roomId).emit("game:over", {
       result: room.result,
@@ -608,6 +611,7 @@ export class GameManager {
     const claimLabel = room.result === "1-0" ? "White wins" : room.result === "0-1" ? "Black wins" : "Draw";
     const claimReason = claimType === "draw" ? "opponent left — draw claimed" : "opponent left";
     await this.emitSystemChat(roomId, `${claimLabel} — ${claimReason}`);
+    await this.saveGameRecord(room);
 
     this.io.to(roomId).emit("game:over", {
       result: room.result,
@@ -702,6 +706,7 @@ export class GameManager {
 
         const timeoutLabel = room.result === "1-0" ? "White wins" : "Black wins";
         await this.emitSystemChat(roomId, `${timeoutLabel} — timeout`);
+        await this.saveGameRecord(room);
 
         this.io.to(roomId).emit("game:over", {
           result: room.result,
@@ -740,6 +745,28 @@ export class GameManager {
     this.disconnectTimers.clear();
     this.drawOffers.clear();
     this.drawOfferCooldowns.clear();
+  }
+
+  private async saveGameRecord(room: IRoom): Promise<void> {
+    if (process.env["FEATURE_GAME_STORAGE"] === "false") return;
+    try {
+      const Game = (await import("../models/Game")).default;
+      await Game.findOneAndUpdate(
+        { gameId: room.roomId },
+        {
+          gameId: room.roomId,
+          moves: room.moves,
+          playerWhite: room.whitePlayer,
+          playerBlack: room.blackPlayer,
+          displayWhite: room.whiteName ?? room.whitePlayer,
+          displayBlack: room.blackName ?? room.blackPlayer,
+          result: room.result,
+        },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error("Failed to save game record:", err);
+    }
   }
 
   async broadcastRooms(): Promise<void> {

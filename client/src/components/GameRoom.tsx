@@ -4,7 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { socket } from "../socket";
 import { RoomData, MoveData, GameOverData, TimerData, UndoData, SocketResult, ChatMessage, ChatMessageData, getEnv } from "../types";
-import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
+import { generateGameId } from "./AnalysisBoard";
 import PromotionDialog from "./PromotionDialog";
 import { computeMaterialDiff, type SideMaterial } from "../utils/materialDiff";
 import MaterialDisplay from "./MaterialDisplay";
@@ -462,22 +462,6 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       setDisconnectClaimAvailable(false);
     }
   }, [status]);
-
-  const gameSavedRef = useRef(false);
-  useEffect(() => {
-    if (status !== "finished" || gameSavedRef.current) return;
-    if (getEnv().FEATURE_GAME_STORAGE === "false") return;
-    if (!moves.length) return;
-    gameSavedRef.current = true;
-    const id = roomId ?? generateGameId();
-    saveAnalysisGame(id, {
-      moves,
-      playerWhite: room?.whiteName ?? room?.whitePlayer ?? "White",
-      playerBlack: room?.blackName ?? room?.blackPlayer ?? "Black",
-      orientation: isBlack ? "black" : "white",
-      ...(result != null ? { result } : {}),
-    });
-  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     movesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1006,13 +990,6 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                 className={styles['analyzeBtn']}
                 onClick={() => {
                   const id = roomId ?? generateGameId();
-                  saveAnalysisGame(id, {
-                    moves,
-                    playerWhite: room?.whiteName ?? room?.whitePlayer ?? "White",
-                    playerBlack: room?.blackName ?? room?.blackPlayer ?? "Black",
-                    orientation,
-                    ...(result != null ? { result } : {}),
-                  });
                   navigate(`/analysis/${id}`);
                 }}
               >

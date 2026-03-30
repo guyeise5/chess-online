@@ -33,6 +33,17 @@ describe("saveAnalysisGame", () => {
     expect(body.playerWhite).toBe("Alice");
   });
 
+  it("includes credentials for session cookie", () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    );
+
+    saveAnalysisGame("test-id", sampleGame);
+
+    const [, opts] = spy.mock.calls[0];
+    expect(opts?.credentials).toBe("include");
+  });
+
   it("does not throw when fetch fails", () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
     expect(() => saveAnalysisGame("test-id", sampleGame)).not.toThrow();
@@ -52,8 +63,22 @@ describe("generateGameId", () => {
   });
 });
 
-describe("online game auto-save logic", () => {
-  it("should save when game transitions to finished with moves", () => {
+describe("game save architecture", () => {
+  it("PvP games use roomId as gameId for analysis route", () => {
+    const roomId = "abc12345";
+    const id = roomId ?? generateGameId();
+    expect(id).toBe("abc12345");
+  });
+
+  it("computer games fall back to generateGameId when roomId is missing", () => {
+    const roomId: string | undefined = undefined;
+    const id = roomId ?? generateGameId();
+    expect(id).not.toBe(undefined);
+    expect(typeof id).toBe("string");
+    expect(id.length).toBeGreaterThan(0);
+  });
+
+  it("computer game auto-save triggers when game finishes with moves", () => {
     const status = "finished";
     const moves = ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#"];
     const gameSaved = false;
@@ -63,27 +88,7 @@ describe("online game auto-save logic", () => {
     expect(shouldSave).toBe(true);
   });
 
-  it("should not save when game is still playing", () => {
-    const status = "playing";
-    const moves = ["e4", "e5"];
-    const gameSaved = false;
-    const featureEnabled = true;
-
-    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
-    expect(shouldSave).toBe(false);
-  });
-
-  it("should not save twice (gameSaved guard)", () => {
-    const status = "finished";
-    const moves = ["e4", "e5"];
-    const gameSaved = true;
-    const featureEnabled = true;
-
-    const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
-    expect(shouldSave).toBe(false);
-  });
-
-  it("should not save when feature flag is disabled", () => {
+  it("computer game auto-save does not trigger when feature disabled", () => {
     const status = "finished";
     const moves = ["e4", "e5"];
     const gameSaved = false;
@@ -93,7 +98,7 @@ describe("online game auto-save logic", () => {
     expect(shouldSave).toBe(false);
   });
 
-  it("should not save when there are no moves", () => {
+  it("computer game auto-save does not trigger with no moves", () => {
     const status = "finished";
     const moves: string[] = [];
     const gameSaved = false;
@@ -101,20 +106,6 @@ describe("online game auto-save logic", () => {
 
     const shouldSave = status === "finished" && !gameSaved && featureEnabled && moves.length > 0;
     expect(shouldSave).toBe(false);
-  });
-
-  it("uses roomId as gameId for online games", () => {
-    const roomId = "abc12345";
-    const id = roomId ?? generateGameId();
-    expect(id).toBe("abc12345");
-  });
-
-  it("falls back to generateGameId when roomId is missing", () => {
-    const roomId: string | undefined = undefined;
-    const id = roomId ?? generateGameId();
-    expect(id).not.toBe(undefined);
-    expect(typeof id).toBe("string");
-    expect(id.length).toBeGreaterThan(0);
   });
 });
 

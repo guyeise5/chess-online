@@ -125,6 +125,7 @@ async function fetchBookFlags(fens: string[]): Promise<boolean[]> {
     const res = await fetch(`${API_BASE}/api/openings/check`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ fens: keys }),
     });
     if (!res.ok) return fens.map(() => false);
