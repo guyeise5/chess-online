@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, lazy, Suspense } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Lobby from "./components/Lobby";
 import ComputerSetup from "./components/ComputerSetup";
 import ComputerGame from "./components/ComputerGame";
@@ -53,6 +53,8 @@ function UserPrefsLocaleSync() {
 
 function AppInner({ playerName, onChangeName }: { playerName: string; onChangeName: () => void }) {
   const { prefs, update } = useUserPrefs();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(() => {
     return getEnv().FEATURE_INTRODUCTION !== "false" && !prefs.introSeen;
@@ -62,6 +64,12 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
   });
 
   const boardPrefs = useBoardPreferences();
+
+  useEffect(() => {
+    if (showIntro && location.pathname !== "/") {
+      navigate("/", { replace: true });
+    }
+  }, [showIntro, location.pathname, navigate]);
 
   const handleActiveGameChange = useCallback((roomId: string | null) => {
     setActiveGameRoomId(roomId);
