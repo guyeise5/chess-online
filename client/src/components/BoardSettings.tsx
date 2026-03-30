@@ -5,8 +5,16 @@ import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import { useUserPrefs } from "../hooks/useUserPreferences";
 import { useI18n } from "../i18n/I18nProvider";
 import type { AppLocale } from "../i18n/locale";
-import { FlagGb, FlagIl } from "./LanguageFlags";
+import { FlagGb, FlagIl, FlagRu, FlagFr, FlagEs } from "./LanguageFlags";
 import styles from "./BoardSettings.module.css";
+
+const LANG_OPTIONS: { locale: AppLocale; Flag: React.ComponentType<{ className?: string }>; key: string }[] = [
+  { locale: "en", Flag: FlagGb, key: "lang.en" },
+  { locale: "he", Flag: FlagIl, key: "lang.he" },
+  { locale: "ru", Flag: FlagRu, key: "lang.ru" },
+  { locale: "fr", Flag: FlagFr, key: "lang.fr" },
+  { locale: "es", Flag: FlagEs, key: "lang.es" },
+];
 
 interface Props {
   boardPrefs: BoardPreferences;
@@ -129,26 +137,19 @@ export default function BoardSettings({ boardPrefs, onClose }: Props) {
             <h3 className={styles['sectionTitle']}>{t("settings.language")}</h3>
             <p className={styles['langHint']}>{t("settings.languageHint")}</p>
             <div className={styles['langRow']}>
-              <button
-                type="button"
-                className={`${styles['langBtn']} ${locale === "en" ? styles['langBtnActive'] : ""}`}
-                onClick={() => setUiLocale("en")}
-                aria-label={t("lang.en")}
-                aria-pressed={locale === "en"}
-                title={t("lang.en")}
-              >
-                <FlagGb {...(styles['langFlag'] ? { className: styles['langFlag'] } : {})} />
-              </button>
-              <button
-                type="button"
-                className={`${styles['langBtn']} ${locale === "he" ? styles['langBtnActive'] : ""}`}
-                onClick={() => setUiLocale("he")}
-                aria-label={t("lang.he")}
-                aria-pressed={locale === "he"}
-                title={t("lang.he")}
-              >
-                <FlagIl {...(styles['langFlag'] ? { className: styles['langFlag'] } : {})} />
-              </button>
+              {LANG_OPTIONS.map(({ locale: l, Flag, key }) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`${styles['langBtn']} ${locale === l ? styles['langBtnActive'] : ""}`}
+                  onClick={() => setUiLocale(l)}
+                  aria-label={t(key)}
+                  aria-pressed={locale === l}
+                  title={t(key)}
+                >
+                  <Flag {...(styles['langFlag'] ? { className: styles['langFlag'] } : {})} />
+                </button>
+              ))}
             </div>
 
             <h3 className={styles['sectionTitle']}>{t("settings.board")}</h3>

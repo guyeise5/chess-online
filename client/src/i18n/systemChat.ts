@@ -6,7 +6,7 @@ export function translateSystemChat(
   locale: AppLocale,
   t: (key: string, vars?: Record<string, string>) => string
 ): string {
-  if (locale !== "he") return text;
+  if (locale === "en") return text;
 
   if (text === "Game started — good luck!") {
     return t("chat.system.gameStarted");

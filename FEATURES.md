@@ -135,7 +135,7 @@
 
 - **Key files:** `server/src/models/UserPreferences.ts`, `server/src/index.ts` (API endpoints), `client/src/hooks/useUserPreferences.ts`
 - **Feature flag:** `FEATURE_USER_PREFERENCES`
-- User preferences (UI locale `en`/`he`, board theme, piece set, lobby color, custom time control indices, computer color, puzzle rating/count, intro seen) stored in MongoDB
+- User preferences (UI locale `en`/`he`/`ru`/`fr`/`es`, board theme, piece set, lobby color, custom time control indices, computer color, puzzle rating/count, intro seen) stored in MongoDB
 - REST API: `GET /api/preferences/:playerName` (load), `PUT /api/preferences/:playerName` (partial update with upsert)
 - Client-side `useUserPreferences` hook fetches from server on login, merges server data over local cache (server wins)
 - `UserPrefsProvider` context shares preferences across all components
@@ -157,7 +157,7 @@
 ## UI/UX
 
 - **Key files:** `client/src/components/PromotionDialog.tsx`, `client/src/components/NamePrompt.tsx`, `client/src/components/Home.tsx`, `client/src/components/Footer.tsx`
-- **Internationalization (English / Hebrew):** `client/src/i18n/` (`I18nProvider`, `en.ts`, `he.ts`), `client/src/main.tsx` wraps the app with `I18nProvider`. New users pick language on the name screen (UK / Israel flag buttons). Signed-in users change language from board settings (gear): flag toggle at the top of the modal. Hebrew sets `document.documentElement` to `dir="rtl"` and `lang="he"`; chess boards stay LTR via `dir="ltr"` on board containers. Server field `locale` on user preferences (see User Preferences).
+- **Internationalization (EN / HE / RU / FR / ES):** `client/src/i18n/` (`I18nProvider`, `en.ts`, `he.ts`, `ru.ts`, `fr.ts`, `es.ts`), `client/src/main.tsx` wraps the app with `I18nProvider`. New users pick language on the name screen (flag buttons). Signed-in users change language from board settings (gear): flag toggle at the top of the modal. Hebrew sets `document.documentElement` to `dir="rtl"`; all other locales are LTR. Non-English translations (Hebrew, Russian, French, Spanish) use gender-neutral language: noun forms for buttons, plural/formal address, and slash notation or restructured sentences to avoid gendered forms. Server field `locale` on user preferences (see User Preferences).
 - Global footer (copyright / optional `AUTHOR_URL` link) on all pages via `App.tsx`
 - Material difference utility (`client/src/utils/materialDiff.ts`) shared across game modes
 - Board coordinates and legal move indicators
@@ -193,6 +193,7 @@
 - **Feature flag:** `FEATURE_SAML_AUTH` (default: `false`)
 - Optional SAML 2.0 authentication via passport-saml
 - When enabled, users authenticate through an external SAML IdP; `userId` is extracted from a configurable profile field (default: `sub`), display name from `given_name` + `family_name` (configurable)
+- When enabled, NamePrompt shows in two phases: **pre-login** (language picker + disabled name input + "Login with SSO" button) and **post-login** (language picker + disabled name pre-filled from SAML + "Enter" button). After clicking Enter, the user proceeds to the app and sees the tutorial if first-time.
 - When disabled (default), users enter a name via NamePrompt; `userId` = `displayName` = typed name
 - `userId` is the identity key for all DB models (UserPreferences, Room, Game), socket events, and API endpoints
 - `displayName` is used for UI rendering (player bars, NavBar, chat, game history)

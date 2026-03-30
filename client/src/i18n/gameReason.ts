@@ -25,7 +25,7 @@ export function translateEndgameReason(
   locale: AppLocale,
   t: (key: string) => string
 ): string {
-  if (locale !== "he") return raw;
+  if (locale === "en") return raw;
   const key = REASON_TO_KEY[raw];
   return key ? t(key) : raw;
 }

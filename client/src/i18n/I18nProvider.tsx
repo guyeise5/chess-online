@@ -10,8 +10,13 @@ import {
 import { readInitialLocale, type AppLocale } from "./locale";
 import { en } from "./en";
 import { he } from "./he";
+import { ru } from "./ru";
+import { fr } from "./fr";
+import { es } from "./es";
 
-const DICTS: Record<AppLocale, Record<string, string>> = { en, he };
+const DICTS: Record<AppLocale, Record<string, string>> = { en, he, ru, fr, es };
+
+const RTL_LOCALES: ReadonlySet<AppLocale> = new Set<AppLocale>(["he"]);
 
 export function applyTemplate(
   template: string,
@@ -46,8 +51,8 @@ export function I18nProvider({ children }: { children: ReactNode }): React.React
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.lang = locale === "he" ? "he" : "en";
-    document.documentElement.dir = locale === "he" ? "rtl" : "ltr";
+    document.documentElement.lang = locale;
+    document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";
   }, [locale]);
 
   const t = useCallback(
@@ -66,7 +71,7 @@ export function I18nProvider({ children }: { children: ReactNode }): React.React
       locale,
       setLocale,
       t,
-      dir: locale === "he" ? "rtl" : "ltr",
+      dir: RTL_LOCALES.has(locale) ? "rtl" : "ltr",
     }),
     [locale, setLocale, t]
   );

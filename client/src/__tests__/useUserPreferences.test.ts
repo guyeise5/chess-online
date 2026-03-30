@@ -104,8 +104,11 @@ describe("useUserPreferences helpers", () => {
     ).toEqual({});
   });
 
-  it("parsePartialFromServer accepts locale en/he only", () => {
+  it("parsePartialFromServer accepts valid locales only", () => {
     expect(parsePartialFromServer({ locale: "he" })).toEqual({ locale: "he" });
-    expect(parsePartialFromServer({ locale: "fr" })).toEqual({});
+    expect(parsePartialFromServer({ locale: "fr" })).toEqual({ locale: "fr" });
+    expect(parsePartialFromServer({ locale: "ru" })).toEqual({ locale: "ru" });
+    expect(parsePartialFromServer({ locale: "es" })).toEqual({ locale: "es" });
+    expect(parsePartialFromServer({ locale: "xx" })).toEqual({});
   });
 });

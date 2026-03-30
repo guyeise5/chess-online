@@ -714,9 +714,9 @@ export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSe
               </strong>
               {gameOverReason && (
                 <span className={styles['reason']}>
-                  {locale === "he"
-                    ? translateEndgameReason(gameOverReason, locale, t)
-                    : `${t("computerGame.by")} ${gameOverReason}`}
+                  {locale === "en"
+                    ? `${t("computerGame.by")} ${gameOverReason}`
+                    : translateEndgameReason(gameOverReason, locale, t)}
                 </span>
               )}
               <button
