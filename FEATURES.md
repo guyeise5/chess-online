@@ -77,7 +77,7 @@
 - Puzzle rating and tags revealed after solving
 - Puzzle ID in URL for sharing/bookmarking
 - Material difference display in player bars (shared utility with online and computer play)
-- Analyze button after puzzle completion: saves puzzle moves and opens the analysis board at `/analyzePuzzle/:gameId`; uses the same Stockfish engine analysis, eval bar, score graph, and move navigation as game analysis
+- Analyze button after puzzle completion: fetches the puzzle from the server and opens the analysis board at `/analyzePuzzle/:puzzleId`; uses the same Stockfish engine analysis, eval bar, score graph, and move navigation as game analysis
 - Feature flag: `FEATURE_PUZZLE_ANALYSIS`
 
 ## Game Analysis
@@ -215,5 +215,5 @@
 | `FEATURE_ONLINE_PLAYER_COUNT` | `true` | NavBar indicator and Socket.IO `presence:online-count` broadcasts (connected client count). Set to `false` to disable. |
 | `FEATURE_MOVE_HISTORY_BROWSE` | `true` | Move history browsing in PvP and vs computer games: click past moves to view positions with dimmed board, purple back button. Set to `false` to disable. |
 | `FEATURE_STATS` | `true` | Server statistics dashboard at `/stats/graphs` with daily charts (games, players, time formats, results, peak hours). Set to `false` to disable. |
-| `FEATURE_PUZZLE_ANALYSIS` | `true` | Analyze button on completed puzzles, opens the analysis board at `/analyzePuzzle/:gameId`. Requires `FEATURE_GAME_STORAGE`. Set to `false` to disable. |
+| `FEATURE_PUZZLE_ANALYSIS` | `true` | Analyze button on completed puzzles, fetches puzzle from server and opens the analysis board at `/analyzePuzzle/:puzzleId`. Set to `false` to disable. |
 | `FEATURE_CONNECTION_STATUS` | `true` | WiFi-like signal icon in NavBar showing server connection strength and latency. Set to `false` to disable. |

@@ -533,53 +533,54 @@ describe("puzzle material difference display", () => {
 });
 
 describe("puzzle analysis", () => {
-  it("constructs analysis game data from puzzle state", () => {
-    const puzzleFen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
-    const playedMoves = ["Qd6", "Rd8", "Qxd8+", "Bxd8"];
-    const orientation = "black" as const;
-
-    const analysisData = {
-      startFen: puzzleFen,
-      moves: playedMoves,
-      playerWhite: "White",
-      playerBlack: "Black",
-      orientation,
-    };
-
-    expect(analysisData.startFen).toBe(puzzleFen);
-    expect(analysisData.moves).toEqual(playedMoves);
-    expect(analysisData.orientation).toBe("black");
-    expect(analysisData.moves.length).toBe(4);
-  });
-
-  it("includes all played moves including opponent first move", () => {
-    const puzzleFen = "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24";
-    const moves = ["f2g3", "e6e7", "b2b1", "b3c1", "b1c1", "h6c1"];
-
-    const g = new Chess(puzzleFen);
-    const playedSans: string[] = [];
-    for (const uci of moves) {
+  function uciMovesToSan(fen: string, uciMoves: string[]): string[] {
+    const g = new Chess(fen);
+    const sans: string[] = [];
+    for (const uci of uciMoves) {
       const from = uci.slice(0, 2);
       const to = uci.slice(2, 4);
-      const promo = uci.length > 4 ? uci[4] : undefined;
-      const m = g.move({ from, to, promotion: promo });
-      if (m) playedSans.push(m.san);
+      const promotion = uci.length > 4 ? uci[4] : undefined;
+      const m = g.move({ from, to, ...(promotion ? { promotion } : {}) });
+      if (!m) break;
+      sans.push(m.san);
     }
+    return sans;
+  }
 
-    const analysisData = {
-      startFen: puzzleFen,
-      moves: playedSans,
-      orientation: "white" as const,
-    };
+  it("converts all puzzle UCI moves to SAN", () => {
+    const puzzleFen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
+    const puzzleUciMoves = ["d3d6", "f8d8", "d6d8", "f6d8"];
+    const allMovesSan = uciMovesToSan(puzzleFen, puzzleUciMoves);
 
-    expect(analysisData.moves.length).toBe(moves.length);
-    expect(analysisData.startFen).toBe(puzzleFen);
+    expect(allMovesSan).toEqual(["Qd6", "Rd8", "Qxd8+", "Bxd8"]);
+    expect(allMovesSan.length).toBe(puzzleUciMoves.length);
   });
 
-  it("analysis URL uses /analyzePuzzle/ prefix", () => {
-    const gameId = "abc123def";
-    const url = `/analyzePuzzle/${gameId}`;
-    expect(url).toBe("/analyzePuzzle/abc123def");
+  it("converts UCI moves including opponent first move", () => {
+    const puzzleFen = "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24";
+    const moves = ["f2g3", "e6e7", "b2b1", "b3c1", "b1c1", "h6c1"];
+    const allMovesSan = uciMovesToSan(puzzleFen, moves);
+
+    expect(allMovesSan.length).toBe(moves.length);
+    expect(allMovesSan[0]).toBe("Bxg3");
+  });
+
+  it("infers orientation from puzzle FEN (white to move → player is black)", () => {
+    const g = new Chess("5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27");
+    const orientation = g.turn() === "w" ? "black" : "white";
+    expect(orientation).toBe("black");
+  });
+
+  it("infers orientation from puzzle FEN (black to move → player is white)", () => {
+    const g = new Chess("r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24");
+    const orientation = g.turn() === "w" ? "black" : "white";
+    expect(orientation).toBe("white");
+  });
+
+  it("analysis URL uses /analyzePuzzle/ prefix with puzzle ID", () => {
+    const puzzleId = "AbC12";
+    const url = `/analyzePuzzle/${puzzleId}`;
+    expect(url).toBe("/analyzePuzzle/AbC12");
     expect(url).not.toContain("/analysis/");
   });
 
@@ -597,14 +598,12 @@ describe("puzzle analysis", () => {
     expect(showAnalyzeDefault).toBe(true);
   });
 
-  it("requires both FEATURE_PUZZLE_ANALYSIS and FEATURE_GAME_STORAGE", () => {
+  it("no longer requires FEATURE_GAME_STORAGE (fetches puzzle directly)", () => {
     const shouldShow = (flags: Record<string, string | undefined>) =>
-      flags.FEATURE_PUZZLE_ANALYSIS !== "false" && flags.FEATURE_GAME_STORAGE !== "false";
+      flags.FEATURE_PUZZLE_ANALYSIS !== "false";
 
-    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "true", FEATURE_GAME_STORAGE: "true" })).toBe(true);
-    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "false", FEATURE_GAME_STORAGE: "true" })).toBe(false);
-    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "true", FEATURE_GAME_STORAGE: "false" })).toBe(false);
-    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "false", FEATURE_GAME_STORAGE: "false" })).toBe(false);
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "true", FEATURE_GAME_STORAGE: "false" })).toBe(true);
+    expect(shouldShow({ FEATURE_PUZZLE_ANALYSIS: "false" })).toBe(false);
     expect(shouldShow({})).toBe(true);
   });
 
@@ -619,14 +618,10 @@ describe("puzzle analysis", () => {
     expect(showAnalyze("failed")).toBe(true);
   });
 
-  it("preserves puzzle start FEN (not standard start position)", () => {
-    const puzzleFen = "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27";
-    const analysisData = {
-      startFen: puzzleFen,
-      moves: ["Qd6"],
-    };
-
-    expect(analysisData.startFen).not.toBe(new Chess().fen());
-    expect(analysisData.startFen).toBe(puzzleFen);
+  it("puzzle analysis route is independent — only needs puzzleId", () => {
+    const puzzleId = "AbC12";
+    const route = `/analyzePuzzle/${puzzleId}`;
+    expect(route).toContain(puzzleId);
+    expect(route.startsWith("/analyzePuzzle/")).toBe(true);
   });
 });

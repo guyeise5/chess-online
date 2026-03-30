@@ -8,7 +8,6 @@ import MaterialDisplay from "./MaterialDisplay";
 import NavBar from "./NavBar";
 import { BLINDFOLD_PIECES } from "../boardThemes";
 import { getEnv } from "../types";
-import { saveAnalysisGame, generateGameId } from "./AnalysisBoard";
 import { playMoveSound } from "../utils/sounds";
 import type { BoardPreferences } from "../hooks/useBoardPreferences";
 import { useUserPrefs } from "../hooks/useUserPreferences";
@@ -656,21 +655,13 @@ export default function PuzzleTrainer({ boardPrefs, onOpenSettings }: PuzzleTrai
               <button type="button" className={styles['nextBtn']} onClick={() => fetchPuzzle()}>
                 {t("puzzle.next")}
               </button>
-              {getEnv().FEATURE_PUZZLE_ANALYSIS !== "false" && getEnv().FEATURE_GAME_STORAGE !== "false" && (
+              {getEnv().FEATURE_PUZZLE_ANALYSIS !== "false" && (
                 <button
                   type="button"
                   className={styles['analyzeBtn']}
                   onClick={() => {
                     if (!puzzle) return;
-                    const id = generateGameId();
-                    saveAnalysisGame(id, {
-                      startFen: puzzle.fen,
-                      moves: playedMoves,
-                      playerWhite: t("puzzle.white"),
-                      playerBlack: t("puzzle.black"),
-                      orientation,
-                    });
-                    navigate(`/analyzePuzzle/${id}`);
+                    navigate(`/analyzePuzzle/${puzzle.puzzleId}`);
                   }}
                 >
                   {t("puzzle.analyze")}

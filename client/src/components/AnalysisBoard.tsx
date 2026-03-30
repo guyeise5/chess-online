@@ -151,6 +151,42 @@ async function loadAnalysisGame(
   }
 }
 
+function uciMovesToSan(fen: string, uciMoves: string[]): string[] {
+  const g = new Chess(fen);
+  const sans: string[] = [];
+  for (const uci of uciMoves) {
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const promotion = uci.length > 4 ? uci[4] : undefined;
+    const m = g.move({ from, to, ...(promotion ? { promotion } : {}) });
+    if (!m) break;
+    sans.push(m.san);
+  }
+  return sans;
+}
+
+export async function loadPuzzleForAnalysis(
+  puzzleId: string
+): Promise<AnalysisGameData | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/puzzles/${puzzleId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || typeof data !== "object" || typeof data.fen !== "string" || !Array.isArray(data.moves)) return null;
+    const g = new Chess(data.fen);
+    const orientation: "white" | "black" = g.turn() === "w" ? "black" : "white";
+    return {
+      startFen: data.fen,
+      moves: uciMovesToSan(data.fen, data.moves),
+      playerWhite: orientation === "white" ? "You" : "Opponent",
+      playerBlack: orientation === "black" ? "You" : "Opponent",
+      orientation,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function generateGameId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -268,6 +304,7 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
   const { gameId } = useParams<{ gameId: string }>();
   const [searchParams] = useSearchParams();
   const routeState = location.state as AnalysisGameData | undefined;
+  const isPuzzleRoute = location.pathname.startsWith("/analyzePuzzle/");
 
   const [gameData, setGameData] = useState<AnalysisGameData | null>(
     routeState?.moves?.length ? routeState : null
@@ -277,13 +314,14 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
   useEffect(() => {
     if (gameData || !gameId) return;
     let cancelled = false;
-    loadAnalysisGame(gameId).then((data) => {
+    const loader = isPuzzleRoute ? loadPuzzleForAnalysis(gameId) : loadAnalysisGame(gameId);
+    loader.then((data) => {
       if (cancelled) return;
       setGameData(data);
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [gameId, gameData]);
+  }, [gameId, gameData, isPuzzleRoute]);
 
   const { gameMoves, movesTruncated } = useMemo(() => {
     const raw = gameData?.moves ?? [];

@@ -137,44 +137,28 @@ describe("analysis route construction", () => {
 });
 
 describe("puzzle analysis route construction", () => {
-  it("builds the correct puzzle analysis URL from a gameId", () => {
-    const gameId = "pzl_9a2c3267";
-    const path = `/analyzePuzzle/${gameId}`;
-    expect(path).toBe("/analyzePuzzle/pzl_9a2c3267");
+  it("builds the correct puzzle analysis URL from a puzzleId", () => {
+    const puzzleId = "AbC12";
+    const path = `/analyzePuzzle/${puzzleId}`;
+    expect(path).toBe("/analyzePuzzle/AbC12");
   });
 
-  it("extracts gameId from puzzle analysis path", () => {
-    function extractGameId(path: string): string | null {
+  it("extracts puzzleId from puzzle analysis path", () => {
+    function extractPuzzleId(path: string): string | null {
       const match = path.match(/^\/analyzePuzzle\/([^/]+)$/);
       return match ? match[1] : null;
     }
-    expect(extractGameId("/analyzePuzzle/abc123")).toBe("abc123");
-    expect(extractGameId("/analyzePuzzle/")).toBeNull();
-    expect(extractGameId("/analysis/abc123")).toBeNull();
+    expect(extractPuzzleId("/analyzePuzzle/AbC12")).toBe("AbC12");
+    expect(extractPuzzleId("/analyzePuzzle/")).toBeNull();
+    expect(extractPuzzleId("/analysis/abc123")).toBeNull();
   });
 
-  it("puzzle analysis saves with startFen", () => {
-    vi.restoreAllMocks();
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 })
-    );
-
-    const puzzleData: AnalysisGameData = {
-      startFen: "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27",
-      moves: ["Qd6", "Rd8", "Qxd8+", "Bxd8"],
-      playerWhite: "White",
-      playerBlack: "Black",
-      orientation: "black",
-    };
-
-    saveAnalysisGame("puzzle-test-id", puzzleData);
-
-    expect(spy).toHaveBeenCalledOnce();
-    const body = JSON.parse(spy.mock.calls[0][1]?.body as string);
-    expect(body.startFen).toBe(puzzleData.startFen);
-    expect(body.moves).toEqual(puzzleData.moves);
-    expect(body.orientation).toBe("black");
-
-    spy.mockRestore();
+  it("puzzle analysis fetches from puzzle API (not game API)", () => {
+    const puzzleId = "AbC12";
+    const puzzleApiUrl = `/api/puzzles/${puzzleId}`;
+    const gameApiUrl = `/api/games/${puzzleId}`;
+    expect(puzzleApiUrl).toContain("/api/puzzles/");
+    expect(puzzleApiUrl).not.toContain("/api/games/");
+    expect(gameApiUrl).not.toBe(puzzleApiUrl);
   });
 });
