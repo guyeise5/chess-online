@@ -16,6 +16,7 @@ export const es: Record<string, string> = {
   "namePrompt.username": "Nombre de usuario",
   "namePrompt.enter": "Entrar",
   "namePrompt.reservedName": "Este nombre está reservado",
+  "namePrompt.loginSSO": "Iniciar sesión con SSO",
   "lang.en": "Inglés",
   "lang.he": "Hebreo",
   "lang.ru": "Ruso",

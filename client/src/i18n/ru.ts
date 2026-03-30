@@ -16,6 +16,7 @@ export const ru: Record<string, string> = {
   "namePrompt.username": "Имя пользователя",
   "namePrompt.enter": "Войти",
   "namePrompt.reservedName": "Это имя зарезервировано",
+  "namePrompt.loginSSO": "Вход через SSO",
   "lang.en": "Английский",
   "lang.he": "Иврит",
   "lang.ru": "Русский",

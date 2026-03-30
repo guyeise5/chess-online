@@ -15,6 +15,7 @@ export const en: Record<string, string> = {
   "namePrompt.username": "Username",
   "namePrompt.enter": "Enter",
   "namePrompt.reservedName": "This name is reserved",
+  "namePrompt.loginSSO": "Login with SSO",
   "lang.en": "English",
   "lang.he": "Hebrew",
   "lang.ru": "Russian",

@@ -194,6 +194,7 @@ export default function App() {
   const [samlChecked, setSamlChecked] = useState(() => {
     return getEnv().FEATURE_SAML_AUTH !== "true";
   });
+  const [samlConfirmed, setSamlConfirmed] = useState(false);
 
   const samlEnabled = getEnv().FEATURE_SAML_AUTH === "true";
 
@@ -205,7 +206,7 @@ export default function App() {
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (!res.ok) {
-          window.location.href = "/auth/login";
+          if (!cancelled) setSamlChecked(true);
           return;
         }
         const body: unknown = await res.json();
@@ -220,20 +221,24 @@ export default function App() {
             localStorage.setItem(DISPLAY_NAME_KEY, dn);
 
             const prefsRec = rec["preferences"];
+            let isReturningUser = false;
             if (prefsRec && typeof prefsRec === "object") {
               const partial = parsePartialFromServer(prefsRec);
               if (Object.keys(partial).length > 0) {
                 const local = loadLocal();
                 const merged = { ...local, ...partial };
                 saveLocal(merged);
+                if (merged.introSeen) {
+                  isReturningUser = true;
+                }
               }
             }
-
-            setSamlChecked(true);
+            if (isReturningUser && !cancelled) {
+              setSamlConfirmed(true);
+            }
           }
-        } else {
-          window.location.href = "/auth/login";
         }
+        if (!cancelled) setSamlChecked(true);
       } catch {
         if (!cancelled) setSamlChecked(true);
       }
@@ -247,11 +252,23 @@ export default function App() {
     const merged = { ...loadLocal(), locale: chosenLocale };
     saveLocal(merged);
     setLocale(chosenLocale);
-    setUserId(trimmed);
-    setDisplayName(trimmed);
-    localStorage.setItem(USER_ID_KEY, trimmed);
-    localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
+    if (samlEnabled) {
+      setSamlConfirmed(true);
+    } else {
+      setUserId(trimmed);
+      setDisplayName(trimmed);
+      localStorage.setItem(USER_ID_KEY, trimmed);
+      localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
+    }
   };
+
+  const handleSamlLogin = useCallback((chosenLocale?: AppLocale) => {
+    if (chosenLocale) {
+      const merged = { ...loadLocal(), locale: chosenLocale };
+      saveLocal(merged);
+    }
+    window.location.href = "/auth/login";
+  }, []);
 
   const handleChangeName = useCallback(() => {
     setUserId("");
@@ -268,19 +285,23 @@ export default function App() {
     );
   }
 
-  if (!samlChecked) {
+  if (samlEnabled && !samlConfirmed) {
+    const samlMode: "pre-login" | "post-login" =
+      samlChecked && userId ? "post-login" : "pre-login";
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#ccc" }}>
-        Authenticating…
-      </div>
+      <>
+        <NamePrompt
+          onSubmit={handleSetName}
+          samlMode={samlMode}
+          displayName={displayName}
+          onSamlLogin={handleSamlLogin}
+        />
+        <Footer />
+      </>
     );
   }
 
   if (!userId) {
-    if (samlEnabled) {
-      window.location.href = "/auth/login";
-      return null;
-    }
     return (
       <>
         <NamePrompt onSubmit={handleSetName} />
