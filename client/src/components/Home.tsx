@@ -4,17 +4,17 @@ import { getEnv } from "../types";
 import styles from "./Home.module.css";
 
 interface Props {
-  playerName: string;
-  onChangeName: () => void;
+  displayName: string;
+  onChangeName?: () => void;
 }
 
-export default function Home({ playerName, onChangeName }: Props) {
+export default function Home({ displayName, onChangeName }: Props) {
   const flags = getEnv();
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} onChangeName={onChangeName} />
+      <NavBar displayName={displayName} {...(onChangeName ? { onChangeName } : {})} />
 
       <main className={styles['main']}>
         <div className={styles['playPanel']}>

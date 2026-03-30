@@ -75,7 +75,8 @@ describe("room:create", () => {
     await waitForEvent(client, "connect");
 
     const res = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -100,7 +101,8 @@ describe("room:create", () => {
     const roomListPromise = waitForEvent<any[]>(client2, "rooms:list");
 
     await emitWithAck(client1, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 600,
       increment: 5,
       colorChoice: "random",
@@ -124,7 +126,8 @@ describe("reserved name validation", () => {
     await waitForEvent(client, "connect");
 
     const res = await emitWithAck(client, "room:create", {
-      playerName: "Stockfish 5",
+      userId: "Stockfish 5",
+      displayName: "Stockfish 5",
       timeControl: 300,
       increment: 0,
       colorChoice: "white",
@@ -140,7 +143,8 @@ describe("reserved name validation", () => {
     await waitForEvent(owner, "connect");
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 0,
       colorChoice: "white",
@@ -151,7 +155,7 @@ describe("reserved name validation", () => {
 
     const joinRes = await emitWithAck(joiner, "room:join", {
       roomId: createRes.room.roomId,
-      playerName: "stockfish",
+      userId: "stockfish",
     });
 
     expect(joinRes.success).toBe(false);
@@ -166,7 +170,8 @@ describe("reserved name validation", () => {
     await waitForEvent(client, "connect");
 
     const res = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 0,
       colorChoice: "white",
@@ -187,7 +192,7 @@ describe("room:join", () => {
 
     const res = await emitWithAck(client, "room:join", {
       roomId: "nope",
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     expect(res.success).toBe(false);
@@ -205,7 +210,8 @@ describe("room:join", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -215,7 +221,7 @@ describe("room:join", () => {
 
     const joinRes = await emitWithAck(joiner, "room:join", {
       roomId: createRes.room.roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     expect(joinRes.success).toBe(true);
@@ -241,7 +247,7 @@ describe("room:rejoin", () => {
 
     const res = await emitWithAck(client, "room:rejoin", {
       roomId: "nope",
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     expect(res.success).toBe(false);
@@ -254,7 +260,8 @@ describe("room:rejoin", () => {
     await waitForEvent(owner, "connect");
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -265,7 +272,7 @@ describe("room:rejoin", () => {
 
     const res = await emitWithAck(stranger, "room:rejoin", {
       roomId: createRes.room.roomId,
-      playerName: "Eve",
+      userId: "Eve",
     });
 
     expect(res.success).toBe(false);
@@ -283,7 +290,8 @@ describe("room:rejoin", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -292,13 +300,13 @@ describe("room:rejoin", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     // Alice makes a move
     await emitWithAck(owner, "game:move", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -310,7 +318,7 @@ describe("room:rejoin", () => {
 
     const rejoinRes = await emitWithAck(ownerReconnected, "room:rejoin", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     expect(rejoinRes.success).toBe(true);
@@ -322,7 +330,7 @@ describe("room:rejoin", () => {
 
     await emitWithAck(joiner, "game:move", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
       from: "e7",
       to: "e5",
     });
@@ -348,7 +356,8 @@ describe("room:rejoin — reconnection scenarios", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -357,13 +366,13 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     // Play a move
     await emitWithAck(owner, "game:move", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -382,11 +391,11 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     const aliceRejoin = await emitWithAck(ownerNew, "room:rejoin", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
     const bobRejoin = await emitWithAck(joinerNew, "room:rejoin", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     expect(aliceRejoin.success).toBe(true);
@@ -397,7 +406,7 @@ describe("room:rejoin — reconnection scenarios", () => {
     // Continue the game — Bob can now move
     const moveRes = await emitWithAck(joinerNew, "game:move", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
       from: "e7",
       to: "e5",
     });
@@ -407,7 +416,7 @@ describe("room:rejoin — reconnection scenarios", () => {
     const aliceMovePromise = waitForEvent(ownerNew, "game:move");
     await emitWithAck(joinerNew, "game:move", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
       // Bob already moved e5, now it's Alice's turn — but let's verify Alice got the e5 event
     });
     // Actually, the move already happened. Let's verify Alice got the e5 broadcast from the previous move.
@@ -426,7 +435,8 @@ describe("room:rejoin — reconnection scenarios", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 60,
       increment: 0,
       colorChoice: "white",
@@ -435,7 +445,7 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     // Disconnect the owner
@@ -447,7 +457,7 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     await emitWithAck(ownerNew, "room:rejoin", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     // After rejoin, the client should receive timer updates
@@ -469,7 +479,8 @@ describe("room:rejoin — reconnection scenarios", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -478,11 +489,11 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     // Resign
-    owner.emit("game:resign", { roomId, playerName: "Alice" });
+    owner.emit("game:resign", { roomId, userId: "Alice" });
     await waitForEvent(joiner, "game:over");
 
     // Both disconnect
@@ -495,7 +506,7 @@ describe("room:rejoin — reconnection scenarios", () => {
 
     const rejoinRes = await emitWithAck(ownerNew, "room:rejoin", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     expect(rejoinRes.success).toBe(true);
@@ -515,7 +526,8 @@ describe("room:leave", () => {
     await waitForEvent(owner, "connect");
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -523,7 +535,7 @@ describe("room:leave", () => {
 
     const res = await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     expect(res.success).toBe(true);
@@ -531,7 +543,7 @@ describe("room:leave", () => {
     // Verify room no longer exists via rejoin
     const rejoinRes = await emitWithAck(owner, "room:rejoin", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
     expect(rejoinRes.success).toBe(false);
 
@@ -547,7 +559,8 @@ describe("room:leave", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -557,14 +570,14 @@ describe("room:leave", () => {
     // Instead, we use room:join so watcher's socket joins the room
     await emitWithAck(watcher, "room:join", {
       roomId: createRes.room.roomId,
-      playerName: "Alice", // same name = owner rejoins, socket joins room
+      userId: "Alice", // same name = owner rejoins, socket joins room
     });
 
     const closedPromise = waitForEvent(watcher, "room:closed");
 
     await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     await closedPromise; // resolves if event is received
@@ -582,7 +595,8 @@ describe("room:leave", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -595,7 +609,7 @@ describe("room:leave", () => {
 
     await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     const rooms = await roomsPromise;
@@ -615,7 +629,8 @@ describe("room:leave", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -623,7 +638,7 @@ describe("room:leave", () => {
 
     const res = await emitWithAck(other, "room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     expect(res.success).toBe(false);
@@ -631,7 +646,7 @@ describe("room:leave", () => {
     // Room should still exist
     const rejoinRes = await emitWithAck(owner, "room:rejoin", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
     expect(rejoinRes.success).toBe(true);
 
@@ -644,7 +659,8 @@ describe("room:leave", () => {
     await waitForEvent(owner, "connect");
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -653,7 +669,7 @@ describe("room:leave", () => {
     // Emit room:leave without a callback (fire-and-forget)
     owner.emit("room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     // Give the server time to process — it must not crash
@@ -662,7 +678,7 @@ describe("room:leave", () => {
     // Verify the server is still alive by performing another operation
     const res = await emitWithAck(owner, "room:rejoin", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
     expect(res.success).toBe(false);
 
@@ -678,7 +694,8 @@ describe("room:leave", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -686,12 +703,12 @@ describe("room:leave", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId: createRes.room.roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const res = await emitWithAck(owner, "room:leave", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     expect(res.success).toBe(false);
@@ -714,7 +731,8 @@ describe("game:move", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -723,14 +741,14 @@ describe("game:move", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const movePromise = waitForEvent(joiner, "game:move");
 
     const moveRes = await emitWithAck(owner, "game:move", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -754,7 +772,8 @@ describe("game:move", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -762,12 +781,12 @@ describe("game:move", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId: createRes.room.roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const res = await emitWithAck(owner, "game:move", {
       roomId: createRes.room.roomId,
-      playerName: "Alice",
+      userId: "Alice",
       from: "e2",
       to: "e5",
     });
@@ -792,7 +811,8 @@ describe("game:resign", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -801,12 +821,12 @@ describe("game:resign", () => {
 
     await emitWithAck(joiner, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const gameOverPromise = waitForEvent(joiner, "game:over");
 
-    owner.emit("game:resign", { roomId, playerName: "Alice" });
+    owner.emit("game:resign", { roomId, userId: "Alice" });
 
     const gameOver = await gameOverPromise;
     expect(gameOver.result).toBe("0-1");
@@ -830,7 +850,8 @@ describe("game:draw-offer", () => {
     ]);
 
     const createRes = await emitWithAck(white, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -839,21 +860,21 @@ describe("game:draw-offer", () => {
 
     await emitWithAck(black, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const drawOfferPromise = waitForEvent(black, "game:draw-offer");
     const offerRes = await emitWithAck(white, "game:draw-offer", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
     expect(offerRes.success).toBe(true);
 
     const offerData = await drawOfferPromise;
-    expect(offerData.playerName).toBe("Alice");
+    expect(offerData.userId).toBe("Alice");
 
     const gameOverPromise = waitForEvent(white, "game:over");
-    black.emit("game:draw-response", { roomId, playerName: "Bob", accepted: true });
+    black.emit("game:draw-response", { roomId, userId: "Bob", accepted: true });
 
     const gameOver = await gameOverPromise;
     expect(gameOver.result).toBe("1/2-1/2");
@@ -872,7 +893,8 @@ describe("game:draw-offer", () => {
     ]);
 
     const createRes = await emitWithAck(white, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -881,16 +903,16 @@ describe("game:draw-offer", () => {
 
     await emitWithAck(black, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     await emitWithAck(white, "game:draw-offer", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     const declinePromise = waitForEvent(white, "game:draw-declined");
-    black.emit("game:draw-response", { roomId, playerName: "Bob", accepted: false });
+    black.emit("game:draw-response", { roomId, userId: "Bob", accepted: false });
 
     await declinePromise;
 
@@ -907,7 +929,8 @@ describe("game:draw-offer", () => {
     ]);
 
     const createRes = await emitWithAck(white, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -916,19 +939,19 @@ describe("game:draw-offer", () => {
 
     await emitWithAck(black, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     await emitWithAck(white, "game:draw-offer", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
     });
 
     const cancelPromise = waitForEvent(black, "game:draw-cancelled");
 
     await emitWithAck(white, "game:move", {
       roomId,
-      playerName: "Alice",
+      userId: "Alice",
       from: "e2",
       to: "e4",
     });
@@ -953,7 +976,8 @@ describe("full game flow", () => {
     ]);
 
     const createRes = await emitWithAck(white, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 600,
       increment: 5,
       colorChoice: "white",
@@ -962,7 +986,7 @@ describe("full game flow", () => {
 
     await emitWithAck(black, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
 
     const moves = [
@@ -980,7 +1004,7 @@ describe("full game flow", () => {
       const socket = move.player === "Alice" ? white : black;
       lastRes = await emitWithAck(socket, "game:move", {
         roomId,
-        playerName: move.player,
+        userId: move.player,
         from: move.from,
         to: move.to,
       });
@@ -1004,7 +1028,8 @@ describe("private games", () => {
     await waitForEvent(client, "connect");
 
     const createRes = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -1025,7 +1050,8 @@ describe("private games", () => {
     await waitForEvent(client, "connect");
 
     const createRes = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 600,
       increment: 5,
       colorChoice: "random",
@@ -1061,7 +1087,8 @@ describe("private games", () => {
     await waitForEvent(client, "connect");
 
     const createRes = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -1084,7 +1111,8 @@ describe("private games", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -1100,7 +1128,7 @@ describe("private games", () => {
 
     const joinRes = await emitWithAck(invitee, "room:join", {
       roomId,
-      playerName: "Bob",
+      userId: "Bob",
     });
     expect(joinRes.success).toBe(true);
     expect(joinRes.room.status).toBe("playing");
@@ -1121,7 +1149,8 @@ describe("private games", () => {
     await waitForEvent(client, "connect");
 
     const res = await emitWithAck(client, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",
@@ -1144,7 +1173,8 @@ describe("private games", () => {
     ]);
 
     const createRes = await emitWithAck(owner, "room:create", {
-      playerName: "Alice",
+      userId: "Alice",
+      displayName: "Alice",
       timeControl: 300,
       increment: 2,
       colorChoice: "white",

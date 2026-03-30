@@ -18,6 +18,7 @@ import {
   useUserPrefs,
   loadLocal,
   saveLocal,
+  parsePartialFromServer,
 } from "./hooks/useUserPreferences";
 import { useI18n } from "./i18n/I18nProvider";
 import type { AppLocale } from "./i18n/locale";
@@ -25,7 +26,8 @@ import { getEnv } from "./types";
 
 const StatsGraphs = lazy(() => import("./components/StatsGraphs"));
 
-const PLAYER_NAME_KEY = "chess-player-name";
+const USER_ID_KEY = "chess-player-name";
+const DISPLAY_NAME_KEY = "chess-display-name";
 const ACTIVE_GAME_KEY = "chess-active-room";
 
 function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: string | null; children: React.ReactNode }) {
@@ -36,7 +38,6 @@ function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: str
   return <>{children}</>;
 }
 
-/** Applies locale from server-persisted preferences after load. */
 function UserPrefsLocaleSync() {
   const { prefs, loaded } = useUserPrefs();
   const { setLocale, locale } = useI18n();
@@ -51,8 +52,8 @@ function UserPrefsLocaleSync() {
   return null;
 }
 
-function AppInner({ playerName, onChangeName }: { playerName: string; onChangeName: () => void }) {
-  const { prefs, update } = useUserPrefs();
+function AppInner({ userId, displayName, onChangeName }: { userId: string; displayName: string; onChangeName: () => void }) {
+  const { prefs, update, loaded } = useUserPrefs();
   const navigate = useNavigate();
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -88,6 +89,16 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
+  const samlEnabled = getEnv().FEATURE_SAML_AUTH === "true";
+
+  if (!loaded) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#ccc" }}>
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <>
       <ActiveGameGuard activeGameRoomId={activeGameRoomId}>
@@ -95,15 +106,22 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
           <Route
             path="/"
             element={
-              <Lobby playerName={playerName} onChangeName={onChangeName} onOpenSettings={openSettings} boardPrefs={boardPrefs} />
+              <Lobby
+                userId={userId}
+                displayName={displayName}
+                {...(!samlEnabled ? { onChangeName } : {})}
+                onOpenSettings={openSettings}
+                boardPrefs={boardPrefs}
+              />
             }
           />
           <Route
             path="/computer"
             element={
               <ComputerSetup
-                playerName={playerName}
-                onChangeName={onChangeName}
+                userId={userId}
+                displayName={displayName}
+                {...(!samlEnabled ? { onChangeName } : {})}
                 onOpenSettings={openSettings}
                 boardPrefs={boardPrefs}
               />
@@ -111,27 +129,29 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
           />
           <Route
             path="/play/computer"
-            element={<ComputerGame playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />}
+            element={<ComputerGame userId={userId} displayName={displayName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />}
           />
           <Route
             path="/game/:roomId"
             element={
               <GameRoom
-                playerName={playerName}
+                userId={userId}
+                displayName={displayName}
                 boardPrefs={boardPrefs}
                 onOpenSettings={openSettings}
                 onActiveGameChange={handleActiveGameChange}
               />
             }
           />
-          <Route path="/analysis/:gameId" element={<AnalysisBoard playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
-          <Route path="/analyzePuzzle/:gameId" element={<AnalysisBoard playerName={playerName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
+          <Route path="/analysis/:gameId" element={<AnalysisBoard userId={userId} displayName={displayName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
+          <Route path="/analyzePuzzle/:gameId" element={<AnalysisBoard userId={userId} displayName={displayName} boardPrefs={boardPrefs} onOpenSettings={openSettings} />} />
           <Route
             path="/games"
             element={
               <GameHistory
-                playerName={playerName}
-                onChangeName={onChangeName}
+                userId={userId}
+                displayName={displayName}
+                {...(!samlEnabled ? { onChangeName } : {})}
                 onOpenSettings={openSettings}
               />
             }
@@ -140,8 +160,9 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
             path="/invite/:roomId"
             element={
               <PrivateInvite
-                playerName={playerName}
-                onChangeName={onChangeName}
+                userId={userId}
+                displayName={displayName}
+                {...(!samlEnabled ? { onChangeName } : {})}
                 onOpenSettings={openSettings}
                 boardPrefs={boardPrefs}
               />
@@ -164,22 +185,79 @@ function AppInner({ playerName, onChangeName }: { playerName: string; onChangeNa
 export default function App() {
   const { setLocale } = useI18n();
   const location = useLocation();
-  const [playerName, setPlayerName] = useState<string>(() => {
-    return localStorage.getItem(PLAYER_NAME_KEY) || "";
+  const [userId, setUserId] = useState<string>(() => {
+    return localStorage.getItem(USER_ID_KEY) || "";
   });
+  const [displayName, setDisplayName] = useState<string>(() => {
+    return localStorage.getItem(DISPLAY_NAME_KEY) || localStorage.getItem(USER_ID_KEY) || "";
+  });
+  const [samlChecked, setSamlChecked] = useState(() => {
+    return getEnv().FEATURE_SAML_AUTH !== "true";
+  });
+
+  const samlEnabled = getEnv().FEATURE_SAML_AUTH === "true";
+
+  useEffect(() => {
+    if (!samlEnabled) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (!res.ok) {
+          window.location.href = "/auth/login";
+          return;
+        }
+        const body: unknown = await res.json();
+        if (body && typeof body === "object" && "userId" in body) {
+          const rec = body as Record<string, unknown>;
+          const uid = typeof rec["userId"] === "string" ? rec["userId"] : "";
+          const dn = typeof rec["displayName"] === "string" ? rec["displayName"] : uid;
+          if (uid && !cancelled) {
+            setUserId(uid);
+            setDisplayName(dn);
+            localStorage.setItem(USER_ID_KEY, uid);
+            localStorage.setItem(DISPLAY_NAME_KEY, dn);
+
+            const prefsRec = rec["preferences"];
+            if (prefsRec && typeof prefsRec === "object") {
+              const partial = parsePartialFromServer(prefsRec);
+              if (Object.keys(partial).length > 0) {
+                const local = loadLocal();
+                const merged = { ...local, ...partial };
+                saveLocal(merged);
+              }
+            }
+
+            setSamlChecked(true);
+          }
+        } else {
+          window.location.href = "/auth/login";
+        }
+      } catch {
+        if (!cancelled) setSamlChecked(true);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [samlEnabled]);
 
   const handleSetName = (name: string, chosenLocale: AppLocale) => {
     const trimmed = name.trim();
     const merged = { ...loadLocal(), locale: chosenLocale };
     saveLocal(merged);
     setLocale(chosenLocale);
-    setPlayerName(trimmed);
-    localStorage.setItem(PLAYER_NAME_KEY, trimmed);
+    setUserId(trimmed);
+    setDisplayName(trimmed);
+    localStorage.setItem(USER_ID_KEY, trimmed);
+    localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
   };
 
   const handleChangeName = useCallback(() => {
-    setPlayerName("");
-    localStorage.removeItem(PLAYER_NAME_KEY);
+    setUserId("");
+    setDisplayName("");
+    localStorage.removeItem(USER_ID_KEY);
+    localStorage.removeItem(DISPLAY_NAME_KEY);
   }, []);
 
   if (location.pathname === "/stats/graphs" && getEnv().FEATURE_STATS !== "false") {
@@ -190,7 +268,19 @@ export default function App() {
     );
   }
 
-  if (!playerName) {
+  if (!samlChecked) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#ccc" }}>
+        Authenticating…
+      </div>
+    );
+  }
+
+  if (!userId) {
+    if (samlEnabled) {
+      window.location.href = "/auth/login";
+      return null;
+    }
     return (
       <>
         <NamePrompt onSubmit={handleSetName} />
@@ -200,9 +290,9 @@ export default function App() {
   }
 
   return (
-    <UserPrefsProvider playerName={playerName}>
+    <UserPrefsProvider userId={userId}>
       <UserPrefsLocaleSync />
-      <AppInner playerName={playerName} onChangeName={handleChangeName} />
+      <AppInner userId={userId} displayName={displayName} onChangeName={handleChangeName} />
     </UserPrefsProvider>
   );
 }

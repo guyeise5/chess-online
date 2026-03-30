@@ -16,7 +16,8 @@ import { useI18n } from "../i18n/I18nProvider";
 import { translateEndgameReason } from "../i18n/gameReason";
 
 interface Props {
-  playerName: string;
+  userId: string;
+  displayName: string;
   boardPrefs: BoardPreferences;
   onOpenSettings?: () => void;
 }
@@ -96,7 +97,7 @@ function clearSavedGame() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }: Props) {
+export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSettings }: Props) {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
@@ -271,8 +272,10 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
     setAnalysisId(id);
     saveAnalysisGame(id, {
       moves,
-      playerWhite: isPlayerWhite ? playerName : `Stockfish ${levelConfig.label}`,
-      playerBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : playerName,
+      playerWhite: isPlayerWhite ? userId : `Stockfish ${levelConfig.label}`,
+      playerBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : userId,
+      displayWhite: isPlayerWhite ? displayName : `Stockfish ${levelConfig.label}`,
+      displayBlack: isPlayerWhite ? `Stockfish ${levelConfig.label}` : displayName,
       orientation: color,
       ...(result != null ? { result } : {}),
     });
@@ -593,7 +596,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
   };
 
   const topPlayerName = `Stockfish ${levelConfig.label}`;
-  const bottomPlayerName = playerName;
+  const bottomPlayerName = displayName;
 
   const materialDiff = useMemo(() => computeMaterialDiff(game), [game]);
   const topMaterial: SideMaterial = isPlayerWhite
@@ -616,7 +619,7 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
 
   return (
     <div className={styles['container']}>
-      <NavBar playerName={playerName} {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar displayName={displayName} {...(onOpenSettings ? { onOpenSettings } : {})} />
 
       <main className={styles['main']}>
         <div className={styles['boardArea']} dir="ltr">
@@ -724,11 +727,17 @@ export default function ComputerGame({ playerName, boardPrefs, onOpenSettings }:
                     saveAnalysisGame(id, {
                       moves,
                       playerWhite: isPlayerWhite
-                        ? playerName
+                        ? userId
                         : `Stockfish ${levelConfig.label}`,
                       playerBlack: isPlayerWhite
                         ? `Stockfish ${levelConfig.label}`
-                        : playerName,
+                        : userId,
+                      displayWhite: isPlayerWhite
+                        ? displayName
+                        : `Stockfish ${levelConfig.label}`,
+                      displayBlack: isPlayerWhite
+                        ? `Stockfish ${levelConfig.label}`
+                        : displayName,
                       orientation: color,
                       ...(result != null ? { result } : {}),
                     });

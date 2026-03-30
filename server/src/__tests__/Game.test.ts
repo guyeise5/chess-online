@@ -18,8 +18,10 @@ describe("Game model", () => {
   const sampleGame = {
     gameId: "abc123",
     moves: ["e4", "e5", "Nf3", "Nc6"],
-    playerWhite: "Alice",
-    playerBlack: "Bob",
+    playerWhite: "alice-id",
+    playerBlack: "bob-id",
+    displayWhite: "Alice",
+    displayBlack: "Bob",
     orientation: "white" as const,
   };
 
@@ -61,8 +63,10 @@ describe("Game model", () => {
 
     expect(found).toBeDefined();
     expect(found!.moves).toEqual(["e4", "e5", "Nf3", "Nc6"]);
-    expect(found!.playerWhite).toBe("Alice");
-    expect(found!.playerBlack).toBe("Bob");
+    expect(found!.playerWhite).toBe("alice-id");
+    expect(found!.playerBlack).toBe("bob-id");
+    expect(found!.displayWhite).toBe("Alice");
+    expect(found!.displayBlack).toBe("Bob");
     expect(found!.orientation).toBe("white");
   });
 
@@ -73,6 +77,8 @@ describe("Game model", () => {
     expect(found).toBeDefined();
     expect(found!.startFen).toBeUndefined();
     expect(found!.playerWhite).toBeUndefined();
+    expect(found!.displayWhite).toBeUndefined();
+    expect(found!.displayBlack).toBeUndefined();
   });
 
   it("rejects duplicate gameId", async () => {

@@ -739,7 +739,7 @@ describe("disconnect claim", () => {
 
     const state = gm.getDisconnectState(room.roomId);
     expect(state).toBeDefined();
-    expect(state!.playerName).toBe("Alice");
+    expect(state!.userId).toBe("Alice");
     expect(state!.claimAvailable).toBe(false);
   });
 
@@ -753,7 +753,7 @@ describe("disconnect claim", () => {
 
     expect(emitSpy).toHaveBeenCalledWith(room.roomId);
     const emitCall = (emitSpy.mock.results[0].value as any).emit;
-    expect(emitCall).toHaveBeenCalledWith("game:opponent-disconnected", { playerName: "Bob" });
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-disconnected", { userId: "Bob" });
 
     emitSpy.mockRestore();
   });
@@ -779,7 +779,7 @@ describe("disconnect claim", () => {
     await gm.handlePlayerDisconnect(room.roomId, "Bob");
     const state2 = gm.getDisconnectState(room.roomId);
 
-    expect(state2!.playerName).toBe("Alice");
+    expect(state2!.userId).toBe("Alice");
     expect(state1).toBe(state2);
   });
 
@@ -802,7 +802,7 @@ describe("disconnect claim", () => {
     await gm.handlePlayerReconnect(room.roomId, "Alice");
 
     const emitCall = (emitSpy.mock.results[0].value as any).emit;
-    expect(emitCall).toHaveBeenCalledWith("game:opponent-reconnected", { playerName: "Alice" });
+    expect(emitCall).toHaveBeenCalledWith("game:opponent-reconnected", { userId: "Alice" });
 
     emitSpy.mockRestore();
   });
@@ -1235,7 +1235,9 @@ describe("serializeRoom", () => {
       expect.objectContaining({
         roomId: room.roomId,
         owner: "Alice",
+        ownerName: "Alice",
         opponent: null,
+        opponentName: null,
         timeFormat: "blitz",
         timeControl: 300,
         increment: 2,
@@ -1243,6 +1245,8 @@ describe("serializeRoom", () => {
         status: "waiting",
         whitePlayer: null,
         blackPlayer: null,
+        whiteName: null,
+        blackName: null,
         whiteTime: 300,
         blackTime: 300,
         turn: "w",

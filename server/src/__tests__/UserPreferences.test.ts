@@ -18,26 +18,27 @@ describe("UserPreferences model", () => {
     expect(UserPreferences.collection.collectionName).toBe("userpreferences");
   });
 
-  it("has a unique index on playerName", async () => {
+  it("has a unique index on userId", async () => {
     await UserPreferences.createIndexes();
     const indexes = await UserPreferences.collection.indexes();
-    const playerNameIndex = indexes.find((idx) => idx.key?.playerName === 1);
+    const userIdIndex = indexes.find((idx) => idx.key?.userId === 1);
 
-    expect(playerNameIndex).toBeDefined();
-    expect(playerNameIndex?.unique).toBe(true);
+    expect(userIdIndex).toBeDefined();
+    expect(userIdIndex?.unique).toBe(true);
   });
 
-  it("requires playerName", async () => {
+  it("requires userId", async () => {
     const doc = new UserPreferences({});
     const err = doc.validateSync();
 
     expect(err).toBeDefined();
-    expect(err?.errors).toHaveProperty("playerName");
+    expect(err?.errors).toHaveProperty("userId");
   });
 
-  it("applies defaults when only playerName is set", async () => {
-    const doc = await UserPreferences.create({ playerName: "Alice" });
+  it("applies defaults when only userId is set", async () => {
+    const doc = await UserPreferences.create({ userId: "alice-id" });
 
+    expect(doc.displayName).toBe("");
     expect(doc.introSeen).toBe(false);
     expect(doc.locale).toBe("en");
     expect(doc.boardTheme).toBe("brown");
@@ -52,9 +53,9 @@ describe("UserPreferences model", () => {
     expect(doc.updatedAt).toBeInstanceOf(Date);
   });
 
-  it("rejects duplicate playerName", async () => {
-    await UserPreferences.create({ playerName: "Bob" });
+  it("rejects duplicate userId", async () => {
+    await UserPreferences.create({ userId: "bob-id" });
 
-    await expect(UserPreferences.create({ playerName: "Bob" })).rejects.toThrow();
+    await expect(UserPreferences.create({ userId: "bob-id" })).rejects.toThrow();
   });
 });

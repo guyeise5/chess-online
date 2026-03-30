@@ -14,7 +14,9 @@ export interface IChatMessage {
 export interface IRoom extends Document {
   roomId: string;
   owner: string;
+  ownerName: string;
   opponent: string | null;
+  opponentName: string | null;
   timeFormat: TimeFormat;
   timeControl: number;
   timeIncrement: number;
@@ -25,6 +27,8 @@ export interface IRoom extends Document {
   pgn: string;
   whitePlayer: string | null;
   blackPlayer: string | null;
+  whiteName: string | null;
+  blackName: string | null;
   whiteTime: number;
   blackTime: number;
   turn: "w" | "b";
@@ -63,7 +67,9 @@ const RoomSchema = new Schema<IRoom>(
   {
     roomId: { type: String, required: true, unique: true, index: true },
     owner: { type: String, required: true },
+    ownerName: { type: String, default: "" },
     opponent: { type: String, default: null },
+    opponentName: { type: String, default: null },
     timeFormat: {
       type: String,
       enum: ["ultrabullet", "bullet", "blitz", "rapid", "classical"],
@@ -86,6 +92,8 @@ const RoomSchema = new Schema<IRoom>(
     pgn: { type: String, default: "" },
     whitePlayer: { type: String, default: null },
     blackPlayer: { type: String, default: null },
+    whiteName: { type: String, default: null },
+    blackName: { type: String, default: null },
     whiteTime: { type: Number, required: true },
     blackTime: { type: Number, required: true },
     turn: { type: String, enum: ["w", "b"], default: "w" },

@@ -9,7 +9,7 @@ interface TimerState {
 }
 
 interface UndoRequest {
-  playerName: string;
+  userId: string;
   moveCount: number;
 }
 
@@ -19,7 +19,7 @@ interface DrawOfferState {
 }
 
 interface DisconnectState {
-  playerName: string;
+  userId: string;
   timeout: NodeJS.Timeout;
   disconnectedAt: number;
   claimAvailable: boolean;
@@ -41,18 +41,20 @@ export class GameManager {
   }
 
   async createRoom(
-    ownerName: string,
+    ownerUserId: string,
     timeControl: number,
     increment: number,
     colorChoice: ColorChoice,
-    isPrivate: boolean = false
+    isPrivate: boolean = false,
+    ownerDisplayName?: string
   ): Promise<IRoom> {
     const roomId = uuidv4().slice(0, 8);
     const timeFormat = deriveTimeFormat(timeControl, increment);
 
     const room = new Room({
       roomId,
-      owner: ownerName,
+      owner: ownerUserId,
+      ownerName: ownerDisplayName ?? ownerUserId,
       timeFormat,
       timeControl,
       timeIncrement: increment,
@@ -79,8 +81,9 @@ export class GameManager {
 
   async joinRoom(
     roomId: string,
-    playerName: string,
-    socket: Socket
+    userId: string,
+    socket: Socket,
+    displayName?: string
   ): Promise<IRoom | null> {
     const room = await Room.findOne({ roomId });
     if (!room) return null;
@@ -91,11 +94,12 @@ export class GameManager {
       return room;
     }
 
-    if (room.owner === playerName) {
+    if (room.owner === userId) {
       return room;
     }
 
-    room.opponent = playerName;
+    room.opponent = userId;
+    room.opponentName = displayName ?? userId;
     this.assignColors(room);
     room.status = "playing";
     room.lastMoveAt = new Date();
@@ -120,14 +124,14 @@ export class GameManager {
 
   async rejoinRoom(
     roomId: string,
-    playerName: string,
+    userId: string,
     socket: Socket
   ): Promise<IRoom | null> {
     const room = await Room.findOne({ roomId });
     if (!room) return null;
 
-    const isOwner = room.owner === playerName;
-    const isOpponent = room.opponent === playerName;
+    const isOwner = room.owner === userId;
+    const isOpponent = room.opponent === userId;
     if (!isOwner && !isOpponent) return null;
 
     socket.join(roomId);
@@ -145,17 +149,25 @@ export class GameManager {
   private assignColors(room: IRoom): void {
     if (room.colorChoice === "white") {
       room.whitePlayer = room.owner;
+      room.whiteName = room.ownerName || room.owner;
       room.blackPlayer = room.opponent;
+      room.blackName = room.opponentName || room.opponent;
     } else if (room.colorChoice === "black") {
       room.blackPlayer = room.owner;
+      room.blackName = room.ownerName || room.owner;
       room.whitePlayer = room.opponent;
+      room.whiteName = room.opponentName || room.opponent;
     } else {
       if (Math.random() < 0.5) {
         room.whitePlayer = room.owner;
+        room.whiteName = room.ownerName || room.owner;
         room.blackPlayer = room.opponent;
+        room.blackName = room.opponentName || room.opponent;
       } else {
         room.blackPlayer = room.owner;
+        room.blackName = room.ownerName || room.owner;
         room.whitePlayer = room.opponent;
+        room.whiteName = room.opponentName || room.opponent;
       }
     }
   }
@@ -298,8 +310,8 @@ export class GameManager {
     }
   }
 
-  requestUndo(roomId: string, playerName: string, moveCount: number): void {
-    this.undoRequests.set(roomId, { playerName, moveCount });
+  requestUndo(roomId: string, userId: string, moveCount: number): void {
+    this.undoRequests.set(roomId, { userId, moveCount });
   }
 
   getUndoRequest(roomId: string): UndoRequest | undefined {
@@ -324,7 +336,7 @@ export class GameManager {
       this.games.set(roomId, chess);
     }
 
-    const requesterIsWhite = room.whitePlayer === request.playerName;
+    const requesterIsWhite = room.whitePlayer === request.userId;
     const targetTurn = requesterIsWhite ? "w" : "b";
 
     let undoCount = 0;
@@ -392,7 +404,8 @@ export class GameManager {
       blackTime: room.blackTime,
     });
 
-    await this.emitSystemChat(roomId, `${giverName} gave 15 seconds`);
+    const giverDisplay = (isWhite ? room.whiteName : room.blackName) || giverName;
+    await this.emitSystemChat(roomId, `${giverDisplay} gave 15 seconds`);
 
     return { success: true };
   }
@@ -438,7 +451,7 @@ export class GameManager {
       moveCountAtOffer: room.moves.length,
     });
 
-    this.io.to(roomId).emit("game:draw-offer", { playerName });
+    this.io.to(roomId).emit("game:draw-offer", { userId: playerName });
     return { success: true };
   }
 
@@ -522,59 +535,59 @@ export class GameManager {
     this.broadcastRooms();
   }
 
-  async handlePlayerDisconnect(roomId: string, playerName: string): Promise<void> {
+  async handlePlayerDisconnect(roomId: string, userId: string): Promise<void> {
     if (process.env["FEATURE_DISCONNECT_CLAIM"] === "false") return;
 
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return;
 
-    const isPlayer = room.whitePlayer === playerName || room.blackPlayer === playerName;
+    const isPlayer = room.whitePlayer === userId || room.blackPlayer === userId;
     if (!isPlayer) return;
 
     if (this.disconnectTimers.has(roomId)) return;
 
-    this.io.to(roomId).emit("game:opponent-disconnected", { playerName });
+    this.io.to(roomId).emit("game:opponent-disconnected", { userId });
 
     const timeout = setTimeout(async () => {
       const state = this.disconnectTimers.get(roomId);
       if (state) {
         state.claimAvailable = true;
-        this.io.to(roomId).emit("game:disconnect-claim-available", { playerName });
+        this.io.to(roomId).emit("game:disconnect-claim-available", { userId });
       }
     }, DISCONNECT_GRACE_PERIOD_MS);
 
     this.disconnectTimers.set(roomId, {
-      playerName,
+      userId,
       timeout,
       disconnectedAt: Date.now(),
       claimAvailable: false,
     });
   }
 
-  async handlePlayerReconnect(roomId: string, playerName: string): Promise<void> {
+  async handlePlayerReconnect(roomId: string, userId: string): Promise<void> {
     const state = this.disconnectTimers.get(roomId);
-    if (!state || state.playerName !== playerName) return;
+    if (!state || state.userId !== userId) return;
 
     clearTimeout(state.timeout);
     this.disconnectTimers.delete(roomId);
 
-    this.io.to(roomId).emit("game:opponent-reconnected", { playerName });
+    this.io.to(roomId).emit("game:opponent-reconnected", { userId });
   }
 
   async claimDisconnectResult(
     roomId: string,
-    claimerName: string,
+    claimerUserId: string,
     claimType: "win" | "draw"
   ): Promise<{ success: boolean; error?: string }> {
     const state = this.disconnectTimers.get(roomId);
     if (!state) return { success: false, error: "No pending disconnect" };
     if (!state.claimAvailable) return { success: false, error: "Grace period not elapsed" };
-    if (state.playerName === claimerName) return { success: false, error: "Cannot claim against yourself" };
+    if (state.userId === claimerUserId) return { success: false, error: "Cannot claim against yourself" };
 
     const room = await Room.findOne({ roomId });
     if (!room || room.status !== "playing") return { success: false, error: "Game not active" };
 
-    const isPlayer = room.whitePlayer === claimerName || room.blackPlayer === claimerName;
+    const isPlayer = room.whitePlayer === claimerUserId || room.blackPlayer === claimerUserId;
     if (!isPlayer) return { success: false, error: "Not a player in this game" };
 
     clearTimeout(state.timeout);
@@ -583,7 +596,7 @@ export class GameManager {
     if (claimType === "draw") {
       room.result = "1/2-1/2";
     } else {
-      const claimerIsWhite = room.whitePlayer === claimerName;
+      const claimerIsWhite = room.whitePlayer === claimerUserId;
       room.result = claimerIsWhite ? "1-0" : "0-1";
     }
     room.status = "finished";
@@ -621,7 +634,7 @@ export class GameManager {
 
   async sendChatMessage(
     roomId: string,
-    playerName: string,
+    userId: string,
     text: string
   ): Promise<{ success: boolean; error?: string }> {
     if (process.env["FEATURE_GAME_CHAT"] === "false") {
@@ -631,16 +644,17 @@ export class GameManager {
     const room = await Room.findOne({ roomId });
     if (!room) return { success: false, error: "Room not found" };
 
-    const isPlayer =
-      room.whitePlayer === playerName || room.blackPlayer === playerName;
-    if (!isPlayer) return { success: false, error: "Not a player in this game" };
+    const isWhite = room.whitePlayer === userId;
+    const isBlack = room.blackPlayer === userId;
+    if (!isWhite && !isBlack) return { success: false, error: "Not a player in this game" };
 
     const trimmed = typeof text === "string" ? text.trim().slice(0, 500) : "";
     if (!trimmed) return { success: false, error: "Empty message" };
 
+    const senderDisplay = (isWhite ? room.whiteName : room.blackName) || userId;
     await this.pushChatMessage(roomId, {
       type: "player",
-      sender: playerName,
+      sender: senderDisplay,
       text: trimmed,
       timestamp: Date.now(),
     });
@@ -737,7 +751,9 @@ export class GameManager {
     return {
       roomId: room.roomId,
       owner: room.owner,
+      ownerName: room.ownerName || room.owner,
       opponent: room.opponent,
+      opponentName: room.opponentName || room.opponent,
       timeFormat: room.timeFormat,
       timeControl: room.timeControl,
       increment: room.timeIncrement,
@@ -747,6 +763,8 @@ export class GameManager {
       fen: room.fen,
       whitePlayer: room.whitePlayer,
       blackPlayer: room.blackPlayer,
+      whiteName: room.whiteName || room.whitePlayer,
+      blackName: room.blackName || room.blackPlayer,
       whiteTime: room.whiteTime,
       blackTime: room.blackTime,
       turn: room.turn,

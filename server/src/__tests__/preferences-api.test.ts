@@ -54,14 +54,14 @@ beforeAll(() => {
   app = express();
   app.use(express.json());
 
-  app.get("/api/preferences/:playerName", async (req, res) => {
+  app.get("/api/preferences/:userId", async (req, res) => {
     try {
-      const { playerName } = req.params;
-      if (!playerName || typeof playerName !== "string") {
-        res.status(400).json({ error: "playerName is required" });
+      const { userId } = req.params;
+      if (!userId || typeof userId !== "string") {
+        res.status(400).json({ error: "userId is required" });
         return;
       }
-      const doc = await UserPreferences.findOne({ playerName }).lean();
+      const doc = await UserPreferences.findOne({ userId }).lean();
       if (!doc) {
         res.status(404).json({ error: "Preferences not found" });
         return;
@@ -84,11 +84,11 @@ beforeAll(() => {
     }
   });
 
-  app.put("/api/preferences/:playerName", async (req, res) => {
+  app.put("/api/preferences/:userId", async (req, res) => {
     try {
-      const { playerName } = req.params;
-      if (!playerName || typeof playerName !== "string") {
-        res.status(400).json({ error: "playerName is required" });
+      const { userId } = req.params;
+      if (!userId || typeof userId !== "string") {
+        res.status(400).json({ error: "userId is required" });
         return;
       }
       if (!req.body || typeof req.body !== "object") {
@@ -116,7 +116,7 @@ beforeAll(() => {
       }
 
       await UserPreferences.findOneAndUpdate(
-        { playerName },
+        { userId },
         { $set: update },
         { upsert: true, new: true }
       );
@@ -136,9 +136,9 @@ afterAll(async () => {
   await teardownDB();
 });
 
-describe("GET /api/preferences/:playerName", () => {
-  it("returns 404 for non-existent player", async () => {
-    const res = await request(app).get("/api/preferences/no-such-player");
+describe("GET /api/preferences/:userId", () => {
+  it("returns 404 for non-existent user", async () => {
+    const res = await request(app).get("/api/preferences/no-such-user");
     expect(res.status).toBe(404);
     expect(res.body).toEqual(
       expect.objectContaining({
@@ -148,8 +148,8 @@ describe("GET /api/preferences/:playerName", () => {
     expect(typeof res.body.error).toBe("string");
   });
 
-  it("returns all defaults after document exists with only playerName", async () => {
-    await UserPreferences.create({ playerName: "defaults-only" });
+  it("returns all defaults after document exists with only userId", async () => {
+    await UserPreferences.create({ userId: "defaults-only" });
 
     const res = await request(app).get("/api/preferences/defaults-only");
     expect(res.status).toBe(200);
@@ -171,10 +171,10 @@ describe("GET /api/preferences/:playerName", () => {
   });
 });
 
-describe("PUT /api/preferences/:playerName", () => {
+describe("PUT /api/preferences/:userId", () => {
   it("creates preferences via upsert, then GET returns them", async () => {
     const putRes = await request(app)
-      .put("/api/preferences/new-player")
+      .put("/api/preferences/new-user-id")
       .send({ introSeen: true, boardTheme: "blue" });
 
     expect(putRes.status).toBe(200);
@@ -182,7 +182,7 @@ describe("PUT /api/preferences/:playerName", () => {
     expect(typeof putRes.body.ok).toBe("boolean");
     expect(putRes.body.ok).toBe(true);
 
-    const getRes = await request(app).get("/api/preferences/new-player");
+    const getRes = await request(app).get("/api/preferences/new-user-id");
     expect(getRes.status).toBe(200);
     expect(isPreferencePayload(getRes.body)).toBe(true);
     if (!isPreferencePayload(getRes.body)) return;
@@ -216,7 +216,7 @@ describe("PUT /api/preferences/:playerName", () => {
 
     expect(putRes.status).toBe(200);
 
-    const raw = await UserPreferences.findOne({ playerName: "ignore-extra" }).lean();
+    const raw = await UserPreferences.findOne({ userId: "ignore-extra" }).lean();
     expect(raw).not.toBeNull();
     if (!raw) return;
     expect("hackerField" in raw).toBe(false);
@@ -238,15 +238,15 @@ describe("PUT /api/preferences/:playerName", () => {
     expect(typeof unknownOnly.body.error).toBe("string");
   });
 
-  it("concurrent PUTs for different players do not interfere", async () => {
+  it("concurrent PUTs for different users do not interfere", async () => {
     await Promise.all([
-      request(app).put("/api/preferences/p-a").send({ puzzleRating: 1000 }),
-      request(app).put("/api/preferences/p-b").send({ puzzleRating: 2000 }),
+      request(app).put("/api/preferences/user-a").send({ puzzleRating: 1000 }),
+      request(app).put("/api/preferences/user-b").send({ puzzleRating: 2000 }),
     ]);
 
     const [aRes, bRes] = await Promise.all([
-      request(app).get("/api/preferences/p-a"),
-      request(app).get("/api/preferences/p-b"),
+      request(app).get("/api/preferences/user-a"),
+      request(app).get("/api/preferences/user-b"),
     ]);
 
     expect(aRes.status).toBe(200);

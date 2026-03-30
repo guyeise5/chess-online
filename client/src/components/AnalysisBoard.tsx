@@ -123,6 +123,8 @@ export interface AnalysisGameData {
   startFen?: string;
   playerWhite?: string;
   playerBlack?: string;
+  displayWhite?: string;
+  displayBlack?: string;
   orientation?: "white" | "black";
   result?: string;
 }
@@ -218,10 +220,10 @@ export type Nav =
 
 export function inferOrientation(
   gameData: AnalysisGameData | null,
-  playerName?: string
+  userId?: string
 ): "white" | "black" {
-  if (playerName && gameData?.playerWhite === playerName) return "white";
-  if (playerName && gameData?.playerBlack === playerName) return "black";
+  if (userId && gameData?.playerWhite === userId) return "white";
+  if (userId && gameData?.playerBlack === userId) return "black";
   if (gameData?.orientation) return gameData.orientation;
   return "white";
 }
@@ -292,12 +294,13 @@ export function navLastMove(
 }
 
 interface AnalysisBoardProps {
-  playerName?: string;
+  userId: string;
+  displayName: string;
   boardPrefs: BoardPreferences;
   onOpenSettings?: () => void;
 }
 
-export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }: AnalysisBoardProps) {
+export default function AnalysisBoard({ userId, displayName, boardPrefs, onOpenSettings }: AnalysisBoardProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
@@ -340,9 +343,11 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
     return { gameMoves: valid, movesTruncated: valid.length < raw.length };
   }, [gameData]);
   const startFen = gameData?.startFen;
-  const orientation = inferOrientation(gameData, playerName);
-  const playerWhite = gameData?.playerWhite ?? "White";
-  const playerBlack = gameData?.playerBlack ?? "Black";
+  const orientation = inferOrientation(gameData, userId);
+  const playerWhite =
+    gameData?.displayWhite ?? gameData?.playerWhite ?? "White";
+  const playerBlack =
+    gameData?.displayBlack ?? gameData?.playerBlack ?? "Black";
 
   const { evals, progress, analyzing, startAnalysis } = useStockfishAnalysis(
     gameMoves,
@@ -934,7 +939,10 @@ export default function AnalysisBoard({ playerName, boardPrefs, onOpenSettings }
 
   return (
     <div className={styles["container"]}>
-      <NavBar {...(onOpenSettings ? { onOpenSettings } : {})} />
+      <NavBar
+        displayName={displayName}
+        {...(onOpenSettings ? { onOpenSettings } : {})}
+      />
 
       <main className={styles["main"]}>
         <div className={styles["boardSection"]} dir="ltr">

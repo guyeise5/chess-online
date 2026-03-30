@@ -8,6 +8,7 @@ import path from "path";
 import { GameManager } from "./game/GameManager";
 import { registerSocketHandlers } from "./socket/handlers";
 import { setIndexHtmlNoCacheHeaders } from "./staticIndexHeaders";
+import { setupSamlAuth, requireAuth, getSessionUserId } from "./auth/samlAuth";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ const MONGO_URI = process.env["MONGO_URI"] || "mongodb://localhost:27017/chess-o
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const staticPath = path.join(__dirname, "..", "public");
 app.use(
@@ -47,8 +49,16 @@ async function main() {
     process.exit(1);
   }
 
+  const samlEnabled = process.env["FEATURE_SAML_AUTH"] === "true";
+
+  if (samlEnabled) {
+    const { sessionMiddleware } = setupSamlAuth(app, MONGO_URI);
+    io.engine.use(sessionMiddleware);
+    app.use(requireAuth());
+  }
+
   const gm = new GameManager(io);
-  registerSocketHandlers(io, gm);
+  registerSocketHandlers(io, gm, samlEnabled);
 
   const Puzzle = (await import("./models/Puzzle")).default;
 
@@ -69,6 +79,51 @@ async function main() {
       res.json({ status: "ready", mongo: "connected" });
     } catch (err) {
       res.status(503).json({ status: "not ready", error: String(err) });
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      if (!samlEnabled) {
+        res.status(404).json({ error: "Auth not enabled" });
+        return;
+      }
+      const user = req.user as { userId?: string; displayName?: string; firstName?: string; lastName?: string } | undefined;
+      if (!user || typeof user.userId !== "string" || !user.userId) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+
+      const result: Record<string, unknown> = {
+        userId: user.userId,
+        displayName: user.displayName ?? user.userId,
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+      };
+
+      if (process.env["FEATURE_USER_PREFERENCES"] !== "false") {
+        const UserPreferences = (await import("./models/UserPreferences")).default;
+        const doc = await UserPreferences.findOne({ userId: user.userId }).lean();
+        if (doc) {
+          result["preferences"] = {
+            introSeen: doc.introSeen,
+            locale: doc.locale === "he" ? "he" : "en",
+            boardTheme: doc.boardTheme,
+            pieceSet: doc.pieceSet,
+            lobbyColor: doc.lobbyColor,
+            customMinIdx: doc.customMinIdx,
+            customIncIdx: doc.customIncIdx,
+            computerColor: doc.computerColor,
+            puzzleRating: doc.puzzleRating,
+            puzzleCount: doc.puzzleCount,
+          };
+        }
+      }
+
+      res.json(result);
+    } catch (err) {
+      console.error("Auth me error:", err);
+      res.status(500).json({ error: "Failed to fetch user info" });
     }
   });
 
@@ -158,7 +213,16 @@ async function main() {
       try {
         const { gameId } = req.params;
         if (!req.body || typeof req.body !== "object") { res.status(400).json({ error: "Invalid body" }); return; }
-        const { moves, startFen, playerWhite, playerBlack, orientation, result } = req.body;
+        if (samlEnabled) {
+          const sessionUid = getSessionUserId(req);
+          const pw = typeof req.body.playerWhite === "string" ? req.body.playerWhite : "";
+          const pb = typeof req.body.playerBlack === "string" ? req.body.playerBlack : "";
+          if (!sessionUid || (sessionUid !== pw && sessionUid !== pb)) {
+            res.status(403).json({ error: "Forbidden" });
+            return;
+          }
+        }
+        const { moves, startFen, playerWhite, playerBlack, displayWhite, displayBlack, orientation, result } = req.body;
         if (!Array.isArray(moves) || moves.length === 0 || !moves.every((m: unknown) => typeof m === "string")) {
           res.status(400).json({ error: "moves array is required" });
           return;
@@ -180,7 +244,13 @@ async function main() {
 
         await Game.findOneAndUpdate(
           { gameId },
-          { gameId, moves: validMoves, startFen, playerWhite, playerBlack, orientation, result },
+          {
+            gameId, moves: validMoves, startFen,
+            playerWhite, playerBlack,
+            displayWhite: typeof displayWhite === "string" ? displayWhite : playerWhite,
+            displayBlack: typeof displayBlack === "string" ? displayBlack : playerBlack,
+            orientation, result,
+          },
           { upsert: true, new: true }
         );
         res.json({ ok: true, totalMoves: moves.length, savedMoves: validMoves.length });
@@ -203,6 +273,8 @@ async function main() {
           startFen: game.startFen,
           playerWhite: game.playerWhite,
           playerBlack: game.playerBlack,
+          displayWhite: game.displayWhite ?? game.playerWhite,
+          displayBlack: game.displayBlack ?? game.playerBlack,
           orientation: game.orientation,
           result: game.result,
         });
@@ -221,6 +293,13 @@ async function main() {
             res.status(400).json({ error: "player query parameter is required" });
             return;
           }
+          if (samlEnabled) {
+            const sessionUid = getSessionUserId(req);
+            if (!sessionUid || sessionUid !== player) {
+              res.status(403).json({ error: "Forbidden" });
+              return;
+            }
+          }
           const games = await Game.find({
             $or: [{ playerWhite: player }, { playerBlack: player }],
           })
@@ -233,6 +312,8 @@ async function main() {
               moves: g.moves,
               playerWhite: g.playerWhite,
               playerBlack: g.playerBlack,
+              displayWhite: g.displayWhite ?? g.playerWhite,
+              displayBlack: g.displayBlack ?? g.playerBlack,
               orientation: g.orientation,
               result: g.result,
               createdAt: g.createdAt,
@@ -249,14 +330,21 @@ async function main() {
   if (process.env["FEATURE_USER_PREFERENCES"] !== "false") {
     const UserPreferences = (await import("./models/UserPreferences")).default;
 
-    app.get("/api/preferences/:playerName", async (req, res) => {
+    app.get("/api/preferences/:userId", async (req, res) => {
       try {
-        const { playerName } = req.params;
-        if (!playerName || typeof playerName !== "string") {
-          res.status(400).json({ error: "playerName is required" });
+        const { userId } = req.params;
+        if (!userId || typeof userId !== "string") {
+          res.status(400).json({ error: "userId is required" });
           return;
         }
-        const doc = await UserPreferences.findOne({ playerName }).lean();
+        if (samlEnabled) {
+          const sessionUid = getSessionUserId(req);
+          if (!sessionUid || sessionUid !== userId) {
+            res.status(403).json({ error: "Forbidden" });
+            return;
+          }
+        }
+        const doc = await UserPreferences.findOne({ userId }).lean();
         if (!doc) {
           res.status(404).json({ error: "Preferences not found" });
           return;
@@ -279,12 +367,19 @@ async function main() {
       }
     });
 
-    app.put("/api/preferences/:playerName", async (req, res) => {
+    app.put("/api/preferences/:userId", async (req, res) => {
       try {
-        const { playerName } = req.params;
-        if (!playerName || typeof playerName !== "string") {
-          res.status(400).json({ error: "playerName is required" });
+        const { userId } = req.params;
+        if (!userId || typeof userId !== "string") {
+          res.status(400).json({ error: "userId is required" });
           return;
+        }
+        if (samlEnabled) {
+          const sessionUid = getSessionUserId(req);
+          if (!sessionUid || sessionUid !== userId) {
+            res.status(403).json({ error: "Forbidden" });
+            return;
+          }
         }
         if (!req.body || typeof req.body !== "object") {
           res.status(400).json({ error: "Invalid body" });
@@ -317,7 +412,7 @@ async function main() {
         }
 
         await UserPreferences.findOneAndUpdate(
-          { playerName },
+          { userId },
           { $set: update },
           { upsert: true, new: true }
         );

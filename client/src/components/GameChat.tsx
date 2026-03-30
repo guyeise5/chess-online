@@ -7,7 +7,8 @@ import styles from "./GameChat.module.css";
 interface Props {
   messages: ChatMessage[];
   onSend: (text: string) => void;
-  playerName: string;
+  userId: string;
+  displayName: string;
 }
 
 interface ChatLayout {
@@ -89,7 +90,8 @@ const SendIcon = () => (
   </svg>
 );
 
-export default function GameChat({ messages, onSend, playerName }: Props) {
+export default function GameChat(props: Props) {
+  const { messages, onSend, displayName } = props;
   const { t, locale } = useI18n();
   const [isOpen, setIsOpen] = useState(true);
   const [hasUnread, setHasUnread] = useState(false);
@@ -152,12 +154,12 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
     if (!isOpen && messages.length > prevCountRef.current) {
       const newMsgs = messages.slice(prevCountRef.current);
       const hasOpponentMsg = newMsgs.some(
-        (m) => m.type === "player" && m.sender !== playerName
+        (m) => m.type === "player" && m.sender !== displayName
       );
       if (hasOpponentMsg) setHasUnread(true);
     }
     prevCountRef.current = messages.length;
-  }, [messages.length, isOpen, playerName, messages]);
+  }, [messages.length, isOpen, displayName, messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -265,7 +267,7 @@ export default function GameChat({ messages, onSend, playerName }: Props) {
             <div key={msg.id} className={styles["playerMsg"]}>
               <span
                 className={
-                  msg.sender === playerName
+                  msg.sender === displayName
                     ? styles["senderSelf"]
                     : styles["senderOpponent"]
                 }
