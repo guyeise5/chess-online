@@ -193,7 +193,7 @@
 - **Feature flag:** `FEATURE_SAML_AUTH` (default: `false`)
 - Optional SAML 2.0 authentication via passport-saml
 - When enabled, users authenticate through an external SAML IdP; `userId` is extracted from a configurable profile field (default: `sub`), display name from `given_name` + `family_name` (configurable)
-- When enabled, NamePrompt shows in two phases: **pre-login** (language picker + disabled name input + "Login with SSO" button) and **post-login** (language picker + disabled name pre-filled from SAML + "Enter" button). After clicking Enter, the user proceeds to the app and sees the tutorial if first-time.
+- When enabled, unauthenticated users are redirected to `/login` — a pre-login screen with language picker and "Login with SSO" button (no username field). After SAML authentication, users go straight to the app. NavBar shows a "Logout" button that redirects to `/auth/logout`.
 - When disabled (default), users enter a name via NamePrompt; `userId` = `displayName` = typed name
 - `userId` is the identity key for all DB models (UserPreferences, Room, Game), socket events, and API endpoints
 - `displayName` is used for UI rendering (player bars, NavBar, chat, game history)

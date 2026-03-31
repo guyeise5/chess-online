@@ -6,6 +6,7 @@ export const ru: Record<string, string> = {
   "nav.puzzles": "Задачи",
   "nav.games": "Партии",
   "nav.change": "Сменить имя",
+  "nav.logout": "Выйти",
   "nav.boardSettings": "Настройки доски",
   "nav.onlinePlayersTitle": "Сейчас в сети",
   "nav.onlinePlayersAria": "{{count}} в сети",

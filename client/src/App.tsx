@@ -194,7 +194,6 @@ export default function App() {
   const [samlChecked, setSamlChecked] = useState(() => {
     return getEnv().FEATURE_SAML_AUTH !== "true";
   });
-  const [samlConfirmed, setSamlConfirmed] = useState(false);
 
   const samlEnabled = getEnv().FEATURE_SAML_AUTH === "true";
 
@@ -221,20 +220,13 @@ export default function App() {
             localStorage.setItem(DISPLAY_NAME_KEY, dn);
 
             const prefsRec = rec["preferences"];
-            let isReturningUser = false;
             if (prefsRec && typeof prefsRec === "object") {
               const partial = parsePartialFromServer(prefsRec);
               if (Object.keys(partial).length > 0) {
                 const local = loadLocal();
                 const merged = { ...local, ...partial };
                 saveLocal(merged);
-                if (merged.introSeen) {
-                  isReturningUser = true;
-                }
               }
-            }
-            if (isReturningUser && !cancelled) {
-              setSamlConfirmed(true);
             }
           }
         }
@@ -252,14 +244,10 @@ export default function App() {
     const merged = { ...loadLocal(), locale: chosenLocale };
     saveLocal(merged);
     setLocale(chosenLocale);
-    if (samlEnabled) {
-      setSamlConfirmed(true);
-    } else {
-      setUserId(trimmed);
-      setDisplayName(trimmed);
-      localStorage.setItem(USER_ID_KEY, trimmed);
-      localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
-    }
+    setUserId(trimmed);
+    setDisplayName(trimmed);
+    localStorage.setItem(USER_ID_KEY, trimmed);
+    localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
   };
 
   const handleSamlLogin = useCallback((chosenLocale?: AppLocale) => {
@@ -285,29 +273,45 @@ export default function App() {
     );
   }
 
-  if (samlEnabled && !samlConfirmed) {
-    const samlMode: "pre-login" | "post-login" =
-      samlChecked && userId ? "post-login" : "pre-login";
-    return (
-      <>
-        <NamePrompt
-          onSubmit={handleSetName}
-          samlMode={samlMode}
-          displayName={displayName}
-          onSamlLogin={handleSamlLogin}
-        />
-        <Footer />
-      </>
-    );
+  if (samlEnabled) {
+    if (!samlChecked) {
+      return (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#ccc" }}>
+          Loading…
+        </div>
+      );
+    }
+    if (!userId) {
+      if (location.pathname !== "/login") {
+        return <Navigate to="/login" replace />;
+      }
+      return (
+        <>
+          <NamePrompt
+            onSubmit={handleSetName}
+            samlMode="pre-login"
+            onSamlLogin={handleSamlLogin}
+          />
+          <Footer />
+        </>
+      );
+    }
+    if (location.pathname === "/login") {
+      return <Navigate to="/" replace />;
+    }
   }
 
-  if (!userId) {
+  if (!samlEnabled && !userId) {
     return (
       <>
         <NamePrompt onSubmit={handleSetName} />
         <Footer />
       </>
     );
+  }
+
+  if (!userId) {
+    return null;
   }
 
   return (

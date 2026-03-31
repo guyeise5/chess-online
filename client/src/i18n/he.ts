@@ -6,6 +6,7 @@ export const he: Record<string, string> = {
   "nav.puzzles": "חידות",
   "nav.games": "משחקים",
   "nav.change": "שינוי שם",
+  "nav.logout": "התנתקות",
   "nav.boardSettings": "הגדרות לוח",
   "nav.onlinePlayersTitle": "מחוברים/ות כרגע",
   "nav.onlinePlayersAria": "{{count}} מחוברים/ות",

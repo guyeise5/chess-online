@@ -14,8 +14,7 @@ const LANG_OPTIONS: { locale: AppLocale; Flag: React.ComponentType<{ className?:
 
 interface Props {
   onSubmit: (name: string, locale: AppLocale) => void;
-  samlMode?: "pre-login" | "post-login";
-  displayName?: string;
+  samlMode?: "pre-login";
   onSamlLogin?: (locale: AppLocale) => void;
 }
 
@@ -25,7 +24,7 @@ function isReservedName(name: string): boolean {
   return RESERVED_NAME_PATTERN.test(name.trim());
 }
 
-export default function NamePrompt({ onSubmit, samlMode, displayName, onSamlLogin }: Props) {
+export default function NamePrompt({ onSubmit, samlMode, onSamlLogin }: Props) {
   const { t, locale: ctxLocale, setLocale } = useI18n();
   const [name, setName] = useState("");
   const [locale, setLocalLocale] = useState<AppLocale>(() => ctxLocale);
@@ -35,21 +34,15 @@ export default function NamePrompt({ onSubmit, samlMode, displayName, onSamlLogi
     setLocale(l);
   };
 
-  const isSaml = samlMode !== undefined;
+  const isPreLogin = samlMode === "pre-login";
   const trimmed = name.trim();
-  const reserved = !isSaml && isReservedName(trimmed);
-  const valid = isSaml
-    ? samlMode === "post-login" && typeof displayName === "string" && displayName.length > 0
-    : trimmed.length >= 2 && !reserved;
+  const reserved = !isPreLogin && isReservedName(trimmed);
+  const valid = !isPreLogin && trimmed.length >= 2 && !reserved;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (samlMode === "pre-login") {
+    if (isPreLogin) {
       if (typeof onSamlLogin === "function") onSamlLogin(locale);
-      return;
-    }
-    if (samlMode === "post-login" && typeof displayName === "string") {
-      onSubmit(displayName, locale);
       return;
     }
     if (valid) {
@@ -57,11 +50,7 @@ export default function NamePrompt({ onSubmit, samlMode, displayName, onSamlLogi
     }
   };
 
-  const shownName = isSaml
-    ? (samlMode === "post-login" && displayName ? displayName : "")
-    : name;
-
-  const buttonLabel = samlMode === "pre-login"
+  const buttonLabel = isPreLogin
     ? t("namePrompt.loginSSO")
     : t("namePrompt.enter");
 
@@ -94,16 +83,15 @@ export default function NamePrompt({ onSubmit, samlMode, displayName, onSamlLogi
         </div>
 
         <form onSubmit={handleSubmit} className={styles["form"]}>
-          {samlMode !== "pre-login" && (
+          {!isPreLogin && (
             <>
               <input
                 className={styles["input"]}
                 type="text"
                 placeholder={t("namePrompt.username")}
-                value={shownName}
-                onChange={isSaml ? undefined : (e) => setName(e.target.value)}
-                disabled={isSaml}
-                autoFocus={!isSaml}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
                 maxLength={20}
               />
               {reserved && (
@@ -114,7 +102,7 @@ export default function NamePrompt({ onSubmit, samlMode, displayName, onSamlLogi
           <button
             className={styles["button"]}
             type="submit"
-            disabled={!valid && samlMode !== "pre-login"}
+            disabled={!isPreLogin && !valid}
           >
             {buttonLabel}
           </button>

@@ -5,6 +5,7 @@ export const en: Record<string, string> = {
   "nav.puzzles": "Puzzles",
   "nav.games": "Games",
   "nav.change": "Change",
+  "nav.logout": "Logout",
   "nav.boardSettings": "Board settings",
   "nav.onlinePlayersTitle": "Currently connected users",
   "nav.onlinePlayersAria": "{{count}} connected",

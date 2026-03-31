@@ -6,6 +6,7 @@ export const fr: Record<string, string> = {
   "nav.puzzles": "Problèmes",
   "nav.games": "Parties",
   "nav.change": "Changer de nom",
+  "nav.logout": "Déconnexion",
   "nav.boardSettings": "Paramètres de l'échiquier",
   "nav.onlinePlayersTitle": "Personnes connectées",
   "nav.onlinePlayersAria": "{{count}} en ligne",

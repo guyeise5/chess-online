@@ -6,6 +6,7 @@ export const es: Record<string, string> = {
   "nav.puzzles": "Problemas",
   "nav.games": "Partidas",
   "nav.change": "Cambiar nombre",
+  "nav.logout": "Cerrar sesión",
   "nav.boardSettings": "Ajustes del tablero",
   "nav.onlinePlayersTitle": "Personas conectadas",
   "nav.onlinePlayersAria": "{{count}} en línea",
