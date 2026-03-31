@@ -182,6 +182,10 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
           trackSocketRoom(socket.id, data.roomId);
           await gm.handlePlayerReconnect(data.roomId, rejoinUid);
           safeCallback(callback, { success: true, room: gm.serializeRoom(room) });
+          const rematchOffer = gm.getRematchOffer(data.roomId);
+          if (rematchOffer) {
+            socket.emit("game:rematch-offer", { userId: rematchOffer });
+          }
         } catch (err) {
           console.error("Error rejoining room:", err);
           safeCallback(callback, { success: false, error: "Failed to rejoin room" });
@@ -388,6 +392,28 @@ export function registerSocketHandlers(io: Server, gm: GameManager, samlEnabled 
         if (!claimDrawUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
         const result = await gm.claimDisconnectResult(data.roomId, claimDrawUid, "draw");
         safeCallback(callback, result);
+      }
+    );
+
+    socket.on(
+      "game:rematch-offer",
+      async (
+        data: { roomId: string },
+        callback: (res: Record<string, unknown>) => void
+      ) => {
+        if (!isObj(data) || typeof data.roomId !== "string") { safeCallback(callback, { success: false, error: "Invalid payload" }); return; }
+        const rematchUid = getSocketUserId(socket, samlEnabled);
+        if (!rematchUid) { safeCallback(callback, { success: false, error: "Unauthorized" }); return; }
+        const result = await gm.offerRematch(data.roomId, rematchUid);
+        safeCallback(callback, result);
+      }
+    );
+
+    socket.on(
+      "game:rematch-cancel",
+      (data: { roomId: string }) => {
+        if (!isObj(data) || typeof data.roomId !== "string") return;
+        gm.cancelRematch(data.roomId);
       }
     );
 

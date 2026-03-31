@@ -54,6 +54,7 @@ services:
       - FEATURE_STATS=${FEATURE_STATS:-true}
       - FEATURE_PUZZLE_ANALYSIS=${FEATURE_PUZZLE_ANALYSIS:-true}
       - FEATURE_CONNECTION_STATUS=${FEATURE_CONNECTION_STATUS:-true}
+      - FEATURE_REMATCH=${FEATURE_REMATCH:-true}
       - FEATURE_SAML_AUTH=${FEATURE_SAML_AUTH:-false}
       - SAML_ENTRY_POINT=${SAML_ENTRY_POINT:-http://localhost:8080/simplesaml/saml2/idp/SSOService.php}
       - SAML_ISSUER=${SAML_ISSUER:-chess-online}

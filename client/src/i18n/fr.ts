@@ -81,6 +81,8 @@ export const fr: Record<string, string> = {
   "game.confirmResign": "Cliquez à nouveau pour confirmer l'abandon",
   "game.by": "par",
   "game.backToCurrent": "Retour à la partie",
+  "game.rematch": "Revanche",
+  "game.rematchOffered": "Revanche proposée",
   "reason.checkmate": "échec et mat",
   "reason.stalemate": "pat",
   "reason.drawGeneric": "nulle",

@@ -26,7 +26,8 @@
 - Draw offer: two-click to offer (click ½ icon, confirm ✓ or cancel ✗; auto-cancels after 3s); opponent sees minimal inline accept/decline in the control bar (no banner); making a move implicitly declines; anti-spam prevents re-offering until opponent makes a move (Lichess-style)
 - Lichess-style game control bar: compact icon buttons (↶ takeback, ½ draw, ⚑ resign) with dark background; confirm/cancel (✓/✗) pattern for destructive actions
 - In-game chat: floating panel pinned to bottom-left, toggleable open/closed; red notification badge when closed and opponent sends a message; shows player messages and system messages (time given, game over with reason)
-- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`, `FEATURE_GAME_CHAT`, `FEATURE_ONLINE_PLAYER_COUNT`
+- Rematch: after a game ends, either player can click "Rematch" to offer a rematch; opponent accepts by also clicking "Rematch"; creates a new game with the same time control and swapped colors; both players are redirected to the new game; offer is cancelled if either player navigates away
+- Feature flags: `FEATURE_DISCONNECT_CLAIM`, `FEATURE_GIVE_TIME`, `FEATURE_DRAW_OFFER`, `FEATURE_GAME_CHAT`, `FEATURE_ONLINE_PLAYER_COUNT`, `FEATURE_REMATCH`
 
 ## Private Games
 
@@ -238,5 +239,6 @@
 | `FEATURE_STATS` | `true` | Server statistics dashboard at `/stats/graphs` with daily charts (games, players, time formats, results, peak hours). Set to `false` to disable. |
 | `FEATURE_PUZZLE_ANALYSIS` | `true` | Analyze button on completed puzzles, fetches puzzle from server and opens the analysis board at `/analyzePuzzle/:puzzleId`. Set to `false` to disable. |
 | `FEATURE_CONNECTION_STATUS` | `true` | WiFi-like signal icon in NavBar showing server connection strength and latency. Set to `false` to disable. |
+| `FEATURE_REMATCH` | `true` | Rematch button after game ends: Lichess-style offer/accept flow with swapped colors and same time control. Set to `false` to disable. |
 | `FEATURE_SAML_AUTH` | `false` | SAML 2.0 authentication via passport-saml. Requires IdP configuration (`SAML_ENTRY_POINT`, `SAML_ISSUER`, `SAML_CALLBACK_URL`). Set to `true` to enable. |
 | `SAML_WANT_RESPONSE_SIGNED` | `true` | Require signed SAML responses from the IdP. Set to `false` only for test IdPs that don't sign responses. |

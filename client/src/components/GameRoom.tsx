@@ -100,6 +100,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
   const [premove, setPremove] = useState<{ from: string; to: string; promotion?: string } | null>(null);
   const [premoveSelectedSquare, setPremoveSelectedSquare] = useState<string | null>(null);
   const [viewingPly, setViewingPly] = useState<number | null>(null);
+  const [rematchOffered, setRematchOffered] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatIdRef = useRef(0);
   const premoveRef = useRef<{ from: string; to: string; promotion?: string } | null>(null);
@@ -153,7 +154,25 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
               if (m) last = { from: m.from, to: m.to };
             }
             setLastMove(last);
+          } else {
+            setLastMove(null);
           }
+          setSelectedSquare(null);
+          setPremove(null);
+          premoveRef.current = null;
+          setPremoveSelectedSquare(null);
+          setViewingPly(null);
+          setGameOverReason(null);
+          setRematchOffered(null);
+          setUndoRequester(null);
+          setUndoPending(false);
+          setDrawOfferer(null);
+          setDrawOfferPending(false);
+          setResignConfirm(false);
+          setDrawConfirm(false);
+          setOpponentDisconnected(false);
+          setDisconnectClaimAvailable(false);
+          setPendingPromotion(null);
         } else {
           navigate("/", { replace: true });
         }
@@ -244,6 +263,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       setGameOverReason(data.reason);
       setDrawOfferer(null);
       setDrawOfferPending(false);
+      setRematchOffered(null);
       playSound("gameEnd");
     };
 
@@ -368,6 +388,27 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       setDisconnectClaimAvailable(true);
     };
 
+    const handleRematchOffer = (data: unknown) => {
+      if (data && typeof data === "object" && "userId" in data) {
+        const d = data as { userId: string };
+        setRematchOffered(typeof d.userId === "string" ? d.userId : null);
+      }
+    };
+
+    const handleRematchCancelled = () => {
+      setRematchOffered(null);
+    };
+
+    const handleRematchStart = (data: unknown) => {
+      if (data && typeof data === "object" && "roomId" in data) {
+        const d = data as { roomId: string };
+        if (typeof d.roomId === "string") {
+          playSound("gameStart");
+          navigate(`/game/${d.roomId}`, { replace: true });
+        }
+      }
+    };
+
     socket.on("game:move", handleMove);
     socket.on("game:over", handleGameOver);
     socket.on("game:timer", handleTimer);
@@ -383,6 +424,9 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
     socket.on("game:opponent-reconnected", handleOpponentReconnected);
     socket.on("game:disconnect-claim-available", handleDisconnectClaimAvailable);
     socket.on("game:chat", handleChat);
+    socket.on("game:rematch-offer", handleRematchOffer);
+    socket.on("game:rematch-cancelled", handleRematchCancelled);
+    socket.on("game:rematch-start", handleRematchStart);
 
     return () => {
       socket.off("game:move", handleMove);
@@ -400,11 +444,14 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       socket.off("game:opponent-reconnected", handleOpponentReconnected);
       socket.off("game:disconnect-claim-available", handleDisconnectClaimAvailable);
       socket.off("game:chat", handleChat);
+      socket.off("game:rematch-offer", handleRematchOffer);
+      socket.off("game:rematch-cancelled", handleRematchCancelled);
+      socket.off("game:rematch-start", handleRematchStart);
       if (premoveTimerRef.current) clearTimeout(premoveTimerRef.current);
       if (resignTimerRef.current) clearTimeout(resignTimerRef.current);
       if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
     };
-  }, [addChatMessage, roomId]);
+  }, [addChatMessage, roomId, navigate]);
 
   const statusRef = useRef(status);
   statusRef.current = status;
@@ -438,6 +485,9 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
       if (statusRef.current === "playing" && roomIdRef.current) {
         socket.emit("game:player-left", { roomId: roomIdRef.current });
         onActiveGameChange?.(null);
+      }
+      if (statusRef.current === "finished" && roomIdRef.current) {
+        socket.emit("game:rematch-cancel", { roomId: roomIdRef.current });
       }
     };
   }, [onActiveGameChange]);
@@ -485,6 +535,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
   const showDrawOffer = env.FEATURE_DRAW_OFFER !== "false";
   const showDisconnectClaim = env.FEATURE_DISCONNECT_CLAIM !== "false";
   const showChat = env.FEATURE_GAME_CHAT !== "false";
+  const showRematch = env.FEATURE_REMATCH !== "false";
   const historyBrowseEnabled = env.FEATURE_MOVE_HISTORY_BROWSE !== "false";
 
   const isBrowsingHistory = historyBrowseEnabled && viewingPly !== null && viewingPly < moves.length;
@@ -987,16 +1038,31 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
                     : translateEndgameReason(gameOverReason, locale, t)}
                 </span>
               )}
-              <button
-                type="button"
-                className={styles['analyzeBtn']}
-                onClick={() => {
-                  const id = roomId ?? generateGameId();
-                  navigate(`/analysis/${id}`);
-                }}
-              >
-                {t("game.analyze")}
-              </button>
+              <div className={styles['resultActions']}>
+                <button
+                  type="button"
+                  className={styles['analyzeBtn']}
+                  onClick={() => {
+                    const id = roomId ?? generateGameId();
+                    navigate(`/analysis/${id}`);
+                  }}
+                >
+                  {t("game.analyze")}
+                </button>
+                {showRematch && isPlayer && (
+                  <button
+                    type="button"
+                    className={`${styles['rematchBtn']}${rematchOffered === userId ? ` ${styles['rematchBtnPending']}` : rematchOffered ? ` ${styles['rematchBtnAccept']}` : ""}`}
+                    onClick={() => {
+                      socket.emit("game:rematch-offer", { roomId }, (res: SocketResult) => {
+                        if (res && !res.success) console.warn("Rematch failed:", res.error);
+                      });
+                    }}
+                  >
+                    ↻ {rematchOffered === userId ? t("game.rematchOffered") : t("game.rematch")}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

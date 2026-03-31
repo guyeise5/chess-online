@@ -1724,3 +1724,201 @@ describe("saveGameRecord — automatic game persistence", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// rematch
+// ---------------------------------------------------------------------------
+describe("rematch", () => {
+  async function finishGame() {
+    const room = await gm.createRoom("Alice", 300, 2, "white", false, "Alice Display");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket(), "Bob Display");
+    await gm.resign(room.roomId, "Alice");
+    return room;
+  }
+
+  it("offers rematch on a finished game", async () => {
+    const room = await finishGame();
+    const result = await gm.offerRematch(room.roomId, "Alice");
+    expect(result.success).toBe(true);
+    expect(gm.getRematchOffer(room.roomId)).toBe("Alice");
+  });
+
+  it("rejects rematch on a playing game", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket());
+    const result = await gm.offerRematch(room.roomId, "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not finished");
+  });
+
+  it("rejects rematch from non-player", async () => {
+    const room = await finishGame();
+    const result = await gm.offerRematch(room.roomId, "Charlie");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Not a player in this game");
+  });
+
+  it("is idempotent for the same player", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Alice");
+    expect(result.success).toBe(true);
+    expect(result.newRoomId).toBeUndefined();
+  });
+
+  it("creates a new game when both players offer", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+    expect(result.success).toBe(true);
+    expect(result.newRoomId).toBeDefined();
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom).not.toBeNull();
+    expect(newRoom!.status).toBe("playing");
+    expect(newRoom!.timeControl).toBe(300);
+    expect(newRoom!.timeIncrement).toBe(2);
+  });
+
+  it("swaps colors in the rematch room", async () => {
+    const room = await finishGame();
+    const original = await Room.findOne({ roomId: room.roomId });
+    const origWhite = original!.whitePlayer;
+    const origBlack = original!.blackPlayer;
+
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom!.whitePlayer).toBe(origBlack);
+    expect(newRoom!.blackPlayer).toBe(origWhite);
+  });
+
+  it("preserves display names in swap", async () => {
+    const room = await finishGame();
+    const original = await Room.findOne({ roomId: room.roomId });
+    const origWhiteName = original!.whiteName;
+    const origBlackName = original!.blackName;
+
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom!.whiteName).toBe(origBlackName);
+    expect(newRoom!.blackName).toBe(origWhiteName);
+  });
+
+  it("preserves time control and resets clocks", async () => {
+    const room = await gm.createRoom("Alice", 600, 5, "white", false, "Alice");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket(), "Bob");
+    await gm.resign(room.roomId, "Alice");
+
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom!.timeControl).toBe(600);
+    expect(newRoom!.timeIncrement).toBe(5);
+    expect(newRoom!.whiteTime).toBe(600);
+    expect(newRoom!.blackTime).toBe(600);
+  });
+
+  it("clears the original rematch offer after creating the rematch room", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    await gm.offerRematch(room.roomId, "Bob");
+    expect(gm.getRematchOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("cancelRematch clears the offer", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    gm.cancelRematch(room.roomId);
+    expect(gm.getRematchOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("cancelRematch is a no-op when no offer exists", async () => {
+    const room = await finishGame();
+    gm.cancelRematch(room.roomId);
+    expect(gm.getRematchOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("allows offering after cancel", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    gm.cancelRematch(room.roomId);
+    const result = await gm.offerRematch(room.roomId, "Alice");
+    expect(result.success).toBe(true);
+    expect(gm.getRematchOffer(room.roomId)).toBe("Alice");
+  });
+
+  it("rematch offers are cleared by stopAllTimers", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    gm.stopAllTimers();
+    expect(gm.getRematchOffer(room.roomId)).toBeUndefined();
+  });
+
+  it("rejects rematch when feature is disabled", async () => {
+    process.env["FEATURE_REMATCH"] = "false";
+    try {
+      const room = await finishGame();
+      const result = await gm.offerRematch(room.roomId, "Alice");
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Feature disabled");
+    } finally {
+      delete process.env["FEATURE_REMATCH"];
+    }
+  });
+
+  it("starts with a fresh board (starting FEN)", async () => {
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom!.fen).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    expect(newRoom!.moves).toEqual([]);
+    expect(newRoom!.turn).toBe("w");
+  });
+
+  it("rematch room is not private", async () => {
+    const room = await gm.createRoom("Alice", 300, 2, "white", true, "Alice");
+    await gm.joinRoom(room.roomId, "Bob", mockSocket(), "Bob");
+    await gm.resign(room.roomId, "Alice");
+
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+
+    const newRoom = await Room.findOne({ roomId: result.newRoomId });
+    expect(newRoom!.isPrivate).toBe(false);
+  });
+
+  it("rejects rematch on a non-existent room", async () => {
+    const result = await gm.offerRematch("nonexistent", "Alice");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Game not finished");
+  });
+
+  it("saves game record when rematch game finishes via resign", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Game = require("../models/Game").default;
+
+    const room = await finishGame();
+    await gm.offerRematch(room.roomId, "Alice");
+    const result = await gm.offerRematch(room.roomId, "Bob");
+    const newRoomId = result.newRoomId!;
+
+    const newRoom = await Room.findOne({ roomId: newRoomId });
+    expect(newRoom!.status).toBe("playing");
+
+    await gm.rejoinRoom(newRoomId, "Alice", mockSocket("sock-a"));
+    await gm.rejoinRoom(newRoomId, "Bob", mockSocket("sock-b"));
+
+    await gm.resign(newRoomId, newRoom!.whitePlayer!);
+
+    const game = await Game.findOne({ gameId: newRoomId }).lean();
+    expect(game).not.toBeNull();
+    expect(game.result).toBe("0-1");
+  });
+});
