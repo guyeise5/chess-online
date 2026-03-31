@@ -9,8 +9,6 @@ import React, {
 import { getEnv } from "../types";
 import { isAppLocale, type AppLocale } from "../i18n/locale";
 
-const LOCAL_KEY = "chess-user-prefs";
-
 export interface UserPreferences {
   introSeen: boolean;
   locale: AppLocale;
@@ -39,80 +37,6 @@ export const DEFAULTS: UserPreferences = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function readBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
-}
-
-function readString(value: unknown, fallback: string): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function readFiniteInt(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.trunc(value);
-  }
-  if (typeof value === "string") {
-    const n = parseInt(value, 10);
-    if (Number.isFinite(n)) return n;
-  }
-  return fallback;
-}
-
-function readFiniteNumber(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const n = parseFloat(value);
-    if (Number.isFinite(n)) return n;
-  }
-  return fallback;
-}
-
-function parseStoredObject(obj: Record<string, unknown>): UserPreferences {
-  const locRaw = obj["locale"];
-  const locale: AppLocale = isAppLocale(locRaw) ? locRaw : DEFAULTS.locale;
-  return {
-    introSeen: readBoolean(obj["introSeen"], DEFAULTS.introSeen),
-    locale,
-    boardTheme: readString(obj["boardTheme"], DEFAULTS.boardTheme),
-    pieceSet: readString(obj["pieceSet"], DEFAULTS.pieceSet),
-    lobbyColor: readString(obj["lobbyColor"], DEFAULTS.lobbyColor),
-    customMinIdx: readFiniteInt(obj["customMinIdx"], DEFAULTS.customMinIdx),
-    customIncIdx: readFiniteInt(obj["customIncIdx"], DEFAULTS.customIncIdx),
-    computerColor: readString(obj["computerColor"], DEFAULTS.computerColor),
-    puzzleRating: readFiniteNumber(obj["puzzleRating"], DEFAULTS.puzzleRating),
-    puzzleCount: readFiniteInt(obj["puzzleCount"], DEFAULTS.puzzleCount),
-  };
-}
-
-/** Reads from localStorage, returns parsed prefs or DEFAULTS. */
-export function loadLocal(): UserPreferences {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-    return { ...DEFAULTS };
-  }
-  try {
-    const raw = window.localStorage.getItem(LOCAL_KEY);
-    if (raw === null) return { ...DEFAULTS };
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed)) return { ...DEFAULTS };
-    return parseStoredObject(parsed);
-  } catch {
-    return { ...DEFAULTS };
-  }
-}
-
-export function saveLocal(prefs: UserPreferences): void {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(prefs));
-  } catch {
-    /* ignore quota / private mode */
-  }
 }
 
 function unwrapServerPayload(raw: unknown): Record<string, unknown> | null {
@@ -186,13 +110,6 @@ export function parsePartialFromServer(raw: unknown): Partial<UserPreferences> {
   return out;
 }
 
-function mergeServerWins(
-  localPrefs: UserPreferences,
-  serverPartial: Partial<UserPreferences>
-): UserPreferences {
-  return { ...localPrefs, ...serverPartial };
-}
-
 interface UserPrefsContextValue {
   prefs: UserPreferences;
   loaded: boolean;
@@ -209,8 +126,14 @@ export function useUserPrefs(): UserPrefsContextValue {
   return useContext(UserPrefsContext);
 }
 
-export function useUserPreferences(userId: string): UserPrefsContextValue {
-  const [prefs, setPrefs] = useState<UserPreferences>(() => loadLocal());
+export function useUserPreferences(
+  userId: string,
+  initialPrefs?: Partial<UserPreferences>
+): UserPrefsContextValue {
+  const [prefs, setPrefs] = useState<UserPreferences>(() => ({
+    ...DEFAULTS,
+    ...(initialPrefs ?? {}),
+  }));
   const [loaded, setLoaded] = useState(false);
 
   const prefsRemoteEnabled = getEnv().FEATURE_USER_PREFERENCES !== "false";
@@ -241,9 +164,7 @@ export function useUserPreferences(userId: string): UserPrefsContextValue {
         const body: unknown = await res.json();
         const partial = parsePartialFromServer(body);
         if (Object.keys(partial).length > 0) {
-          const merged = mergeServerWins(loadLocal(), partial);
-          saveLocal(merged);
-          if (!cancelled) setPrefs(merged);
+          if (!cancelled) setPrefs((prev) => ({ ...prev, ...partial }));
         }
       } catch {
         /* offline / network */
@@ -260,7 +181,6 @@ export function useUserPreferences(userId: string): UserPrefsContextValue {
     (partial: Partial<UserPreferences>) => {
       setPrefs((prev) => {
         const next = { ...prev, ...partial };
-        saveLocal(next);
         if (prefsRemoteEnabled && userId) {
           fetch(`/api/preferences/${encodeURIComponent(userId)}`, {
             method: "PUT",
@@ -281,11 +201,13 @@ export function useUserPreferences(userId: string): UserPrefsContextValue {
 /** Wrap the app (or subtree) so `useUserPrefs()` shares the same preferences state. */
 export function UserPrefsProvider({
   userId,
+  initialPrefs,
   children,
 }: {
   userId: string;
+  initialPrefs?: Partial<UserPreferences>;
   children: ReactNode;
 }): React.ReactElement {
-  const value = useUserPreferences(userId);
+  const value = useUserPreferences(userId, initialPrefs);
   return React.createElement(UserPrefsContext.Provider, { value }, children);
 }

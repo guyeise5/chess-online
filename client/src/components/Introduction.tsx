@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
 import { useI18n } from "../i18n/I18nProvider";
+import type { AppLocale } from "../i18n/locale";
+import { useUserPrefs } from "../hooks/useUserPreferences";
 import { getEnv } from "../types";
+import { FlagGb, FlagIl, FlagRu, FlagFr, FlagEs } from "./LanguageFlags";
 import styles from "./Introduction.module.css";
+
+const LANG_OPTIONS: { locale: AppLocale; Flag: React.ComponentType<{ className?: string }>; key: string }[] = [
+  { locale: "en", Flag: FlagGb, key: "lang.en" },
+  { locale: "he", Flag: FlagIl, key: "lang.he" },
+  { locale: "ru", Flag: FlagRu, key: "lang.ru" },
+  { locale: "fr", Flag: FlagFr, key: "lang.fr" },
+  { locale: "es", Flag: FlagEs, key: "lang.es" },
+];
 
 interface Props {
   onComplete: () => void;
@@ -72,7 +83,41 @@ function computeTooltipPos(
   }
 }
 
-function useIntroSteps(t: (key: string) => string): Step[] {
+function LanguagePicker({
+  t,
+  locale,
+  onPick,
+}: {
+  t: (key: string) => string;
+  locale: AppLocale;
+  onPick: (l: AppLocale) => void;
+}) {
+  return (
+    <div>
+      <p>{t("intro.language.body")}</p>
+      <div className={styles["langRow"]}>
+        {LANG_OPTIONS.map(({ locale: l, Flag, key }) => (
+          <button
+            key={l}
+            type="button"
+            className={`${styles["langBtn"]} ${locale === l ? styles["langBtnActive"] : ""}`}
+            onClick={() => onPick(l)}
+            aria-label={t(key)}
+            aria-pressed={locale === l}
+          >
+            <Flag />
+            <span>{t(key)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function useIntroSteps(
+  t: (key: string) => string,
+  languageContent: React.ReactNode
+): Step[] {
   return useMemo(() => {
     const showOnlineCount = getEnv().FEATURE_ONLINE_PLAYER_COUNT !== "false";
     const showConnectionStatus = getEnv().FEATURE_CONNECTION_STATUS !== "false";
@@ -92,6 +137,10 @@ function useIntroSteps(t: (key: string) => string): Step[] {
     };
 
     return [
+      {
+        title: t("intro.language.title"),
+        content: languageContent,
+      },
       {
         title: t("intro.welcome.title"),
         content: <p>{t("intro.welcome.body")}</p>,
@@ -147,14 +196,34 @@ function useIntroSteps(t: (key: string) => string): Step[] {
         content: <p>{t("intro.board.body")}</p>,
       },
     ];
-  }, [t]);
+  }, [t, languageContent]);
 }
 
 export default function Introduction({ onComplete }: Props) {
-  const { t } = useI18n();
-  const steps = useIntroSteps(t);
+  const { t, locale, setLocale } = useI18n();
+  const { update } = useUserPrefs();
   const maskUid = useId().replace(/:/g, "");
   const maskUrl = `url(#${maskUid})`;
+
+  const handlePickLocale = useCallback(
+    (l: AppLocale) => {
+      setLocale(l);
+      update({ locale: l });
+    },
+    [setLocale, update]
+  );
+
+  const handleComplete = useCallback(() => {
+    update({ locale });
+    onComplete();
+  }, [onComplete, update, locale]);
+
+  const languageContent = useMemo(
+    () => <LanguagePicker t={t} locale={locale} onPick={handlePickLocale} />,
+    [t, locale, handlePickLocale]
+  );
+
+  const steps = useIntroSteps(t, languageContent);
 
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
@@ -178,7 +247,7 @@ export default function Introduction({ onComplete }: Props) {
   }, [measure]);
 
   if (!current) {
-    onComplete();
+    handleComplete();
     return null;
   }
 
@@ -269,7 +338,7 @@ export default function Introduction({ onComplete }: Props) {
         </div>
 
         <div className={styles["actions"]}>
-          <button type="button" className={styles["skipBtn"]} onClick={onComplete}>
+          <button type="button" className={styles["skipBtn"]} onClick={handleComplete}>
             {isLast ? t("intro.close") : t("intro.skip")}
           </button>
           {step > 0 && (
@@ -282,7 +351,7 @@ export default function Introduction({ onComplete }: Props) {
               {t("intro.next")}
             </button>
           ) : (
-            <button type="button" className={styles["nextBtn"]} onClick={onComplete}>
+            <button type="button" className={styles["nextBtn"]} onClick={handleComplete}>
               {t("intro.getStarted")}
             </button>
           )}

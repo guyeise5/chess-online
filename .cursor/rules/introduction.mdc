@@ -33,6 +33,6 @@ Add `data-tour="<name>"` to the outermost DOM element of any feature that should
 
 ## Rules
 
-- Keep the step order logical: welcome → core gameplay features visible on lobby → nav links for other pages → customization.
-- First step (welcome) has no `selector` — it renders as a centered modal.
-- After adding/removing a step, update `introduction.test.ts` (default 10 steps with online count; 9 when that feature is off).
+- Keep the step order logical: language picker → welcome → core gameplay features visible on lobby → nav links for other pages → customization.
+- First step (language picker) and second step (welcome) have no `selector` — they render as centered modals.
+- After adding/removing a step, update `introduction.test.ts` (default 12 steps with all features; 10 when both optional NavBar features are off).

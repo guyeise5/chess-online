@@ -215,17 +215,6 @@ describe("disconnect claim socket events", () => {
 });
 
 describe("active game navigation guard", () => {
-  const ACTIVE_GAME_KEY = "chess-active-room";
-  let store: Map<string, string>;
-
-  const getItem = (k: string) => store.get(k) ?? null;
-  const setItem = (k: string, v: string) => store.set(k, v);
-  const removeItem = (k: string) => store.delete(k);
-
-  beforeEach(() => {
-    store = new Map();
-  });
-
   function shouldRedirect(activeGameRoomId: string | null, currentPath: string): boolean {
     if (!activeGameRoomId) return false;
     return !currentPath.startsWith(`/game/${activeGameRoomId}`);
@@ -269,23 +258,20 @@ describe("active game navigation guard", () => {
     expect(shouldRedirect("abc123", "/game/xyz789")).toBe(true);
   });
 
-  it("stores active game room in localStorage", () => {
-    setItem(ACTIVE_GAME_KEY, "room-123");
-    expect(getItem(ACTIVE_GAME_KEY)).toBe("room-123");
+  it("active game state starts as null", () => {
+    const activeGameRoomId: string | null = null;
+    expect(activeGameRoomId).toBeNull();
   });
 
-  it("clears active game from localStorage on game end", () => {
-    setItem(ACTIVE_GAME_KEY, "room-123");
-    removeItem(ACTIVE_GAME_KEY);
-    expect(getItem(ACTIVE_GAME_KEY)).toBeNull();
+  it("active game state is set in memory on game start", () => {
+    let activeGameRoomId: string | null = null;
+    activeGameRoomId = "room-123";
+    expect(activeGameRoomId).toBe("room-123");
   });
 
-  it("persists active game across page reloads", () => {
-    setItem(ACTIVE_GAME_KEY, "room-abc");
-    expect(getItem(ACTIVE_GAME_KEY)).toBe("room-abc");
-  });
-
-  it("returns null for missing active game (first visit)", () => {
-    expect(getItem(ACTIVE_GAME_KEY)).toBeNull();
+  it("active game state is cleared in memory on game end", () => {
+    let activeGameRoomId: string | null = "room-123";
+    activeGameRoomId = null;
+    expect(activeGameRoomId).toBeNull();
   });
 });

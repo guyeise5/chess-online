@@ -40,7 +40,6 @@ export default function ComputerSetup({ userId, displayName, onChangeName, onOpe
     const actualColor = color === "random"
       ? (Math.random() < 0.5 ? "white" : "black")
       : color;
-    localStorage.removeItem("chess-computer-game");
     navigate("/play/computer", {
       state: { level, color: actualColor },
     });

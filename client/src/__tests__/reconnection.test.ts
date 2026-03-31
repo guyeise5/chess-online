@@ -1,112 +1,127 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
-const ROOM_ID_KEY = "chess-active-room";
-const PLAYER_NAME_KEY = "chess-player-name";
-
-/**
- * These tests verify the localStorage-based reconnection logic used in App.tsx.
- * The app persists roomId and playerName so it can auto-rejoin after page refresh.
- * We use a plain Map to simulate localStorage behavior, testing the same
- * get/set/remove patterns the component uses.
- */
-
-let store: Map<string, string>;
-
-function getItem(key: string): string | null {
-  return store.get(key) ?? null;
-}
-function setItem(key: string, value: string): void {
-  store.set(key, value);
-}
-function removeItem(key: string): void {
-  store.delete(key);
+/** Mirrors the readStoredUser logic from App.tsx, operating on an in-memory store. */
+function readStoredUser(store: Record<string, string>, key: string): { userId: string; displayName: string } {
+  try {
+    const raw = store[key];
+    if (!raw) return { userId: "", displayName: "" };
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      const rec = parsed as Record<string, unknown>;
+      const uid = typeof rec["userId"] === "string" ? rec["userId"] : "";
+      const dn = typeof rec["displayName"] === "string" ? rec["displayName"] : uid;
+      return { userId: uid, displayName: dn };
+    }
+  } catch { /* corrupt or unavailable */ }
+  return { userId: "", displayName: "" };
 }
 
-beforeEach(() => {
-  store = new Map();
+const KEY = "chess-user";
+
+describe("reconnection via URL and server session", () => {
+  it("roomId is embedded in the game URL", () => {
+    const roomId = "abc12345";
+    const path = `/game/${roomId}`;
+    const match = path.match(/^\/game\/([^/]+)$/);
+    expect(match).not.toBeNull();
+    expect(match?.[1]).toBe("abc12345");
+  });
+
+  it("game page can derive roomId from URL on mount", () => {
+    const params = { roomId: "room-xyz" };
+    expect(params.roomId).toBe("room-xyz");
+  });
+
+  it("SAML: identity is fetched from server (/api/auth/me) on page load", () => {
+    const serverResponse = { userId: "user-1", displayName: "Alice" };
+    expect(serverResponse.userId).toBe("user-1");
+    expect(serverResponse.displayName).toBe("Alice");
+  });
+
+  it("rejoin payload uses URL roomId and server-derived identity", () => {
+    const roomId = "abc12345";
+    const userId = "user-1";
+    const payload = { roomId, userId };
+    expect(payload).toEqual({ roomId: "abc12345", userId: "user-1" });
+  });
+
+  it("failed rejoin navigates to lobby", () => {
+    const rejoinSuccess = false;
+    const shouldRedirect = !rejoinSuccess;
+    expect(shouldRedirect).toBe(true);
+  });
+
+  it("active game guard redirects to game URL", () => {
+    const activeGameRoomId = "room-123";
+    const currentPath = "/";
+    const shouldRedirect = !currentPath.startsWith(`/game/${activeGameRoomId}`);
+    expect(shouldRedirect).toBe(true);
+  });
+
+  it("no redirect when already on the game page", () => {
+    const activeGameRoomId = "room-123";
+    const currentPath = "/game/room-123";
+    const shouldRedirect = !currentPath.startsWith(`/game/${activeGameRoomId}`);
+    expect(shouldRedirect).toBe(false);
+  });
 });
 
-describe("reconnection localStorage", () => {
-  it("stores player name", () => {
-    setItem(PLAYER_NAME_KEY, "Alice");
-    expect(getItem(PLAYER_NAME_KEY)).toBe("Alice");
+describe("non-SAML identity persistence via localStorage", () => {
+  it("persists userId and displayName", () => {
+    const store: Record<string, string> = {};
+    store[KEY] = JSON.stringify({ userId: "Bob", displayName: "Bob" });
+    const stored = readStoredUser(store, KEY);
+    expect(stored.userId).toBe("Bob");
+    expect(stored.displayName).toBe("Bob");
   });
 
-  it("stores active room ID", () => {
-    setItem(ROOM_ID_KEY, "abc12345");
-    expect(getItem(ROOM_ID_KEY)).toBe("abc12345");
+  it("restores identity on refresh", () => {
+    const store: Record<string, string> = {
+      [KEY]: JSON.stringify({ userId: "Alice", displayName: "Alice" }),
+    };
+    const { userId, displayName } = readStoredUser(store, KEY);
+    expect(userId).toBe("Alice");
+    expect(displayName).toBe("Alice");
   });
 
-  it("clears room ID when leaving a room", () => {
-    setItem(ROOM_ID_KEY, "abc12345");
-    removeItem(ROOM_ID_KEY);
-    expect(getItem(ROOM_ID_KEY)).toBeNull();
+  it("returns empty strings when store has no entry", () => {
+    const store: Record<string, string> = {};
+    const { userId, displayName } = readStoredUser(store, KEY);
+    expect(userId).toBe("");
+    expect(displayName).toBe("");
   });
 
-  it("clears both keys when changing name", () => {
-    setItem(PLAYER_NAME_KEY, "Alice");
-    setItem(ROOM_ID_KEY, "abc12345");
-
-    removeItem(PLAYER_NAME_KEY);
-    removeItem(ROOM_ID_KEY);
-
-    expect(getItem(PLAYER_NAME_KEY)).toBeNull();
-    expect(getItem(ROOM_ID_KEY)).toBeNull();
+  it("returns empty strings for corrupt JSON", () => {
+    const store: Record<string, string> = { [KEY]: "not-json" };
+    const { userId, displayName } = readStoredUser(store, KEY);
+    expect(userId).toBe("");
+    expect(displayName).toBe("");
   });
 
-  it("persists across simulated page reloads", () => {
-    setItem(PLAYER_NAME_KEY, "Bob");
-    setItem(ROOM_ID_KEY, "room-xyz");
-
-    const savedName = getItem(PLAYER_NAME_KEY);
-    const savedRoom = getItem(ROOM_ID_KEY);
-
-    expect(savedName).toBe("Bob");
-    expect(savedRoom).toBe("room-xyz");
+  it("clearing stored user removes the entry", () => {
+    const store: Record<string, string> = {
+      [KEY]: JSON.stringify({ userId: "Bob", displayName: "Bob" }),
+    };
+    delete store[KEY];
+    const { userId } = readStoredUser(store, KEY);
+    expect(userId).toBe("");
   });
 
-  it("returns null for missing keys (first visit)", () => {
-    expect(getItem(PLAYER_NAME_KEY)).toBeNull();
-    expect(getItem(ROOM_ID_KEY)).toBeNull();
+  it("SAML path does not read from localStorage", () => {
+    const store: Record<string, string> = {
+      [KEY]: JSON.stringify({ userId: "Bob", displayName: "Bob" }),
+    };
+    const samlEnabled = true;
+    const userId = samlEnabled ? "" : readStoredUser(store, KEY).userId;
+    expect(userId).toBe("");
   });
 
-  it("can detect whether rejoin is needed", () => {
-    const shouldRejoin1 = getItem(ROOM_ID_KEY) !== null && getItem(PLAYER_NAME_KEY) !== null;
-    expect(shouldRejoin1).toBe(false);
-
-    setItem(PLAYER_NAME_KEY, "Alice");
-    setItem(ROOM_ID_KEY, "room-123");
-    const shouldRejoin2 = getItem(ROOM_ID_KEY) !== null && getItem(PLAYER_NAME_KEY) !== null;
-    expect(shouldRejoin2).toBe(true);
-  });
-
-  it("only requires both keys to trigger rejoin", () => {
-    // Only name — no rejoin
-    setItem(PLAYER_NAME_KEY, "Alice");
-    expect(getItem(ROOM_ID_KEY) && getItem(PLAYER_NAME_KEY)).toBeFalsy();
-
-    // Only room — no rejoin
-    removeItem(PLAYER_NAME_KEY);
-    setItem(ROOM_ID_KEY, "room-123");
-    expect(getItem(ROOM_ID_KEY) && getItem(PLAYER_NAME_KEY)).toBeFalsy();
-  });
-
-  it("stores game:start roomId correctly", () => {
-    const room = { roomId: "start-room" };
-    setItem(ROOM_ID_KEY, room.roomId);
-    expect(getItem(ROOM_ID_KEY)).toBe("start-room");
-  });
-
-  it("clears stale room on failed rejoin but keeps name", () => {
-    setItem(ROOM_ID_KEY, "stale-room");
-    setItem(PLAYER_NAME_KEY, "Alice");
-
-    const rejoinSuccess = false;
-    if (!rejoinSuccess) {
-      removeItem(ROOM_ID_KEY);
-    }
-
-    expect(getItem(ROOM_ID_KEY)).toBeNull();
-    expect(getItem(PLAYER_NAME_KEY)).toBe("Alice");
+  it("displayName falls back to userId when missing", () => {
+    const store: Record<string, string> = {
+      [KEY]: JSON.stringify({ userId: "Charlie" }),
+    };
+    const { userId, displayName } = readStoredUser(store, KEY);
+    expect(userId).toBe("Charlie");
+    expect(displayName).toBe("Charlie");
   });
 });

@@ -107,7 +107,7 @@ async function main() {
         if (doc) {
           result["preferences"] = {
             introSeen: doc.introSeen,
-            locale: doc.locale === "he" ? "he" : "en",
+            locale: doc.locale ?? "en",
             boardTheme: doc.boardTheme,
             pieceSet: doc.pieceSet,
             lobbyColor: doc.lobbyColor,
@@ -371,7 +371,7 @@ async function main() {
         }
         res.json({
           introSeen: doc.introSeen,
-          locale: doc.locale === "he" ? "he" : "en",
+          locale: doc.locale ?? "en",
           boardTheme: doc.boardTheme,
           pieceSet: doc.pieceSet,
           lobbyColor: doc.lobbyColor,
@@ -417,7 +417,8 @@ async function main() {
           if (key in req.body) {
             if (key === "locale") {
               const v = req.body["locale"];
-              if (v === "en" || v === "he") {
+              const validLocales = ["en", "he", "ru", "fr", "es"];
+              if (typeof v === "string" && validLocales.includes(v)) {
                 update[key] = v;
               }
             } else {

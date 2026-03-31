@@ -126,7 +126,8 @@
 - **Key files:** `client/src/components/Introduction.tsx`, `client/src/components/Introduction.module.css`
 - **Feature flag:** `FEATURE_INTRODUCTION`
 - Multi-step onboarding walkthrough shown to first-time users after entering their name
-- 11 steps by default (fewer when optional NavBar features are disabled): welcome, online play, live connection count, connection status, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
+- 12 steps by default (fewer when optional NavBar features are disabled): **language picker**, welcome, online play, live connection count, connection status, time controls, rooms, private games, computer play, puzzles, game history & analysis, board customization
+- First step is a language picker (no spotlight target, centered modal) — selecting a language calls `setLocale` and persists the choice to server-side user preferences
 - Dot navigation to jump between steps, skip button on every step, "Get Started" on the final step
 - Completion persisted via user preferences (`introSeen` field); never shown again once dismissed
 - Cursor rule (`.cursor/rules/introduction.mdc`) ensures new UI features are added as steps

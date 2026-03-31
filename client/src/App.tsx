@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Lobby from "./components/Lobby";
 import ComputerSetup from "./components/ComputerSetup";
@@ -16,19 +16,13 @@ import useBoardPreferences from "./hooks/useBoardPreferences";
 import {
   UserPrefsProvider,
   useUserPrefs,
-  loadLocal,
-  saveLocal,
   parsePartialFromServer,
+  type UserPreferences,
 } from "./hooks/useUserPreferences";
 import { useI18n } from "./i18n/I18nProvider";
-import type { AppLocale } from "./i18n/locale";
 import { getEnv } from "./types";
 
 const StatsGraphs = lazy(() => import("./components/StatsGraphs"));
-
-const USER_ID_KEY = "chess-player-name";
-const DISPLAY_NAME_KEY = "chess-display-name";
-const ACTIVE_GAME_KEY = "chess-active-room";
 
 function ActiveGameGuard({ activeGameRoomId, children }: { activeGameRoomId: string | null; children: React.ReactNode }) {
   const location = useLocation();
@@ -60,11 +54,15 @@ function AppInner({ userId, displayName, onChangeName }: { userId: string; displ
   const [showIntro, setShowIntro] = useState(() => {
     return getEnv().FEATURE_INTRODUCTION !== "false" && !prefs.introSeen;
   });
-  const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(() => {
-    return localStorage.getItem(ACTIVE_GAME_KEY);
-  });
+  const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(null);
 
   const boardPrefs = useBoardPreferences();
+
+  useEffect(() => {
+    if (loaded && prefs.introSeen) {
+      setShowIntro(false);
+    }
+  }, [loaded, prefs.introSeen]);
 
   useEffect(() => {
     if (showIntro && location.pathname !== "/") {
@@ -74,11 +72,6 @@ function AppInner({ userId, displayName, onChangeName }: { userId: string; displ
 
   const handleActiveGameChange = useCallback((roomId: string | null) => {
     setActiveGameRoomId(roomId);
-    if (roomId) {
-      localStorage.setItem(ACTIVE_GAME_KEY, roomId);
-    } else {
-      localStorage.removeItem(ACTIVE_GAME_KEY);
-    }
   }, []);
 
   const handleIntroDone = useCallback(() => {
@@ -182,20 +175,45 @@ function AppInner({ userId, displayName, onChangeName }: { userId: string; displ
   );
 }
 
-export default function App() {
-  const { setLocale } = useI18n();
-  const location = useLocation();
-  const [userId, setUserId] = useState<string>(() => {
-    return localStorage.getItem(USER_ID_KEY) || "";
-  });
-  const [displayName, setDisplayName] = useState<string>(() => {
-    return localStorage.getItem(DISPLAY_NAME_KEY) || localStorage.getItem(USER_ID_KEY) || "";
-  });
-  const [samlChecked, setSamlChecked] = useState(() => {
-    return getEnv().FEATURE_SAML_AUTH !== "true";
-  });
+const USER_STORAGE_KEY = "chess-user";
 
+function readStoredUser(): { userId: string; displayName: string } {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    if (!raw) return { userId: "", displayName: "" };
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      const rec = parsed as Record<string, unknown>;
+      const uid = typeof rec["userId"] === "string" ? rec["userId"] : "";
+      const dn = typeof rec["displayName"] === "string" ? rec["displayName"] : uid;
+      return { userId: uid, displayName: dn };
+    }
+  } catch { /* corrupt or unavailable */ }
+  return { userId: "", displayName: "" };
+}
+
+function persistUser(userId: string, displayName: string): void {
+  try { localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ userId, displayName })); } catch { /* ignore */ }
+}
+
+function clearStoredUser(): void {
+  try { localStorage.removeItem(USER_STORAGE_KEY); } catch { /* ignore */ }
+}
+
+export default function App() {
+  const location = useLocation();
   const samlEnabled = getEnv().FEATURE_SAML_AUTH === "true";
+
+  const [userId, setUserId] = useState(() => {
+    if (samlEnabled) return "";
+    return readStoredUser().userId;
+  });
+  const [displayName, setDisplayName] = useState(() => {
+    if (samlEnabled) return "";
+    return readStoredUser().displayName;
+  });
+  const [samlChecked, setSamlChecked] = useState(() => !samlEnabled);
+  const initialPrefsRef = useRef<Partial<UserPreferences>>({});
 
   useEffect(() => {
     if (!samlEnabled) return;
@@ -216,16 +234,12 @@ export default function App() {
           if (uid && !cancelled) {
             setUserId(uid);
             setDisplayName(dn);
-            localStorage.setItem(USER_ID_KEY, uid);
-            localStorage.setItem(DISPLAY_NAME_KEY, dn);
 
             const prefsRec = rec["preferences"];
             if (prefsRec && typeof prefsRec === "object") {
               const partial = parsePartialFromServer(prefsRec);
               if (Object.keys(partial).length > 0) {
-                const local = loadLocal();
-                const merged = { ...local, ...partial };
-                saveLocal(merged);
+                initialPrefsRef.current = partial;
               }
             }
           }
@@ -239,31 +253,18 @@ export default function App() {
     return () => { cancelled = true; };
   }, [samlEnabled]);
 
-  const handleSetName = (name: string, chosenLocale: AppLocale) => {
+  const handleSetName = (name: string) => {
     const trimmed = name.trim();
-    const merged = { ...loadLocal(), locale: chosenLocale };
-    saveLocal(merged);
-    setLocale(chosenLocale);
     setUserId(trimmed);
     setDisplayName(trimmed);
-    localStorage.setItem(USER_ID_KEY, trimmed);
-    localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
+    if (!samlEnabled) persistUser(trimmed, trimmed);
   };
-
-  const handleSamlLogin = useCallback((chosenLocale?: AppLocale) => {
-    if (chosenLocale) {
-      const merged = { ...loadLocal(), locale: chosenLocale };
-      saveLocal(merged);
-    }
-    window.location.href = "/auth/login";
-  }, []);
 
   const handleChangeName = useCallback(() => {
     setUserId("");
     setDisplayName("");
-    localStorage.removeItem(USER_ID_KEY);
-    localStorage.removeItem(DISPLAY_NAME_KEY);
-  }, []);
+    if (!samlEnabled) clearStoredUser();
+  }, [samlEnabled]);
 
   if (location.pathname === "/stats/graphs" && getEnv().FEATURE_STATS !== "false") {
     return (
@@ -282,22 +283,8 @@ export default function App() {
       );
     }
     if (!userId) {
-      if (location.pathname !== "/login") {
-        return <Navigate to="/login" replace />;
-      }
-      return (
-        <>
-          <NamePrompt
-            onSubmit={handleSetName}
-            samlMode="pre-login"
-            onSamlLogin={handleSamlLogin}
-          />
-          <Footer />
-        </>
-      );
-    }
-    if (location.pathname === "/login") {
-      return <Navigate to="/" replace />;
+      window.location.href = "/auth/login";
+      return null;
     }
   }
 
@@ -315,7 +302,7 @@ export default function App() {
   }
 
   return (
-    <UserPrefsProvider userId={userId}>
+    <UserPrefsProvider userId={userId} initialPrefs={initialPrefsRef.current}>
       <UserPrefsLocaleSync />
       <AppInner userId={userId} displayName={displayName} onChangeName={handleChangeName} />
     </UserPrefsProvider>
