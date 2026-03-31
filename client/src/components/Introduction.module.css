@@ -141,3 +141,33 @@
 .nextBtn:hover {
   background: var(--accent-hover);
 }
+
+.langRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+
+.langBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.langBtn:hover {
+  background: var(--bg-card);
+}
+
+.langBtnActive {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}

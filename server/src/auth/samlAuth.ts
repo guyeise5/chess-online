@@ -156,36 +156,14 @@ export function getSessionDisplayName(req: { user?: unknown }): string | undefin
 
 export function requireAuth(): RequestHandler {
   return (req, res, next) => {
-    const path = req.path;
-    if (
-      path.startsWith("/auth/") ||
-      path === "/healthz" ||
-      path === "/readyz" ||
-      path.startsWith("/assets/") ||
-      path.endsWith(".js") ||
-      path.endsWith(".css") ||
-      path.endsWith(".png") ||
-      path.endsWith(".ico") ||
-      path.endsWith(".svg") ||
-      path.endsWith(".woff") ||
-      path.endsWith(".woff2") ||
-      path.endsWith(".mp3") ||
-      path === "/env-config.js"
-    ) {
+    if (!req.path.startsWith("/api/")) {
       next();
       return;
     }
-
     if (req.isAuthenticated?.()) {
       next();
       return;
     }
-
-    if (path.startsWith("/api/")) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    res.redirect("/auth/login");
+    res.status(401).json({ error: "Unauthorized" });
   };
 }

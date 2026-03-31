@@ -41,51 +41,6 @@
   font-size: 0.88rem;
 }
 
-.langBlock {
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.langLabel {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 0.45rem;
-}
-
-.langRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.langBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.82rem;
-}
-
-.langBtn:hover {
-  background: var(--bg-card);
-}
-
-.langBtnActive {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.flag {
-  flex-shrink: 0;
-  border-radius: 2px;
-}
-
 .form {
   display: flex;
   flex-direction: column;

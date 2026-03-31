@@ -108,14 +108,19 @@ describe("requireAuth middleware", () => {
     expect(res.body.error).toBe("Unauthorized");
   });
 
-  it("redirects non-API routes to /auth/login when unauthenticated", async () => {
+  it("passes through non-API routes without auth (SPA routing)", async () => {
     const { requireAuth } = await import("../auth/samlAuth");
     const app = express();
     app.use(requireAuth());
     app.get("/", (_req, res) => res.send("home"));
+    app.get("/login", (_req, res) => res.send("login page"));
 
-    const res = await request(app).get("/");
-    expect(res.status).toBe(302);
-    expect(res.headers["location"]).toBe("/auth/login");
+    const [homeRes, loginRes] = await Promise.all([
+      request(app).get("/"),
+      request(app).get("/login"),
+    ]);
+
+    expect(homeRes.status).toBe(200);
+    expect(loginRes.status).toBe(200);
   });
 });

@@ -34,7 +34,7 @@ function isPreferencePayload(value: unknown): value is PreferencePayload {
   const o = value as Record<string, unknown>;
   return (
     typeof o.introSeen === "boolean" &&
-    (o.locale === "en" || o.locale === "he") &&
+    typeof o.locale === "string" && ["en", "he", "ru", "fr", "es"].includes(o.locale) &&
     typeof o.boardTheme === "string" &&
     typeof o.pieceSet === "string" &&
     typeof o.lobbyColor === "string" &&
@@ -68,7 +68,7 @@ beforeAll(() => {
       }
       res.json({
         introSeen: doc.introSeen,
-        locale: doc.locale === "he" ? "he" : "en",
+        locale: doc.locale ?? "en",
         boardTheme: doc.boardTheme,
         pieceSet: doc.pieceSet,
         lobbyColor: doc.lobbyColor,
@@ -101,7 +101,8 @@ beforeAll(() => {
         if (key in req.body) {
           if (key === "locale") {
             const v = (req.body as Record<string, unknown>)["locale"];
-            if (v === "en" || v === "he") {
+            const validLocales = ["en", "he", "ru", "fr", "es"];
+            if (typeof v === "string" && validLocales.includes(v)) {
               update[key] = v;
             }
           } else {

@@ -24,8 +24,6 @@ const MAX_WIDTH = 600;
 const MAX_HEIGHT = 600;
 const DEFAULT_WIDTH = 380;
 const DEFAULT_HEIGHT = 440;
-const STORAGE_KEY = "chat-layout";
-
 function clampLayout(l: ChatLayout): ChatLayout {
   const w = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, l.width));
   const h = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, l.height));
@@ -39,43 +37,13 @@ function clampLayout(l: ChatLayout): ChatLayout {
   };
 }
 
-function loadLayout(): ChatLayout {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const p: unknown = JSON.parse(raw);
-      if (
-        p &&
-        typeof p === "object" &&
-        "x" in p &&
-        "y" in p &&
-        "width" in p &&
-        "height" in p &&
-        typeof (p as ChatLayout).x === "number" &&
-        typeof (p as ChatLayout).y === "number" &&
-        typeof (p as ChatLayout).width === "number" &&
-        typeof (p as ChatLayout).height === "number"
-      ) {
-        return clampLayout(p as ChatLayout);
-      }
-    }
-  } catch {
-    /* ignore */
-  }
+function defaultLayout(): ChatLayout {
   return {
     x: window.innerWidth - DEFAULT_WIDTH - 16,
     y: window.innerHeight - DEFAULT_HEIGHT - 16,
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT,
   };
-}
-
-function saveLayout(layout: ChatLayout): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
-  } catch {
-    /* ignore */
-  }
 }
 
 const ChatIcon = () => (
@@ -96,7 +64,7 @@ export default function GameChat(props: Props) {
   const [isOpen, setIsOpen] = useState(true);
   const [hasUnread, setHasUnread] = useState(false);
   const [inputText, setInputText] = useState("");
-  const [layout, setLayout] = useState<ChatLayout>(loadLayout);
+  const [layout, setLayout] = useState<ChatLayout>(defaultLayout);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
@@ -138,7 +106,7 @@ export default function GameChat(props: Props) {
       if (dragRef.current || resizeRef.current) {
         dragRef.current = null;
         resizeRef.current = null;
-        saveLayout(layoutRef.current);
+        /* layout kept in memory only */
       }
     };
 

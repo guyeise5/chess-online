@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 
 /** Mirrors `Introduction.tsx` when both online count and connection status are enabled. */
-const TOTAL_STEPS_ALL = 11;
+const TOTAL_STEPS_ALL = 12;
 
 /** Mirrors `Introduction.tsx` when `FEATURE_ONLINE_PLAYER_COUNT === "false"` but connection status on. */
-const TOTAL_STEPS_WITHOUT_ONLINE = 10;
+const TOTAL_STEPS_WITHOUT_ONLINE = 11;
 
 /** Mirrors `Introduction.tsx` when both online count and connection status are disabled. */
-const TOTAL_STEPS_MINIMAL = 9;
+const TOTAL_STEPS_MINIMAL = 10;
 
 describe("Introduction - introSeen preference tracking", () => {
   it("new user has introSeen = false", () => {
@@ -75,7 +75,7 @@ describe("Introduction - step navigation", () => {
 
   it("last step index is TOTAL_STEPS_ALL - 1", () => {
     const lastStep = TOTAL_STEPS_ALL - 1;
-    expect(lastStep).toBe(10);
+    expect(lastStep).toBe(11);
   });
 
   it("isLast is true only on final step", () => {
@@ -100,6 +100,7 @@ describe("Introduction - step navigation", () => {
 describe("Introduction - step content and selectors", () => {
   /** i18n keys for step titles (English copy lives in `client/src/i18n/en.ts`). */
   const stepTitleKeys = [
+    "intro.language.title",
     "intro.welcome.title",
     "intro.playOnline.title",
     "intro.onlineCount.title",
@@ -114,6 +115,7 @@ describe("Introduction - step content and selectors", () => {
   ];
 
   const stepSelectors: (string | undefined)[] = [
+    undefined,
     undefined,
     "[data-tour='nav-play']",
     "[data-tour='online-count']",
@@ -132,9 +134,14 @@ describe("Introduction - step content and selectors", () => {
     expect(stepSelectors).toHaveLength(TOTAL_STEPS_ALL);
   });
 
-  it("first step is the welcome (no target element)", () => {
-    expect(stepTitleKeys[0]).toBe("intro.welcome.title");
+  it("first step is the language picker (no target element)", () => {
+    expect(stepTitleKeys[0]).toBe("intro.language.title");
     expect(stepSelectors[0]).toBeUndefined();
+  });
+
+  it("second step is the welcome (no target element)", () => {
+    expect(stepTitleKeys[1]).toBe("intro.welcome.title");
+    expect(stepSelectors[1]).toBeUndefined();
   });
 
   it("last step is board customization", () => {
@@ -142,14 +149,14 @@ describe("Introduction - step content and selectors", () => {
   });
 
   it("all steps after welcome have a target selector", () => {
-    for (let i = 1; i < stepSelectors.length; i++) {
+    for (let i = 2; i < stepSelectors.length; i++) {
       expect(stepSelectors[i]).toBeDefined();
       expect(typeof stepSelectors[i]).toBe("string");
     }
   });
 
   it("contains all expected topic keys", () => {
-    const topicKeys = stepTitleKeys.slice(1);
+    const topicKeys = stepTitleKeys.slice(2);
     for (const k of topicKeys) {
       expect(stepTitleKeys).toContain(k);
     }
@@ -166,6 +173,7 @@ describe("Introduction - step content and selectors", () => {
 
 describe("Introduction - step list when online player count feature is off", () => {
   const stepTitleKeysNoOnline = [
+    "intro.language.title",
     "intro.welcome.title",
     "intro.playOnline.title",
     "intro.connection.title",
@@ -179,6 +187,7 @@ describe("Introduction - step list when online player count feature is off", () 
   ];
 
   const stepSelectorsNoOnline: (string | undefined)[] = [
+    undefined,
     undefined,
     "[data-tour='nav-play']",
     "[data-tour='connection-status']",
@@ -199,6 +208,7 @@ describe("Introduction - step list when online player count feature is off", () 
 
 describe("Introduction - step list when both optional NavBar features are off", () => {
   const stepTitleKeysMinimal = [
+    "intro.language.title",
     "intro.welcome.title",
     "intro.playOnline.title",
     "intro.time.title",

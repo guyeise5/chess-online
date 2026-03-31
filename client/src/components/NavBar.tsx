@@ -50,6 +50,7 @@ export default function NavBar({ displayName, onChangeName, onOpenSettings, inAc
   const flags = getEnv();
   const showGameHistory = flags.FEATURE_GAME_HISTORY !== "false";
   const showBoardSettings = flags.FEATURE_BOARD_SETTINGS !== "false";
+  const samlEnabled = flags.FEATURE_SAML_AUTH === "true";
   const showOnlinePlayerCount = flags.FEATURE_ONLINE_PLAYER_COUNT !== "false";
   const showConnectionStatus = flags.FEATURE_CONNECTION_STATUS !== "false";
   const onlinePlayerCount = useOnlinePlayerCount();
@@ -130,6 +131,11 @@ export default function NavBar({ displayName, onChangeName, onOpenSettings, inAc
             {onChangeName && (
               <button type="button" className={styles['changeNameBtn']} onClick={onChangeName}>
                 {t("nav.change")}
+              </button>
+            )}
+            {samlEnabled && (
+              <button type="button" className={styles['changeNameBtn']} onClick={() => { window.location.href = "/auth/logout"; }}>
+                {t("nav.logout")}
               </button>
             )}
           </div>

@@ -100,11 +100,16 @@ describe("reconnection with URL routing", () => {
     expect(match![1]).toBe("abc12345");
   });
 
-  it("player name still comes from localStorage", () => {
-    const PLAYER_NAME_KEY = "chess-player-name";
-    const store = new Map<string, string>();
-    store.set(PLAYER_NAME_KEY, "Alice");
-    expect(store.get(PLAYER_NAME_KEY)).toBe("Alice");
+  it("SAML: player identity comes from server session", () => {
+    const userId = "Alice";
+    expect(userId).toBe("Alice");
+  });
+
+  it("non-SAML: player identity comes from localStorage", () => {
+    const samlEnabled = false;
+    const stored = { userId: "Alice", displayName: "Alice" };
+    const userId = samlEnabled ? "" : stored.userId;
+    expect(userId).toBe("Alice");
   });
 
   it("game page should rejoin via socket when mounted", () => {

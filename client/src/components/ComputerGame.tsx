@@ -57,44 +57,8 @@ function findKingSquare(game: Chess): string | null {
   return null;
 }
 
-const STORAGE_KEY = "chess-computer-game";
-
-interface SavedGame {
-  level: number;
-  color: "white" | "black";
-  fen: string;
-  status: "playing" | "finished";
-  result: string | null;
-  gameOverReason: string | null;
-  moves: string[];
-  lastMove: { from: string; to: string } | null;
-  analysisId?: string;
-}
-
-function loadGame(): SavedGame | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      typeof parsed.level !== "number" ||
-      !Array.isArray(parsed.moves) ||
-      typeof parsed.fen !== "string"
-    ) return null;
-    return parsed as SavedGame;
-  } catch {
-    return null;
-  }
-}
-
-function saveGame(data: SavedGame) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
 function clearSavedGame() {
-  localStorage.removeItem(STORAGE_KEY);
+  /* no-op: game state is in-memory only */
 }
 
 export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSettings }: Props) {
@@ -106,45 +70,32 @@ export default function ComputerGame({ userId, displayName, boardPrefs, onOpenSe
     color?: "white" | "black";
   };
 
-  const saved = useRef(loadGame()).current;
-  const resuming = saved !== null;
-
-  const level = resuming ? saved!.level : (routeState.level || 3);
-  const color = resuming ? saved!.color : (routeState.color || "white");
+  const level = routeState.level || 3;
+  const color = routeState.color || "white";
 
   const { ready, getMove, stop } = useStockfish(level);
   const levelConfig = getLevelConfig(level);
 
-  const initialFen = resuming ? saved!.fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const initialFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
   const [game, setGame] = useState<Chess>(() => new Chess(initialFen));
   const [fen, setFen] = useState(initialFen);
-  const [status, setStatus] = useState<"playing" | "finished">(resuming ? saved!.status : "playing");
-  const [result, setResult] = useState<string | null>(resuming ? saved!.result : null);
-  const [gameOverReason, setGameOverReason] = useState<string | null>(resuming ? saved!.gameOverReason : null);
-  const [moves, setMoves] = useState<string[]>(resuming ? saved!.moves : []);
+  const [status, setStatus] = useState<"playing" | "finished">("playing");
+  const [result, setResult] = useState<string | null>(null);
+  const [gameOverReason, setGameOverReason] = useState<string | null>(null);
+  const [moves, setMoves] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const moveHandledRef = useRef(false);
   const [pendingPromotion, setPendingPromotion] = useState<{
     from: string;
     to: string;
   } | null>(null);
-  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(resuming ? saved!.lastMove : null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [viewingPly, setViewingPly] = useState<number | null>(null);
   const [computerThinking, setComputerThinking] = useState(false);
-  const [analysisId, setAnalysisId] = useState<string | null>(resuming ? saved!.analysisId ?? null : null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [resignConfirm, setResignConfirm] = useState(false);
   const resignTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Persist game state to localStorage on every meaningful change
-  useEffect(() => {
-    saveGame({
-      level, color,
-      fen, status, result, gameOverReason,
-      moves, lastMove,
-      ...(analysisId != null ? { analysisId } : {}),
-    });
-  }, [level, color, fen, status, result, gameOverReason, moves, lastMove, analysisId]);
 
   const movesEndRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef(game);

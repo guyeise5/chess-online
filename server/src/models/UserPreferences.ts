@@ -23,7 +23,7 @@ const UserPreferencesSchema = new Schema<IUserPreferences>(
     userId: { type: String, required: true, unique: true, index: true },
     displayName: { type: String, default: "" },
     introSeen: { type: Boolean, default: false },
-    locale: { type: String, default: "en", enum: ["en", "he"] },
+    locale: { type: String, default: "en", enum: ["en", "he", "ru", "fr", "es"] },
     boardTheme: { type: String, default: "brown" },
     pieceSet: { type: String, default: "cburnett" },
     lobbyColor: { type: String, default: "random" },

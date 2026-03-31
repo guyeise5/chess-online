@@ -186,81 +186,64 @@ describe("lobby time label formatting", () => {
   });
 });
 
-describe("lobby localStorage persistence", () => {
+describe("lobby preference defaults", () => {
   const MINUTE_STEPS = [0, 0.25, 0.5, ...Array.from({ length: 180 }, (_, i) => i + 1)];
   const INCREMENT_STEPS = Array.from({ length: 181 }, (_, i) => i);
+  const DEFAULT_MIN_IDX = 7;
+  const DEFAULT_INC_IDX = 3;
 
-  let store: Map<string, string>;
-  const getItem = (k: string) => store.get(k) ?? null;
-  const setItem = (k: string, v: string) => store.set(k, v);
-
-  function loadMinIdx(): number {
-    const saved = parseInt(getItem("lobby:customMinIdx") ?? "", 10);
-    return !isNaN(saved) && saved >= 0 && saved < MINUTE_STEPS.length ? saved : MINUTE_STEPS.indexOf(5);
+  function resolveMinIdx(saved: number | undefined): number {
+    if (typeof saved === "number" && saved >= 0 && saved < MINUTE_STEPS.length) return saved;
+    return DEFAULT_MIN_IDX;
   }
 
-  function loadIncIdx(): number {
-    const saved = parseInt(getItem("lobby:customIncIdx") ?? "", 10);
-    return !isNaN(saved) && saved >= 0 && saved < INCREMENT_STEPS.length ? saved : INCREMENT_STEPS.indexOf(3);
+  function resolveIncIdx(saved: number | undefined): number {
+    if (typeof saved === "number" && saved >= 0 && saved < INCREMENT_STEPS.length) return saved;
+    return DEFAULT_INC_IDX;
   }
 
-  function loadColorChoice(): string {
-    const saved = getItem("lobby:colorChoice");
+  function resolveColorChoice(saved: string | undefined): string {
     return saved === "white" || saved === "black" || saved === "random" ? saved : "random";
   }
 
-  beforeEach(() => { store = new Map(); });
-
-  it("defaults minute index to 5 min when nothing stored", () => {
-    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  it("defaults minute index to 7 (5 min)", () => {
+    expect(resolveMinIdx(undefined)).toBe(DEFAULT_MIN_IDX);
   });
 
-  it("defaults increment index to 3s when nothing stored", () => {
-    expect(loadIncIdx()).toBe(INCREMENT_STEPS.indexOf(3));
+  it("defaults increment index to 3", () => {
+    expect(resolveIncIdx(undefined)).toBe(DEFAULT_INC_IDX);
   });
 
-  it("defaults color choice to random when nothing stored", () => {
-    expect(loadColorChoice()).toBe("random");
+  it("defaults color choice to random", () => {
+    expect(resolveColorChoice(undefined)).toBe("random");
   });
 
-  it("restores saved minute index", () => {
-    setItem("lobby:customMinIdx", "10");
-    expect(loadMinIdx()).toBe(10);
+  it("uses saved minute index", () => {
+    expect(resolveMinIdx(10)).toBe(10);
   });
 
-  it("restores saved increment index", () => {
-    setItem("lobby:customIncIdx", "20");
-    expect(loadIncIdx()).toBe(20);
+  it("uses saved increment index", () => {
+    expect(resolveIncIdx(20)).toBe(20);
   });
 
-  it("restores saved color choice", () => {
-    setItem("lobby:colorChoice", "black");
-    expect(loadColorChoice()).toBe("black");
+  it("uses saved color choice", () => {
+    expect(resolveColorChoice("black")).toBe("black");
   });
 
-  it("falls back to default for out-of-range minute index", () => {
-    setItem("lobby:customMinIdx", "9999");
-    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  it("falls back for out-of-range minute index", () => {
+    expect(resolveMinIdx(9999)).toBe(DEFAULT_MIN_IDX);
   });
 
-  it("falls back to default for negative minute index", () => {
-    setItem("lobby:customMinIdx", "-1");
-    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  it("falls back for negative minute index", () => {
+    expect(resolveMinIdx(-1)).toBe(DEFAULT_MIN_IDX);
   });
 
-  it("falls back to default for non-numeric minute index", () => {
-    setItem("lobby:customMinIdx", "abc");
-    expect(loadMinIdx()).toBe(MINUTE_STEPS.indexOf(5));
+  it("falls back for out-of-range increment index", () => {
+    expect(resolveIncIdx(999)).toBe(DEFAULT_INC_IDX);
   });
 
-  it("falls back to default for out-of-range increment index", () => {
-    setItem("lobby:customIncIdx", "999");
-    expect(loadIncIdx()).toBe(INCREMENT_STEPS.indexOf(3));
-  });
-
-  it("falls back to default for invalid color choice", () => {
-    setItem("lobby:colorChoice", "green");
-    expect(loadColorChoice()).toBe("random");
+  it("falls back for invalid color choice", () => {
+    expect(resolveColorChoice("green")).toBe("random");
   });
 });
 
