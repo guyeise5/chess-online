@@ -95,6 +95,7 @@ export interface AppEnv {
   FEATURE_STATS?: string;
   FEATURE_PUZZLE_ANALYSIS?: string;
   FEATURE_CONNECTION_STATUS?: string;
+  FEATURE_REMATCH?: string;
   FEATURE_SAML_AUTH?: string;
 }
 

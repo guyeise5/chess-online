@@ -81,6 +81,8 @@ export const es: Record<string, string> = {
   "game.confirmResign": "Haz clic de nuevo para confirmar la rendición",
   "game.by": "por",
   "game.backToCurrent": "Volver a la partida",
+  "game.rematch": "Revancha",
+  "game.rematchOffered": "Revancha ofrecida",
   "reason.checkmate": "jaque mate",
   "reason.stalemate": "ahogado",
   "reason.drawGeneric": "tablas",

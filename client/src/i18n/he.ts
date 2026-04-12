@@ -81,6 +81,8 @@ export const he: Record<string, string> = {
   "game.confirmResign": "לחצו שוב לאישור כניעה",
   "game.by": "בסיבה",
   "game.backToCurrent": "חזרה למשחק",
+  "game.rematch": "משחק חוזר",
+  "game.rematchOffered": "הוצע משחק חוזר",
   "reason.checkmate": "מט",
   "reason.stalemate": "פט",
   "reason.drawGeneric": "תיקו",

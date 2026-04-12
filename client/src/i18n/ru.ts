@@ -81,6 +81,8 @@ export const ru: Record<string, string> = {
   "game.confirmResign": "Нажмите ещё раз для подтверждения сдачи",
   "game.by": "—",
   "game.backToCurrent": "Вернуться к игре",
+  "game.rematch": "Реванш",
+  "game.rematchOffered": "Реванш предложен",
   "reason.checkmate": "мат",
   "reason.stalemate": "пат",
   "reason.drawGeneric": "ничья",

@@ -378,8 +378,14 @@
   flex-shrink: 0;
 }
 
-.analyzeBtn {
+.resultActions {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
   margin-top: 0.7rem;
+}
+
+.analyzeBtn {
   padding: 0.79rem 1.575rem;
   border-radius: 7px;
   background: var(--accent);
@@ -392,6 +398,45 @@
 
 .analyzeBtn:hover {
   background: var(--accent-hover);
+}
+
+.rematchBtn {
+  padding: 0.79rem 1.575rem;
+  border-radius: 7px;
+  background: #629924;
+  color: white;
+  font-weight: 600;
+  font-size: 1.49rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.rematchBtn:hover {
+  background: #7ab929;
+}
+
+.rematchBtnPending {
+  background: #555;
+  opacity: 0.85;
+}
+
+.rematchBtnPending:hover {
+  background: #555;
+}
+
+.rematchBtnAccept {
+  background: #3692e7;
+  animation: rematchPulse 1.5s ease-in-out infinite;
+}
+
+.rematchBtnAccept:hover {
+  background: #4a9fec;
+}
+
+@keyframes rematchPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(54, 146, 231, 0.5); }
+  50% { box-shadow: 0 0 12px 4px rgba(54, 146, 231, 0.3); }
 }
 
 .disconnectBanner {

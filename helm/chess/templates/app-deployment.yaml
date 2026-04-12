@@ -72,6 +72,8 @@ spec:
               value: {{ .Values.app.env.FEATURE_PUZZLE_ANALYSIS | quote }}
             - name: FEATURE_CONNECTION_STATUS
               value: {{ .Values.app.env.FEATURE_CONNECTION_STATUS | quote }}
+            - name: FEATURE_REMATCH
+              value: {{ .Values.app.env.FEATURE_REMATCH | quote }}
           readinessProbe:
             httpGet:
               path: /readyz
