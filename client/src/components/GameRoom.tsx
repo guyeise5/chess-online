@@ -123,7 +123,7 @@ export default function GameRoom({ userId, displayName, boardPrefs, onOpenSettin
     setLoading(true);
     socket.emit(
       "room:rejoin",
-      { roomId },
+      { roomId, userId },
       (res: { success: boolean; room?: RoomData }) => {
         setLoading(false);
         if (res?.success && res.room) {

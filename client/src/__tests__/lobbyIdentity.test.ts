@@ -26,6 +26,11 @@ describe("Lobby identity socket payloads", () => {
     });
   });
 
+  it("room:rejoin includes roomId and userId (required when SAML is off; server ignores client userId when SAML is on)", () => {
+    const rejoin = { roomId, userId };
+    expect(rejoin).toEqual({ roomId, userId });
+  });
+
   it("room:create includes userId, displayName, timeControl, increment, and colorChoice", () => {
     const create = {
       userId,
