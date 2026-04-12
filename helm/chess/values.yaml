@@ -32,6 +32,7 @@ app:
     FEATURE_STATS: "true"
     FEATURE_PUZZLE_ANALYSIS: "true"
     FEATURE_CONNECTION_STATUS: "true"
+    FEATURE_REMATCH: "true"
 
 mongodb:
   image:

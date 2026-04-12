@@ -424,6 +424,24 @@ tests:
             name: FEATURE_CONNECTION_STATUS
             value: "false"
 
+  - it: should have default FEATURE_REMATCH as true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_REMATCH
+            value: "true"
+
+  - it: should allow disabling FEATURE_REMATCH
+    set:
+      app.env.FEATURE_REMATCH: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FEATURE_REMATCH
+            value: "false"
+
   - it: should have readiness probe on /readyz
     asserts:
       - equal:

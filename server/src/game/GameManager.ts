@@ -35,6 +35,7 @@ export class GameManager {
   private drawOffers: Map<string, DrawOfferState> = new Map();
   private drawOfferCooldowns: Map<string, DrawOfferState> = new Map();
   private disconnectTimers: Map<string, DisconnectState> = new Map();
+  private rematchOffers: Map<string, string> = new Map();
 
   constructor(io: Server) {
     this.io = io;
@@ -626,6 +627,109 @@ export class GameManager {
     return this.disconnectTimers.get(roomId);
   }
 
+  async offerRematch(
+    roomId: string,
+    userId: string
+  ): Promise<{ success: boolean; newRoomId?: string; error?: string }> {
+    if (process.env["FEATURE_REMATCH"] === "false") {
+      return { success: false, error: "Feature disabled" };
+    }
+
+    const room = await Room.findOne({ roomId });
+    if (!room || room.status !== "finished") {
+      return { success: false, error: "Game not finished" };
+    }
+
+    const isPlayer =
+      room.whitePlayer === userId || room.blackPlayer === userId;
+    if (!isPlayer) {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    const existingOffer = this.rematchOffers.get(roomId);
+
+    if (existingOffer === userId) {
+      return { success: true };
+    }
+
+    if (existingOffer && existingOffer !== userId) {
+      return this.createRematchRoom(roomId, room);
+    }
+
+    this.rematchOffers.set(roomId, userId);
+    this.io.to(roomId).emit("game:rematch-offer", { userId });
+    return { success: true };
+  }
+
+  private async createRematchRoom(
+    originalRoomId: string,
+    originalRoom: IRoom
+  ): Promise<{ success: boolean; newRoomId?: string; error?: string }> {
+    this.rematchOffers.delete(originalRoomId);
+
+    const newRoomId = uuidv4().slice(0, 8);
+    const timeFormat = deriveTimeFormat(
+      originalRoom.timeControl,
+      originalRoom.timeIncrement
+    );
+    const chatMessages: IChatMessage[] =
+      process.env["FEATURE_GAME_CHAT"] !== "false"
+        ? [
+            {
+              type: "system",
+              text: "Game started — good luck!",
+              timestamp: Date.now(),
+            },
+          ]
+        : [];
+
+    const newRoom = new Room({
+      roomId: newRoomId,
+      owner: originalRoom.owner,
+      ownerName: originalRoom.ownerName,
+      opponent: originalRoom.opponent,
+      opponentName: originalRoom.opponentName,
+      timeFormat,
+      timeControl: originalRoom.timeControl,
+      timeIncrement: originalRoom.timeIncrement,
+      colorChoice: "random",
+      isPrivate: false,
+      status: "playing",
+      whitePlayer: originalRoom.blackPlayer,
+      whiteName: originalRoom.blackName,
+      blackPlayer: originalRoom.whitePlayer,
+      blackName: originalRoom.whiteName,
+      whiteTime: originalRoom.timeControl,
+      blackTime: originalRoom.timeControl,
+      lastMoveAt: new Date(),
+      chatMessages,
+    });
+
+    await newRoom.save();
+
+    const chess = new Chess();
+    this.games.set(newRoomId, chess);
+    this.startTimer(newRoomId);
+
+    this.io
+      .to(originalRoomId)
+      .emit("game:rematch-start", { roomId: newRoomId });
+    this.broadcastRooms();
+
+    return { success: true, newRoomId };
+  }
+
+  cancelRematch(roomId: string): void {
+    if (this.rematchOffers.has(roomId)) {
+      this.rematchOffers.delete(roomId);
+      this.io.to(roomId).emit("game:rematch-cancelled");
+    }
+  }
+
+  getRematchOffer(roomId: string): string | undefined {
+    return this.rematchOffers.get(roomId);
+  }
+
   private async pushChatMessage(
     roomId: string,
     msg: IChatMessage
@@ -745,6 +849,7 @@ export class GameManager {
     this.disconnectTimers.clear();
     this.drawOffers.clear();
     this.drawOfferCooldowns.clear();
+    this.rematchOffers.clear();
   }
 
   private async saveGameRecord(room: IRoom): Promise<void> {
