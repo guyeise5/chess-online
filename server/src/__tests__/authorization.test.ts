@@ -588,4 +588,27 @@ describe("Socket handlers work without auth (samlEnabled=false)", () => {
 
     client.disconnect();
   });
+
+  it("rejects room:rejoin without userId in payload when samlEnabled=false", async () => {
+    const client = connectClient();
+    await waitForConnect(client);
+
+    const createRes = await emitWithAck(client, "room:create", {
+      userId: "player1",
+      displayName: "Player 1",
+      timeControl: 300,
+      increment: 0,
+      colorChoice: "random",
+    });
+    expect(createRes).toEqual(expect.objectContaining({ success: true }));
+    const roomId = (createRes as { room: { roomId: string } }).room.roomId;
+
+    const rejoinRes = await emitWithAck(client, "room:rejoin", { roomId });
+
+    expect(rejoinRes).toEqual(
+      expect.objectContaining({ success: false, error: "Invalid payload" })
+    );
+
+    client.disconnect();
+  });
 });
